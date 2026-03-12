@@ -58,14 +58,14 @@ export default function ProjectDetail() {
   const handleCreateTask = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
-    const { error } = await supabase.from("tasks").insert({
-      project_id: id,
+    const { error } = await supabase.from("tasks").insert([{
+      project_id: id!,
       title: f.get("title") as string,
       description: f.get("description") as string,
-      priority: f.get("priority") as string || "medium",
-      status: "todo",
+      priority: (f.get("priority") as "low" | "medium" | "high" | "urgent") || "medium",
+      status: "todo" as const,
       created_by: user!.id,
-    });
+    }]);
     if (error) { toast.error(error.message); return; }
     toast.success("Task created");
     setTaskDialog(false);
