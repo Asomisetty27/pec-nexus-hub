@@ -12,8 +12,10 @@ interface Profile {
   bio: string;
   skills: string[];
   cal_poly_email: string | null;
+  phone: string | null;
   major: string | null;
   graduation_year: number | null;
+  linkedin_url: string | null;
   status: string;
   onboarding_completed: boolean;
 }
