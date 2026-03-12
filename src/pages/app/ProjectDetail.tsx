@@ -73,7 +73,7 @@ export default function ProjectDetail() {
   };
 
   const updateTaskStatus = async (taskId: string, status: string) => {
-    await supabase.from("tasks").update({ status }).eq("id", taskId);
+    await supabase.from("tasks").update({ status: status as "todo" | "in_progress" | "review" | "done" }).eq("id", taskId);
     fetchAll();
   };
 

@@ -38,7 +38,7 @@ export default function CRM() {
   useEffect(() => { fetchAll(); }, []);
 
   const updateLeadStage = async (leadId: string, stage: string) => {
-    await supabase.from("leads").update({ stage }).eq("id", leadId);
+    await supabase.from("leads").update({ stage: stage as "new" | "contacted" | "scoping" | "proposed" | "signed" | "active" | "completed" | "lost" }).eq("id", leadId);
     fetchAll();
     toast.success("Lead updated");
   };

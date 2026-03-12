@@ -44,15 +44,15 @@ export default function Events() {
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
-    const { error } = await supabase.from("events").insert({
+    const { error } = await supabase.from("events").insert([{
       title: f.get("title") as string,
       description: f.get("description") as string,
-      event_type: f.get("type") as string || "other",
+      event_type: (f.get("type") as "workshop" | "meeting" | "competition" | "social" | "presentation" | "other") || "other",
       location: f.get("location") as string,
       start_time: f.get("start_time") as string,
-      is_public: f.get("is_public") === "true",
+      is_public: false,
       created_by: user!.id,
-    });
+    }]);
     if (error) { toast.error(error.message); return; }
     toast.success("Event created");
     setDialogOpen(false);
