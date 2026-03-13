@@ -1,12 +1,12 @@
-import { Bell, Search } from "lucide-react";
+import { Bell, Search, Command } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 
 export function AppTopBar() {
   const { user } = useAuth();
@@ -36,22 +36,39 @@ export function AppTopBar() {
   }, [user]);
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-card/80 backdrop-blur-md px-4">
+    <header className="sticky top-0 z-40 flex h-12 items-center gap-3 border-b bg-background/80 backdrop-blur-xl px-4">
       <SidebarTrigger className="shrink-0" />
-      <div className="flex flex-1 items-center gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search... (⌘K)" className="pl-9 h-9 bg-muted/50 border-0" readOnly />
-        </div>
+
+      <button
+        className="flex flex-1 max-w-sm items-center gap-2 rounded-lg border border-border/50 bg-muted/30 px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
+        onClick={() => {/* Command palette placeholder */}}
+      >
+        <Search className="h-3.5 w-3.5" />
+        <span className="flex-1 text-left text-xs">Search everything...</span>
+        <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded border bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
+          <Command className="h-2.5 w-2.5" />K
+        </kbd>
+      </button>
+
+      <div className="flex items-center gap-1">
+        <Button variant="ghost" size="icon" className="relative h-8 w-8" onClick={() => navigate("/app/settings")}>
+          <Bell className="h-4 w-4" />
+          <AnimatePresence>
+            {unreadCount > 0 && (
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0 }}
+                className="absolute -top-0.5 -right-0.5"
+              >
+                <Badge className="h-4 min-w-4 p-0 flex items-center justify-center text-[9px] font-mono">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </Badge>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </Button>
       </div>
-      <Button variant="ghost" size="icon" className="relative" onClick={() => navigate("/app/notifications")}>
-        <Bell className="h-4 w-4" />
-        {unreadCount > 0 && (
-          <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px]">
-            {unreadCount > 9 ? "9+" : unreadCount}
-          </Badge>
-        )}
-      </Button>
     </header>
   );
 }
