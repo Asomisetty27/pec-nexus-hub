@@ -6,8 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MessageSquare, Send, Hash, Plus } from "lucide-react";
+import { MessageSquare, Send, Hash, AlertTriangle, CheckCircle2, Lightbulb, Zap } from "lucide-react";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
+
+const typeConfig: Record<string, { icon: any; bg: string; border: string }> = {
+  update: { icon: Zap, bg: "bg-accent/5", border: "border-l-accent" },
+  blocker: { icon: AlertTriangle, bg: "bg-destructive/5", border: "border-l-destructive" },
+  decision: { icon: Lightbulb, bg: "bg-warning/5", border: "border-l-warning" },
+  action: { icon: CheckCircle2, bg: "bg-success/5", border: "border-l-success" },
+  message: { icon: MessageSquare, bg: "", border: "border-l-transparent" },
+};
 
 export default function Messages() {
   const { user } = useAuth();
@@ -59,74 +68,88 @@ export default function Messages() {
     setNewMessage("");
   };
 
-  const typeColors: Record<string, string> = {
-    update: "bg-primary/10 border-primary/30",
-    blocker: "bg-destructive/10 border-destructive/30",
-    decision: "bg-accent/10 border-accent/30",
-    action: "bg-success/10 border-success/30",
-    message: "",
-  };
+  const selectedChannelData = channels.find(c => c.id === selectedChannel);
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] gap-4">
+    <div className="flex h-[calc(100vh-7rem)] gap-4">
       {/* Channel list */}
-      <div className="w-64 shrink-0 space-y-2 hidden md:block">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="font-display text-lg font-bold">Channels</h2>
-        </div>
+      <div className="w-56 shrink-0 space-y-1 hidden md:block overflow-auto">
+        <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground px-2 mb-2">Channels</p>
         {channels.length === 0 ? (
-          <p className="text-sm text-muted-foreground p-2">No channels yet. Admin can create channels.</p>
+          <p className="text-xs text-muted-foreground p-2">No channels yet.</p>
         ) : (
           channels.map(ch => (
-            <button
+            <motion.button
               key={ch.id}
+              whileHover={{ x: 2 }}
               onClick={() => setSelectedChannel(ch.id)}
-              className={`w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
-                selectedChannel === ch.id ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+              className={`w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all ${
+                selectedChannel === ch.id ? "bg-accent/10 text-foreground border border-accent/20" : "hover:bg-muted/50 text-muted-foreground"
               }`}
             >
-              <Hash className="h-4 w-4 shrink-0" />
-              <span className="truncate">{ch.name}</span>
-            </button>
+              <Hash className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate text-xs">{ch.name}</span>
+            </motion.button>
           ))
         )}
       </div>
 
       {/* Messages area */}
-      <Card className="flex-1 flex flex-col">
-        <CardHeader className="border-b py-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Hash className="h-4 w-4" />
-            {channels.find(c => c.id === selectedChannel)?.name || "Select a channel"}
-          </CardTitle>
+      <Card className="flex-1 flex flex-col overflow-hidden">
+        <CardHeader className="border-b py-3 px-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
+              <Hash className="h-3.5 w-3.5 text-accent" />
+              {selectedChannelData?.name || "Select a channel"}
+            </CardTitle>
+            {selectedChannelData?.description && (
+              <span className="text-[10px] text-muted-foreground truncate max-w-xs">{selectedChannelData.description}</span>
+            )}
+          </div>
         </CardHeader>
-        <CardContent className="flex-1 overflow-auto p-4 space-y-3">
+        <CardContent className="flex-1 overflow-auto p-4 space-y-2">
           {!selectedChannel ? (
             <div className="flex items-center justify-center h-full text-muted-foreground">
-              <MessageSquare className="mr-2 h-5 w-5" /> Select a channel to start messaging
+              <MessageSquare className="mr-2 h-5 w-5" /> Select a channel
             </div>
           ) : messages.length === 0 ? (
-            <p className="text-center text-sm text-muted-foreground py-8">No messages yet. Start the conversation!</p>
+            <p className="text-center text-xs text-muted-foreground py-8">No messages yet. Start the conversation!</p>
           ) : (
-            messages.map((msg: any) => (
-              <div key={msg.id} className={`rounded-lg p-3 ${typeColors[msg.message_type] || ""} ${msg.author_id === user?.id ? "ml-8" : "mr-8"}`}>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-medium">{(msg.profiles as any)?.full_name || "Unknown"}</span>
-                  {msg.message_type !== "message" && (
-                    <Badge variant="outline" className="text-[10px]">{msg.message_type}</Badge>
-                  )}
-                  <span className="text-[10px] text-muted-foreground ml-auto">{new Date(msg.created_at).toLocaleTimeString()}</span>
-                </div>
-                <p className="text-sm">{msg.content}</p>
-              </div>
-            ))
+            <AnimatePresence initial={false}>
+              {messages.map((msg: any) => {
+                const config = typeConfig[msg.message_type] || typeConfig.message;
+                const TypeIcon = config.icon;
+                const isOwn = msg.author_id === user?.id;
+                return (
+                  <motion.div
+                    key={msg.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className={`rounded-lg p-3 border-l-2 ${config.bg} ${config.border} ${isOwn ? "ml-12" : "mr-12"}`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-semibold">{(msg.profiles as any)?.full_name || "Unknown"}</span>
+                      {msg.message_type !== "message" && (
+                        <Badge variant="outline" className="text-[9px] font-mono gap-1 py-0">
+                          <TypeIcon className="h-2.5 w-2.5" />
+                          {msg.message_type}
+                        </Badge>
+                      )}
+                      <span className="text-[10px] text-muted-foreground font-mono ml-auto">{new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                    </div>
+                    <p className="text-sm leading-relaxed">{msg.content}</p>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
           )}
           <div ref={messagesEndRef} />
         </CardContent>
         {selectedChannel && (
-          <div className="border-t p-3 flex gap-2">
+          <div className="border-t p-3 flex gap-2 bg-card">
             <Select value={msgType} onValueChange={setMsgType}>
-              <SelectTrigger className="w-32 h-9"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-28 h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="message">Message</SelectItem>
                 <SelectItem value="update">Update</SelectItem>
@@ -139,10 +162,12 @@ export default function Messages() {
               value={newMessage}
               onChange={e => setNewMessage(e.target.value)}
               placeholder="Type a message..."
-              className="flex-1 h-9"
+              className="flex-1 h-8 text-sm"
               onKeyDown={e => e.key === "Enter" && sendMessage()}
             />
-            <Button size="sm" onClick={sendMessage}><Send className="h-4 w-4" /></Button>
+            <Button size="sm" className="h-8 w-8 p-0" onClick={sendMessage}>
+              <Send className="h-3.5 w-3.5" />
+            </Button>
           </div>
         )}
       </Card>

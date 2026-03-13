@@ -71,6 +71,33 @@ export type Database = {
         }
         Relationships: []
       }
+      badges: {
+        Row: {
+          created_at: string
+          criteria: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          criteria?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          criteria?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       channel_members: {
         Row: {
           channel_id: string
@@ -137,6 +164,65 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      cohort_memberships: {
+        Row: {
+          cohort_id: string
+          id: string
+          joined_at: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          cohort_id: string
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          cohort_id?: string
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cohort_memberships_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cohorts: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
       competition_applications: {
         Row: {
@@ -645,6 +731,82 @@ export type Database = {
           },
         ]
       }
+      lab_manuals: {
+        Row: {
+          cohort_id: string
+          created_at: string
+          description: string | null
+          id: string
+          title: string
+          version: number
+        }
+        Insert: {
+          cohort_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          title: string
+          version?: number
+        }
+        Update: {
+          cohort_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          title?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lab_manuals_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lab_steps: {
+        Row: {
+          content: string | null
+          created_at: string
+          id: string
+          manual_id: string
+          order_index: number
+          required_submission_type: string | null
+          templates: Json | null
+          title: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          manual_id: string
+          order_index?: number
+          required_submission_type?: string | null
+          templates?: Json | null
+          title: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          manual_id?: string
+          order_index?: number
+          required_submission_type?: string | null
+          templates?: Json | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lab_steps_manual_id_fkey"
+            columns: ["manual_id"]
+            isOneToOne: false
+            referencedRelation: "lab_manuals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           assigned_to: string | null
@@ -874,6 +1036,50 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mock_projects: {
+        Row: {
+          cohort_id: string
+          created_at: string
+          deliverables_desc: string | null
+          id: string
+          objectives: string | null
+          rubric: Json | null
+          scenario: string | null
+          status: string
+          title: string
+        }
+        Insert: {
+          cohort_id: string
+          created_at?: string
+          deliverables_desc?: string | null
+          id?: string
+          objectives?: string | null
+          rubric?: Json | null
+          scenario?: string | null
+          status?: string
+          title: string
+        }
+        Update: {
+          cohort_id?: string
+          created_at?: string
+          deliverables_desc?: string | null
+          id?: string
+          objectives?: string | null
+          rubric?: Json | null
+          scenario?: string | null
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mock_projects_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts"
             referencedColumns: ["id"]
           },
         ]
@@ -1277,6 +1483,44 @@ export type Database = {
           },
         ]
       }
+      reviews: {
+        Row: {
+          comments: string | null
+          id: string
+          reviewed_at: string
+          reviewer_id: string
+          rubric_scores: Json | null
+          status: string
+          submission_id: string
+        }
+        Insert: {
+          comments?: string | null
+          id?: string
+          reviewed_at?: string
+          reviewer_id: string
+          rubric_scores?: Json | null
+          status?: string
+          submission_id: string
+        }
+        Update: {
+          comments?: string | null
+          id?: string
+          reviewed_at?: string
+          reviewer_id?: string
+          rubric_scores?: Json | null
+          status?: string
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       risks: {
         Row: {
           created_at: string
@@ -1401,6 +1645,50 @@ export type Database = {
           },
         ]
       }
+      submissions: {
+        Row: {
+          content: string | null
+          file_url: string | null
+          id: string
+          link_url: string | null
+          status: string
+          step_id: string
+          submitted_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          file_url?: string | null
+          id?: string
+          link_url?: string | null
+          status?: string
+          step_id: string
+          submitted_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string | null
+          file_url?: string | null
+          id?: string
+          link_url?: string | null
+          status?: string
+          step_id?: string
+          submitted_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submissions_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "lab_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           assignee_id: string | null
@@ -1450,6 +1738,90 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      track_assignments: {
+        Row: {
+          assigned_at: string
+          id: string
+          track_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          id?: string
+          track_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          id?: string
+          track_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "track_assignments_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tracks: {
+        Row: {
+          cohort_id: string
+          id: string
+          name: string
+        }
+        Insert: {
+          cohort_id: string
+          id?: string
+          name?: string
+        }
+        Update: {
+          cohort_id?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracks_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_badges: {
+        Row: {
+          awarded_at: string
+          badge_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          awarded_at?: string
+          badge_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          awarded_at?: string
+          badge_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_badges_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "badges"
             referencedColumns: ["id"]
           },
         ]

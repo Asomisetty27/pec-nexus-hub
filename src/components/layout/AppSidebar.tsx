@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, FolderKanban, MessageSquare, Users, CalendarDays,
   Trophy, Briefcase, GraduationCap, FileText, BarChart3, Shield,
-  Building2, Megaphone, Settings, LogOut, ChevronDown,
+  Building2, Megaphone, Settings, LogOut, Beaker, Cpu,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -16,7 +16,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
 const mainNav = [
-  { title: "Dashboard", url: "/app", icon: LayoutDashboard },
+  { title: "Mission Control", url: "/app", icon: LayoutDashboard },
+  { title: "Cohort Hub", url: "/app/cohort", icon: Cpu },
   { title: "Projects", url: "/app/projects", icon: FolderKanban },
   { title: "Messages", url: "/app/messages", icon: MessageSquare },
   { title: "Events", url: "/app/events", icon: CalendarDays },
@@ -50,7 +51,7 @@ export function AppSidebar() {
     items.map((item) => (
       <SidebarMenuItem key={item.url}>
         <SidebarMenuButton asChild isActive={isActive(item.url)}>
-          <NavLink to={item.url} end={item.url === "/app"} className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
+          <NavLink to={item.url} end={item.url === "/app"} className="hover:bg-sidebar-accent/50 transition-all duration-150" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
             <item.icon className="h-4 w-4 shrink-0" />
             {!collapsed && <span>{item.title}</span>}
           </NavLink>
@@ -65,19 +66,22 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2" onClick={() => navigate("/app")} role="button">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary">
+        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/app")} role="button">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sidebar-primary shadow-lg shadow-sidebar-primary/20">
             <span className="font-display text-sm font-bold text-sidebar-primary-foreground">P</span>
           </div>
           {!collapsed && (
-            <span className="font-display text-lg font-bold text-sidebar-foreground">PEC Nexus</span>
+            <div className="flex flex-col">
+              <span className="font-display text-base font-bold text-sidebar-foreground leading-tight">PEC Nexus</span>
+              <span className="text-[10px] text-sidebar-foreground/50 font-mono uppercase tracking-wider">Mission Control</span>
+            </div>
           )}
         </div>
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Main</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[10px] uppercase tracking-wider font-mono">Core</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>{renderItems(mainNav)}</SidebarMenu>
           </SidebarGroupContent>
@@ -85,7 +89,7 @@ export function AppSidebar() {
 
         {(isBoardOrAdmin || highestRole !== "applicant") && (
           <SidebarGroup>
-            <SidebarGroupLabel>Organization</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-[10px] uppercase tracking-wider font-mono">Organization</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>{renderItems(orgNav)}</SidebarMenu>
             </SidebarGroupContent>
@@ -94,7 +98,7 @@ export function AppSidebar() {
 
         {isAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel>Administration</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-[10px] uppercase tracking-wider font-mono">Admin</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>{renderItems(adminNav)}</SidebarMenu>
             </SidebarGroupContent>
@@ -105,19 +109,24 @@ export function AppSidebar() {
       <SidebarFooter className="p-3">
         <Separator className="mb-3 bg-sidebar-border" />
         <div className="flex items-center gap-2">
-          <Avatar className="h-8 w-8 shrink-0">
-            <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground text-xs">{initials}</AvatarFallback>
+          <Avatar className="h-8 w-8 shrink-0 ring-2 ring-sidebar-primary/30">
+            <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground text-xs font-bold">{initials}</AvatarFallback>
           </Avatar>
           {!collapsed && (
             <div className="flex flex-1 flex-col overflow-hidden">
               <span className="truncate text-sm font-medium text-sidebar-foreground">{profile?.full_name || "User"}</span>
-              <Badge variant="outline" className="w-fit text-[10px] border-sidebar-border text-sidebar-foreground/70">{highestRole}</Badge>
+              <span className="text-[10px] font-mono text-sidebar-foreground/50 uppercase">{highestRole}</span>
             </div>
           )}
           {!collapsed && (
-            <button onClick={signOut} className="text-sidebar-foreground/50 hover:text-sidebar-foreground transition-colors" title="Sign out">
-              <LogOut className="h-4 w-4" />
-            </button>
+            <div className="flex gap-1">
+              <button onClick={() => navigate("/app/settings")} className="text-sidebar-foreground/50 hover:text-sidebar-foreground transition-colors p-1" title="Settings">
+                <Settings className="h-3.5 w-3.5" />
+              </button>
+              <button onClick={signOut} className="text-sidebar-foreground/50 hover:text-sidebar-foreground transition-colors p-1" title="Sign out">
+                <LogOut className="h-3.5 w-3.5" />
+              </button>
+            </div>
           )}
         </div>
       </SidebarFooter>

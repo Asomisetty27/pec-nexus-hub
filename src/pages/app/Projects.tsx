@@ -8,10 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, FolderKanban } from "lucide-react";
+import { Plus, Search, FolderKanban, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { motion } from "framer-motion";
+
+const container = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
+const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } };
 
 export default function Projects() {
   const { user, isAdmin } = useAuth();
@@ -47,33 +50,23 @@ export default function Projects() {
     fetchProjects();
   };
 
-  const statusColor: Record<string, string> = {
-    draft: "secondary", active: "default", on_hold: "outline", completed: "default", archived: "secondary",
-  };
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-5xl">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold">Projects</h1>
-          <p className="text-sm text-muted-foreground">{projects.length} projects</p>
+          <p className="text-xs text-muted-foreground font-mono">{projects.length} total</p>
         </div>
         {isAdmin && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button><Plus className="mr-2 h-4 w-4" /> New Project</Button>
+              <Button size="sm" className="gap-2"><Plus className="h-3.5 w-3.5" /> New Project</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Create Project</DialogTitle></DialogHeader>
               <form onSubmit={handleCreate} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Project Name</Label>
-                  <Input name="name" required placeholder="Website Redesign" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Description</Label>
-                  <Textarea name="description" placeholder="Project scope and objectives..." />
-                </div>
+                <div className="space-y-2"><Label>Project Name</Label><Input name="name" required placeholder="Website Redesign" /></div>
+                <div className="space-y-2"><Label>Description</Label><Textarea name="description" placeholder="Project scope and objectives..." /></div>
                 <Button type="submit" className="w-full">Create Project</Button>
               </form>
             </DialogContent>
@@ -81,40 +74,45 @@ export default function Projects() {
         )}
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Search projects..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+        <Input placeholder="Search projects..." className="pl-9 h-9 text-sm" value={search} onChange={e => setSearch(e.target.value)} />
       </div>
 
       {loading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[1,2,3].map(i => <Card key={i} className="h-40 animate-pulse bg-muted/50" />)}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {[1,2,3].map(i => <Card key={i} className="h-36 animate-pulse bg-muted/30" />)}
         </div>
       ) : filtered.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center py-12">
-          <FolderKanban className="h-12 w-12 text-muted-foreground/50 mb-4" />
-          <p className="text-muted-foreground">No projects found</p>
+        <Card className="flex flex-col items-center justify-center py-16">
+          <FolderKanban className="h-10 w-10 text-muted-foreground/30 mb-3" />
+          <p className="text-sm text-muted-foreground">No projects found</p>
         </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <motion.div variants={container} initial="hidden" animate="show" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map(p => (
-            <Card key={p.id} className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate(`/app/projects/${p.id}`)}>
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between">
-                  <CardTitle className="text-base">{p.name}</CardTitle>
-                  <Badge variant={statusColor[p.status] as any || "secondary"} className="text-[10px] shrink-0">{p.status}</Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{p.description || "No description"}</p>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{p.project_memberships?.length || 0} members</span>
-                  {p.organizations?.name && <span>{p.organizations.name}</span>}
-                </div>
-              </CardContent>
-            </Card>
+            <motion.div key={p.id} variants={item}>
+              <Card
+                className="cursor-pointer hover:border-accent/40 transition-all duration-200 group"
+                onClick={() => navigate(`/app/projects/${p.id}`)}
+              >
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <div className="flex items-start justify-between">
+                    <CardTitle className="text-sm font-sans">{p.name}</CardTitle>
+                    <Badge variant="outline" className="text-[9px] font-mono shrink-0">{p.status}</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{p.description || "No description"}</p>
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span className="font-mono">{p.project_memberships?.length || 0} members</span>
+                    <ChevronRight className="h-3 w-3 text-muted-foreground/0 group-hover:text-muted-foreground transition-colors" />
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       )}
     </div>
   );

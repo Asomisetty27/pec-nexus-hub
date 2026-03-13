@@ -3,20 +3,31 @@ import { useAuth } from "@/lib/auth";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { AppTopBar } from "./AppTopBar";
-import { Skeleton } from "@/components/ui/skeleton";
+import { motion } from "framer-motion";
 
 export function AppLayout() {
   const { user, loading } = useAuth();
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary">
-            <span className="font-display text-xl font-bold text-primary-foreground">P</span>
+      <div className="flex h-screen items-center justify-center bg-background bg-grid-subtle">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center gap-4"
+        >
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary glow-accent">
+            <span className="font-display text-2xl font-bold text-primary-foreground">P</span>
           </div>
-          <Skeleton className="h-4 w-32" />
-        </div>
+          <div className="h-1 w-24 rounded-full bg-muted overflow-hidden">
+            <motion.div
+              className="h-full bg-accent rounded-full"
+              initial={{ width: "0%" }}
+              animate={{ width: "100%" }}
+              transition={{ duration: 1.5, ease: "easeInOut" }}
+            />
+          </div>
+        </motion.div>
       </div>
     );
   }
@@ -29,8 +40,14 @@ export function AppLayout() {
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <AppTopBar />
-          <main className="flex-1 overflow-auto p-6">
-            <Outlet />
+          <main className="flex-1 overflow-auto p-6 bg-grid-subtle">
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <Outlet />
+            </motion.div>
           </main>
         </div>
       </div>

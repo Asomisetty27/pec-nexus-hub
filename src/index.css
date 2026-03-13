@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,42 +6,30 @@
 
 @layer base {
   :root {
-    /* PEC Brand — extracted from logo */
-    --background: 43 38% 92%;       /* #F5F1E3 cream */
-    --foreground: 160 38% 16%;      /* #1A3C34 deep teal */
-
-    --card: 40 50% 99%;             /* #FEFDFB surface */
+    --background: 43 38% 92%;
+    --foreground: 160 38% 16%;
+    --card: 40 50% 99%;
     --card-foreground: 160 38% 16%;
-
     --popover: 40 50% 99%;
     --popover-foreground: 160 38% 16%;
-
-    --primary: 160 38% 16%;         /* #1A3C34 deep teal */
+    --primary: 160 38% 16%;
     --primary-foreground: 43 38% 92%;
-
-    --secondary: 160 30% 26%;       /* #2D5A4E forest */
+    --secondary: 160 30% 26%;
     --secondary-foreground: 43 38% 92%;
-
-    --accent: 43 50% 53%;           /* #C4A24E gold */
+    --accent: 43 50% 53%;
     --accent-foreground: 160 38% 16%;
-
-    --muted: 38 25% 88%;            /* #E8E2D4 */
+    --muted: 38 25% 88%;
     --muted-foreground: 160 15% 40%;
-
-    --destructive: 4 63% 46%;       /* #C0392B */
+    --destructive: 4 63% 46%;
     --destructive-foreground: 0 0% 100%;
-
-    --success: 152 46% 33%;         /* #2E7D5B */
+    --success: 152 46% 33%;
     --success-foreground: 0 0% 100%;
-    --warning: 45 75% 46%;          /* #D4A017 */
+    --warning: 45 75% 46%;
     --warning-foreground: 160 38% 16%;
-
     --border: 38 25% 85%;
     --input: 38 25% 85%;
     --ring: 160 38% 16%;
-
     --radius: 0.625rem;
-
     --sidebar-background: 160 38% 16%;
     --sidebar-foreground: 43 38% 92%;
     --sidebar-primary: 43 50% 53%;
@@ -53,39 +41,29 @@
   }
 
   .dark {
-    --background: 164 33% 9%;       /* #0F1F1B */
+    --background: 164 33% 9%;
     --foreground: 43 38% 92%;
-
     --card: 160 30% 12%;
     --card-foreground: 43 38% 92%;
-
     --popover: 160 30% 12%;
     --popover-foreground: 43 38% 92%;
-
-    --primary: 43 50% 53%;          /* Gold becomes primary in dark */
+    --primary: 43 50% 53%;
     --primary-foreground: 164 33% 9%;
-
     --secondary: 160 30% 20%;
     --secondary-foreground: 43 38% 92%;
-
     --accent: 160 38% 16%;
     --accent-foreground: 43 50% 53%;
-
     --muted: 160 20% 16%;
     --muted-foreground: 43 20% 65%;
-
     --destructive: 0 62% 35%;
     --destructive-foreground: 0 0% 100%;
-
     --success: 152 46% 33%;
     --success-foreground: 0 0% 100%;
     --warning: 45 75% 46%;
     --warning-foreground: 164 33% 9%;
-
     --border: 160 20% 18%;
     --input: 160 20% 18%;
     --ring: 43 50% 53%;
-
     --sidebar-background: 164 40% 7%;
     --sidebar-foreground: 43 38% 92%;
     --sidebar-primary: 43 50% 53%;
@@ -107,5 +85,48 @@
   }
   h1, h2, h3 {
     font-family: 'Playfair Display', serif;
+  }
+  code, .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+/* Ambient blueprint grid */
+@layer utilities {
+  .bg-grid {
+    background-image:
+      linear-gradient(hsl(var(--border) / 0.3) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--border) / 0.3) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  .bg-grid-subtle {
+    background-image:
+      linear-gradient(hsl(var(--border) / 0.15) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--border) / 0.15) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  /* Progress ring */
+  .progress-ring {
+    transform: rotate(-90deg);
+  }
+  .progress-ring circle {
+    transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Glass card */
+  .glass {
+    @apply bg-card/60 backdrop-blur-xl border border-border/50;
+  }
+
+  /* Glow accent */
+  .glow-accent {
+    box-shadow: 0 0 20px -5px hsl(var(--accent) / 0.3);
+  }
+
+  /* Smooth scroll container */
+  .scroll-smooth {
+    scroll-behavior: smooth;
   }
 }
