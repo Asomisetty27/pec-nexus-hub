@@ -26,6 +26,9 @@ import Admin from "./pages/app/Admin";
 import Analytics from "./pages/app/Analytics";
 import Announcements from "./pages/app/Announcements";
 import Settings from "./pages/app/Settings";
+import CohortHub from "./pages/app/CohortHub";
+import LabManual from "./pages/app/LabManual";
+import MockProject from "./pages/app/MockProject";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +62,9 @@ const App = () => (
               <Route path="analytics" element={<Analytics />} />
               <Route path="announcements" element={<Announcements />} />
               <Route path="settings" element={<Settings />} />
+              <Route path="cohort" element={<CohortHub />} />
+              <Route path="lab/:id" element={<LabManual />} />
+              <Route path="mock-project/:id" element={<MockProject />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
