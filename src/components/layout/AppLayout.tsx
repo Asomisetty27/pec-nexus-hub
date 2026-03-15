@@ -1,8 +1,9 @@
 import { Outlet, Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { AppTopBar } from "./AppTopBar";
+import { CommandPalette } from "@/components/CommandPalette";
 import { motion } from "framer-motion";
 
 export function AppLayout() {
@@ -40,7 +41,7 @@ export function AppLayout() {
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <AppTopBar />
-          <main className="flex-1 overflow-auto p-6 bg-grid-subtle">
+          <main className="flex-1 overflow-auto p-4 sm:p-6 bg-grid-subtle">
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -51,6 +52,7 @@ export function AppLayout() {
           </main>
         </div>
       </div>
+      <CommandPalette />
     </SidebarProvider>
   );
 }

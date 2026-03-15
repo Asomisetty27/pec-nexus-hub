@@ -479,6 +479,83 @@ export type Database = {
           },
         ]
       }
+      documents: {
+        Row: {
+          author_id: string
+          cohort_id: string | null
+          content: string | null
+          created_at: string
+          doc_type: string
+          folder_id: string | null
+          id: string
+          mock_project_id: string | null
+          project_id: string | null
+          title: string
+          updated_at: string
+          version: number
+          visibility: string
+        }
+        Insert: {
+          author_id: string
+          cohort_id?: string | null
+          content?: string | null
+          created_at?: string
+          doc_type?: string
+          folder_id?: string | null
+          id?: string
+          mock_project_id?: string | null
+          project_id?: string | null
+          title: string
+          updated_at?: string
+          version?: number
+          visibility?: string
+        }
+        Update: {
+          author_id?: string
+          cohort_id?: string | null
+          content?: string | null
+          created_at?: string
+          doc_type?: string
+          folder_id?: string | null
+          id?: string
+          mock_project_id?: string | null
+          project_id?: string | null
+          title?: string
+          updated_at?: string
+          version?: number
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_mock_project_id_fkey"
+            columns: ["mock_project_id"]
+            isOneToOne: false
+            referencedRelation: "mock_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_rsvps: {
         Row: {
           checked_in: boolean
@@ -631,6 +708,68 @@ export type Database = {
           },
         ]
       }
+      folders: {
+        Row: {
+          cohort_id: string | null
+          created_at: string
+          created_by: string
+          id: string
+          mock_project_id: string | null
+          name: string
+          parent_id: string | null
+          project_id: string | null
+        }
+        Insert: {
+          cohort_id?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          mock_project_id?: string | null
+          name: string
+          parent_id?: string | null
+          project_id?: string | null
+        }
+        Update: {
+          cohort_id?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          mock_project_id?: string | null
+          name?: string
+          parent_id?: string | null
+          project_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folders_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folders_mock_project_id_fkey"
+            columns: ["mock_project_id"]
+            isOneToOne: false
+            referencedRelation: "mock_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folders_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       governance_docs: {
         Row: {
           author_id: string
@@ -669,6 +808,63 @@ export type Database = {
           visibility?: Database["public"]["Enums"]["doc_visibility"]
         }
         Relationships: []
+      }
+      help_requests: {
+        Row: {
+          assigned_to: string | null
+          body: string | null
+          cohort_id: string | null
+          created_at: string
+          id: string
+          requester_id: string
+          resolution: string | null
+          resolved_at: string | null
+          status: string
+          step_id: string | null
+          subject: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          body?: string | null
+          cohort_id?: string | null
+          created_at?: string
+          id?: string
+          requester_id: string
+          resolution?: string | null
+          resolved_at?: string | null
+          status?: string
+          step_id?: string | null
+          subject: string
+        }
+        Update: {
+          assigned_to?: string | null
+          body?: string | null
+          cohort_id?: string | null
+          created_at?: string
+          id?: string
+          requester_id?: string
+          resolution?: string | null
+          resolved_at?: string | null
+          status?: string
+          step_id?: string | null
+          subject?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "help_requests_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "help_requests_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "lab_steps"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       judge_assignments: {
         Row: {
@@ -727,6 +923,54 @@ export type Database = {
             columns: ["application_id"]
             isOneToOne: false
             referencedRelation: "competition_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_cards: {
+        Row: {
+          cohort_id: string | null
+          created_at: string
+          created_by: string
+          help_request_id: string | null
+          id: string
+          solution: string
+          tags: string[] | null
+          title: string
+        }
+        Insert: {
+          cohort_id?: string | null
+          created_at?: string
+          created_by: string
+          help_request_id?: string | null
+          id?: string
+          solution: string
+          tags?: string[] | null
+          title: string
+        }
+        Update: {
+          cohort_id?: string | null
+          created_at?: string
+          created_by?: string
+          help_request_id?: string | null
+          id?: string
+          solution?: string
+          tags?: string[] | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_cards_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_cards_help_request_id_fkey"
+            columns: ["help_request_id"]
+            isOneToOne: false
+            referencedRelation: "help_requests"
             referencedColumns: ["id"]
           },
         ]
@@ -1282,6 +1526,53 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_stages: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          due_date: string | null
+          id: string
+          mock_project_id: string
+          name: string
+          order_index: number
+          required_deliverables: Json | null
+          status: string
+          unlocked_at: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          mock_project_id: string
+          name: string
+          order_index?: number
+          required_deliverables?: Json | null
+          status?: string
+          unlocked_at?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          mock_project_id?: string
+          name?: string
+          order_index?: number
+          required_deliverables?: Json | null
+          status?: string
+          unlocked_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_stages_mock_project_id_fkey"
+            columns: ["mock_project_id"]
+            isOneToOne: false
+            referencedRelation: "mock_projects"
             referencedColumns: ["id"]
           },
         ]

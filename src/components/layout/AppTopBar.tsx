@@ -1,4 +1,4 @@
-import { Bell, Search, Command } from "lucide-react";
+import { Bell, Search, Command, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,23 @@ import { motion, AnimatePresence } from "framer-motion";
 export function AppTopBar() {
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"));
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Default to dark mode
+    if (!localStorage.getItem("theme")) {
+      document.documentElement.classList.add("dark");
+      setDark(true);
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const next = !dark;
+    setDark(next);
+    document.documentElement.classList.toggle("dark", next);
+    localStorage.setItem("theme", next ? "dark" : "light");
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -35,13 +51,17 @@ export function AppTopBar() {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
+  const openCommandPalette = () => {
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }));
+  };
+
   return (
     <header className="sticky top-0 z-40 flex h-12 items-center gap-3 border-b bg-background/80 backdrop-blur-xl px-4">
       <SidebarTrigger className="shrink-0" />
 
       <button
         className="flex flex-1 max-w-sm items-center gap-2 rounded-lg border border-border/50 bg-muted/30 px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
-        onClick={() => {/* Command palette placeholder */}}
+        onClick={openCommandPalette}
       >
         <Search className="h-3.5 w-3.5" />
         <span className="flex-1 text-left text-xs">Search everything...</span>
@@ -51,6 +71,9 @@ export function AppTopBar() {
       </button>
 
       <div className="flex items-center gap-1">
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggleTheme} title="Toggle theme">
+          {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </Button>
         <Button variant="ghost" size="icon" className="relative h-8 w-8" onClick={() => navigate("/app/settings")}>
           <Bell className="h-4 w-4" />
           <AnimatePresence>
