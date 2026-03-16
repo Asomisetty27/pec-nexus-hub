@@ -197,6 +197,42 @@ export type Database = {
           },
         ]
       }
+      cohort_roster: {
+        Row: {
+          cohort_name: string
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          matched_at: string | null
+          matched_user_id: string | null
+          role: string
+          title: string | null
+        }
+        Insert: {
+          cohort_name: string
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          matched_at?: string | null
+          matched_user_id?: string | null
+          role?: string
+          title?: string | null
+        }
+        Update: {
+          cohort_name?: string
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          matched_at?: string | null
+          matched_user_id?: string | null
+          role?: string
+          title?: string | null
+        }
+        Relationships: []
+      }
       cohorts: {
         Row: {
           color: string | null
