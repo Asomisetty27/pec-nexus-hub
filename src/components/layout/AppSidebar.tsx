@@ -53,7 +53,7 @@ export function AppSidebar() {
         <SidebarMenuButton asChild isActive={isActive(item.url)}>
           <NavLink to={item.url} end={item.url === "/app"} className="hover:bg-sidebar-accent/50 transition-all duration-150" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
             <item.icon className="h-4 w-4 shrink-0" />
-            {!collapsed && <span>{item.title}</span>}
+            {!collapsed && <span className="text-[13px]">{item.title}</span>}
           </NavLink>
         </SidebarMenuButton>
       </SidebarMenuItem>
@@ -63,17 +63,25 @@ export function AppSidebar() {
     ? profile.full_name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
     : "?";
 
+  const roleLabel = (role: string) => {
+    const labels: Record<string, string> = {
+      superadmin: "Super Admin", admin: "Admin", board_member: "Board",
+      project_lead: "Project Lead", member: "Member", applicant: "Applicant",
+    };
+    return labels[role] || role;
+  };
+
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/app")} role="button">
+        <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => navigate("/app")} role="button">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sidebar-primary shadow-lg shadow-sidebar-primary/20">
             <span className="font-display text-sm font-bold text-sidebar-primary-foreground">P</span>
           </div>
           {!collapsed && (
             <div className="flex flex-col">
               <span className="font-display text-base font-bold text-sidebar-foreground leading-tight">PEC Nexus</span>
-              <span className="text-[10px] text-sidebar-foreground/50 font-mono uppercase tracking-wider">Mission Control</span>
+              <span className="text-[9px] text-sidebar-foreground/40 font-mono uppercase tracking-[0.15em]">Operating System</span>
             </div>
           )}
         </div>
@@ -81,7 +89,7 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-[10px] uppercase tracking-wider font-mono">Core</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[9px] uppercase tracking-[0.15em] font-mono text-sidebar-foreground/40">Core</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>{renderItems(mainNav)}</SidebarMenu>
           </SidebarGroupContent>
@@ -89,7 +97,7 @@ export function AppSidebar() {
 
         {(isBoardOrAdmin || highestRole !== "applicant") && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-[10px] uppercase tracking-wider font-mono">Organization</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-[9px] uppercase tracking-[0.15em] font-mono text-sidebar-foreground/40">Organization</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>{renderItems(orgNav)}</SidebarMenu>
             </SidebarGroupContent>
@@ -98,7 +106,7 @@ export function AppSidebar() {
 
         {isAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-[10px] uppercase tracking-wider font-mono">Admin</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-[9px] uppercase tracking-[0.15em] font-mono text-sidebar-foreground/40">Admin</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>{renderItems(adminNav)}</SidebarMenu>
             </SidebarGroupContent>
@@ -109,21 +117,21 @@ export function AppSidebar() {
       <SidebarFooter className="p-3">
         <Separator className="mb-3 bg-sidebar-border" />
         <div className="flex items-center gap-2">
-          <Avatar className="h-8 w-8 shrink-0 ring-2 ring-sidebar-primary/30">
+          <Avatar className="h-8 w-8 shrink-0 ring-2 ring-sidebar-primary/20">
             <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground text-xs font-bold">{initials}</AvatarFallback>
           </Avatar>
           {!collapsed && (
             <div className="flex flex-1 flex-col overflow-hidden">
               <span className="truncate text-sm font-medium text-sidebar-foreground">{profile?.full_name || "User"}</span>
-              <span className="text-[10px] font-mono text-sidebar-foreground/50 uppercase">{highestRole}</span>
+              <span className="text-[9px] font-mono text-sidebar-foreground/40 uppercase tracking-wider">{roleLabel(highestRole)}</span>
             </div>
           )}
           {!collapsed && (
             <div className="flex gap-1">
-              <button onClick={() => navigate("/app/settings")} className="text-sidebar-foreground/50 hover:text-sidebar-foreground transition-colors p-1" title="Settings">
+              <button onClick={() => navigate("/app/settings")} className="text-sidebar-foreground/40 hover:text-sidebar-foreground transition-colors p-1" title="Settings">
                 <Settings className="h-3.5 w-3.5" />
               </button>
-              <button onClick={signOut} className="text-sidebar-foreground/50 hover:text-sidebar-foreground transition-colors p-1" title="Sign out">
+              <button onClick={signOut} className="text-sidebar-foreground/40 hover:text-sidebar-foreground transition-colors p-1" title="Sign out">
                 <LogOut className="h-3.5 w-3.5" />
               </button>
             </div>
