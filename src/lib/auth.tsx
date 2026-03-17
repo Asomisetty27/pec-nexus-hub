@@ -18,6 +18,7 @@ interface Profile {
   linkedin_url: string | null;
   status: string;
   onboarding_completed: boolean;
+  invite_state: string;
 }
 
 interface AuthContextType {
