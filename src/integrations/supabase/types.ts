@@ -130,7 +130,7 @@ export type Database = {
       channels: {
         Row: {
           created_at: string
-          created_by: string
+          created_by: string | null
           description: string | null
           id: string
           is_org_wide: boolean
@@ -139,7 +139,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          created_by: string
+          created_by?: string | null
           description?: string | null
           id?: string
           is_org_wide?: boolean
@@ -148,7 +148,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          created_by?: string
+          created_by?: string | null
           description?: string | null
           id?: string
           is_org_wide?: boolean
@@ -902,6 +902,36 @@ export type Database = {
           },
         ]
       }
+      invite_tokens: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string
+          expires_at: string
+          id: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email: string
+          expires_at?: string
+          id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: []
+      }
       judge_assignments: {
         Row: {
           competition_id: string
@@ -1489,6 +1519,7 @@ export type Database = {
           full_name: string
           graduation_year: number | null
           id: string
+          invite_state: string
           linkedin_url: string | null
           major: string | null
           onboarding_completed: boolean
@@ -1506,6 +1537,7 @@ export type Database = {
           full_name?: string
           graduation_year?: number | null
           id?: string
+          invite_state?: string
           linkedin_url?: string | null
           major?: string | null
           onboarding_completed?: boolean
@@ -1523,6 +1555,7 @@ export type Database = {
           full_name?: string
           graduation_year?: number | null
           id?: string
+          invite_state?: string
           linkedin_url?: string | null
           major?: string | null
           onboarding_completed?: boolean
@@ -2182,6 +2215,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_cohort_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MessageSquare, Send, Hash, AlertTriangle, CheckCircle2, Lightbulb, Zap } from "lucide-react";
+import {
+  MessageSquare, Send, Hash, AlertTriangle, CheckCircle2,
+  Lightbulb, Zap, HelpCircle, Globe, Lock,
+} from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -29,7 +32,7 @@ export default function Messages() {
 
   useEffect(() => {
     const fetchChannels = async () => {
-      const { data } = await supabase.from("channels").select("*").order("created_at");
+      const { data } = await supabase.from("channels").select("*").order("is_org_wide", { ascending: false }).order("name");
       setChannels(data || []);
       if (data && data.length > 0 && !selectedChannel) setSelectedChannel(data[0].id);
     };
@@ -39,7 +42,12 @@ export default function Messages() {
   useEffect(() => {
     if (!selectedChannel) return;
     const fetchMessages = async () => {
-      const { data } = await supabase.from("messages").select("*, profiles:author_id(full_name)").eq("channel_id", selectedChannel).order("created_at").limit(100);
+      const { data } = await supabase
+        .from("messages")
+        .select("*, profiles:author_id(full_name)")
+        .eq("channel_id", selectedChannel)
+        .order("created_at")
+        .limit(100);
       setMessages(data || []);
       setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
     };
@@ -47,7 +55,10 @@ export default function Messages() {
 
     const channel = supabase
       .channel(`messages-${selectedChannel}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `channel_id=eq.${selectedChannel}` }, (payload) => {
+      .on("postgres_changes", {
+        event: "INSERT", schema: "public", table: "messages",
+        filter: `channel_id=eq.${selectedChannel}`,
+      }, (payload) => {
         setMessages(prev => [...prev, payload.new]);
         setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
       })
@@ -70,27 +81,49 @@ export default function Messages() {
 
   const selectedChannelData = channels.find(c => c.id === selectedChannel);
 
+  // Group channels
+  const orgWide = channels.filter(c => c.is_org_wide);
+  const cohortChannels = channels.filter(c => !c.is_org_wide && c.name.includes("-cohort"));
+  const leadershipChannels = channels.filter(c => !c.is_org_wide && !c.name.includes("-cohort") && !c.project_id);
+  const projectChannels = channels.filter(c => c.project_id);
+
+  const renderChannelGroup = (label: string, items: any[], icon: any) => {
+    if (items.length === 0) return null;
+    const Icon = icon;
+    return (
+      <div className="mb-3">
+        <p className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground px-2 mb-1 flex items-center gap-1">
+          <Icon className="h-2.5 w-2.5" />{label}
+        </p>
+        {items.map(ch => (
+          <motion.button
+            key={ch.id}
+            whileHover={{ x: 2 }}
+            onClick={() => setSelectedChannel(ch.id)}
+            className={`w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all ${
+              selectedChannel === ch.id
+                ? "bg-accent/10 text-foreground border border-accent/20"
+                : "hover:bg-muted/50 text-muted-foreground"
+            }`}
+          >
+            <Hash className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate text-xs">{ch.name}</span>
+          </motion.button>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="flex h-[calc(100vh-7rem)] gap-4">
       {/* Channel list */}
-      <div className="w-56 shrink-0 space-y-1 hidden md:block overflow-auto">
-        <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground px-2 mb-2">Channels</p>
-        {channels.length === 0 ? (
+      <div className="w-56 shrink-0 space-y-0 hidden md:block overflow-auto pr-1">
+        {renderChannelGroup("Global", orgWide, Globe)}
+        {renderChannelGroup("Leadership", leadershipChannels, Lock)}
+        {renderChannelGroup("Cohorts", cohortChannels, Hash)}
+        {renderChannelGroup("Projects", projectChannels, MessageSquare)}
+        {channels.length === 0 && (
           <p className="text-xs text-muted-foreground p-2">No channels yet.</p>
-        ) : (
-          channels.map(ch => (
-            <motion.button
-              key={ch.id}
-              whileHover={{ x: 2 }}
-              onClick={() => setSelectedChannel(ch.id)}
-              className={`w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all ${
-                selectedChannel === ch.id ? "bg-accent/10 text-foreground border border-accent/20" : "hover:bg-muted/50 text-muted-foreground"
-              }`}
-            >
-              <Hash className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate text-xs">{ch.name}</span>
-            </motion.button>
-          ))
         )}
       </div>
 
@@ -99,8 +132,11 @@ export default function Messages() {
         <CardHeader className="border-b py-3 px-4">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
-              <Hash className="h-3.5 w-3.5 text-accent" />
+              <Hash className="h-3.5 w-3.5 text-accent-foreground" />
               {selectedChannelData?.name || "Select a channel"}
+              {selectedChannelData?.is_org_wide && (
+                <Badge variant="outline" className="text-[9px] font-mono">org-wide</Badge>
+              )}
             </CardTitle>
             {selectedChannelData?.description && (
               <span className="text-[10px] text-muted-foreground truncate max-w-xs">{selectedChannelData.description}</span>
@@ -136,7 +172,9 @@ export default function Messages() {
                           {msg.message_type}
                         </Badge>
                       )}
-                      <span className="text-[10px] text-muted-foreground font-mono ml-auto">{new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                      <span className="text-[10px] text-muted-foreground font-mono ml-auto">
+                        {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
                     </div>
                     <p className="text-sm leading-relaxed">{msg.content}</p>
                   </motion.div>

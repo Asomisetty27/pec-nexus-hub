@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, Users } from "lucide-react";
+import { Search, Users, Cpu, Shield, Mail } from "lucide-react";
 import { motion } from "framer-motion";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.03 } } };
@@ -11,17 +11,36 @@ const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transitio
 
 export default function Members() {
   const [members, setMembers] = useState<any[]>([]);
+  const [cohortMap, setCohortMap] = useState<Record<string, string>>({});
   const [search, setSearch] = useState("");
+  const [filterCohort, setFilterCohort] = useState<string>("all");
 
   useEffect(() => {
-    supabase.from("profiles").select("*, user_roles(role)").order("full_name").then(({ data }) => setMembers(data || []));
+    const load = async () => {
+      const [profRes, cmRes] = await Promise.all([
+        supabase.from("profiles").select("*, user_roles(role)").order("full_name"),
+        supabase.from("cohort_memberships").select("user_id, role, cohorts(name)"),
+      ]);
+      setMembers(profRes.data || []);
+      const map: Record<string, string> = {};
+      (cmRes.data || []).forEach((cm: any) => {
+        map[cm.user_id] = (cm.cohorts as any)?.name || "";
+      });
+      setCohortMap(map);
+    };
+    load();
   }, []);
 
-  const filtered = members.filter(m =>
-    m.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-    m.major?.toLowerCase().includes(search.toLowerCase()) ||
-    m.skills?.some((s: string) => s.toLowerCase().includes(search.toLowerCase()))
-  );
+  const cohorts = [...new Set(Object.values(cohortMap))].filter(Boolean).sort();
+
+  const filtered = members.filter(m => {
+    const matchesSearch = m.full_name?.toLowerCase().includes(search.toLowerCase()) ||
+      m.major?.toLowerCase().includes(search.toLowerCase()) ||
+      m.cal_poly_email?.toLowerCase().includes(search.toLowerCase()) ||
+      m.skills?.some((s: string) => s.toLowerCase().includes(search.toLowerCase()));
+    const matchesCohort = filterCohort === "all" || cohortMap[m.user_id] === filterCohort;
+    return matchesSearch && matchesCohort;
+  });
 
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-6 max-w-5xl">
@@ -30,9 +49,26 @@ export default function Members() {
         <p className="text-xs text-muted-foreground font-mono">{members.length} members</p>
       </motion.div>
 
-      <motion.div variants={item} className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Search by name, major, or skill..." className="pl-9 h-9 text-sm" value={search} onChange={e => setSearch(e.target.value)} />
+      <motion.div variants={item} className="flex flex-wrap gap-3 items-center">
+        <div className="relative flex-1 min-w-[200px] max-w-md">
+          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input placeholder="Search by name, major, email, or skill..." className="pl-9 h-9 text-sm" value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+        <div className="flex gap-1.5 flex-wrap">
+          <Badge
+            variant={filterCohort === "all" ? "default" : "outline"}
+            className="cursor-pointer text-[10px] font-mono"
+            onClick={() => setFilterCohort("all")}
+          >All</Badge>
+          {cohorts.map(c => (
+            <Badge
+              key={c}
+              variant={filterCohort === c ? "default" : "outline"}
+              className="cursor-pointer text-[10px] font-mono"
+              onClick={() => setFilterCohort(c)}
+            >{c}</Badge>
+          ))}
+        </div>
       </motion.div>
 
       {filtered.length === 0 ? (
@@ -42,35 +78,48 @@ export default function Members() {
         </Card>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map(m => (
-            <motion.div key={m.id} variants={item}>
-              <Card className="hover:border-accent/30 transition-all">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center text-sm font-bold text-accent shrink-0">
-                      {m.full_name?.charAt(0) || "?"}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{m.full_name || "Unknown"}</p>
-                      {m.major && <p className="text-xs text-muted-foreground">{m.major}{m.graduation_year ? ` '${String(m.graduation_year).slice(2)}` : ""}</p>}
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {(m.user_roles || []).map((r: any, i: number) => (
-                          <Badge key={i} variant="outline" className="text-[9px] font-mono">{r.role}</Badge>
-                        ))}
+          {filtered.map(m => {
+            const memberCohort = cohortMap[m.user_id];
+            return (
+              <motion.div key={m.id} variants={item}>
+                <Card className="hover:border-accent/30 transition-all card-hover">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center text-sm font-bold text-accent-foreground shrink-0">
+                        {m.full_name?.charAt(0) || "?"}
                       </div>
-                      {m.skills && m.skills.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {m.skills.slice(0, 4).map((s: string, i: number) => (
-                            <Badge key={i} variant="secondary" className="text-[9px]">{s}</Badge>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{m.full_name || "Unknown"}</p>
+                        {m.cal_poly_email && (
+                          <p className="text-[10px] text-muted-foreground font-mono flex items-center gap-1">
+                            <Mail className="h-2.5 w-2.5" />{m.cal_poly_email}
+                          </p>
+                        )}
+                        {m.major && <p className="text-xs text-muted-foreground mt-0.5">{m.major}{m.graduation_year ? ` '${String(m.graduation_year).slice(2)}` : ""}</p>}
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {memberCohort && (
+                            <Badge variant="secondary" className="text-[9px] font-mono gap-1">
+                              <Cpu className="h-2.5 w-2.5" />{memberCohort}
+                            </Badge>
+                          )}
+                          {(m.user_roles || []).filter((r: any) => r.role !== "applicant").map((r: any, i: number) => (
+                            <Badge key={i} variant="outline" className="text-[9px] font-mono">{r.role}</Badge>
                           ))}
                         </div>
-                      )}
+                        {m.skills && m.skills.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {m.skills.slice(0, 4).map((s: string, i: number) => (
+                              <Badge key={i} variant="secondary" className="text-[9px]">{s}</Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            );
+          })}
         </div>
       )}
     </motion.div>

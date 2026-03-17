@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { BookOpen, ChevronLeft, ChevronRight, CheckCircle2, Send, Lock, ArrowLeft, Maximize2, Minimize2, Plus, GripVertical, Trash2, Edit3 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { HelpRequestButton } from "@/components/HelpRequestButton";
 
 export default function LabManual() {
   const { id } = useParams();
