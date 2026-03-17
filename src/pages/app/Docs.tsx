@@ -10,34 +10,49 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Plus, Search, FolderOpen, ChevronRight, Clock } from "lucide-react";
+import {
+  FileText, Plus, Search, FolderOpen, ChevronRight, Clock,
+  Upload, Link2, ExternalLink, Eye, MessageSquare, CheckCircle2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } };
 
+const docTypes = [
+  { value: "general", label: "General" },
+  { value: "charter", label: "Charter" },
+  { value: "scope", label: "Scope" },
+  { value: "report", label: "Report" },
+  { value: "research", label: "Research" },
+  { value: "decision_log", label: "Decision Log" },
+  { value: "risk_log", label: "Risk Log" },
+  { value: "retro", label: "Retrospective" },
+  { value: "sop", label: "SOP" },
+];
+
 export default function Docs() {
   const { user, isAdmin, isBoardOrAdmin } = useAuth();
   const [govDocs, setGovDocs] = useState<any[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
   const [search, setSearch] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const load = async () => {
-      const [govRes, docRes] = await Promise.all([
-        supabase.from("governance_docs").select("*").order("updated_at", { ascending: false }),
-        supabase.from("documents").select("*").order("updated_at", { ascending: false }).limit(50),
-      ]);
-      setGovDocs(govRes.data || []);
-      setDocuments(docRes.data || []);
-      setLoading(false);
-    };
-    load();
-  }, []);
+  const loadDocs = async () => {
+    const [govRes, docRes] = await Promise.all([
+      supabase.from("governance_docs").select("*").order("updated_at", { ascending: false }),
+      supabase.from("documents").select("*").order("updated_at", { ascending: false }).limit(50),
+    ]);
+    setGovDocs(govRes.data || []);
+    setDocuments(docRes.data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { loadDocs(); }, []);
 
   const handleCreateDoc = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -50,48 +65,116 @@ export default function Docs() {
     });
     if (error) { toast.error(error.message); return; }
     toast.success("Document created");
-    setDialogOpen(false);
-    const { data } = await supabase.from("documents").select("*").order("updated_at", { ascending: false }).limit(50);
-    setDocuments(data || []);
+    setCreateDialogOpen(false);
+    loadDocs();
   };
 
-  const filteredGov = govDocs.filter(d => d.title.toLowerCase().includes(search.toLowerCase()) || d.category?.toLowerCase().includes(search.toLowerCase()));
-  const filteredDocs = documents.filter(d => d.title.toLowerCase().includes(search.toLowerCase()));
+  const handleImportDoc = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    const title = f.get("title") as string;
+    const sourceUrl = f.get("source_url") as string;
+    const docType = f.get("doc_type") as string;
+    const notes = f.get("notes") as string;
+
+    const content = sourceUrl
+      ? `📎 Imported document\n\nSource: ${sourceUrl}\n\n---\n\n${notes || "No additional notes."}`
+      : notes || "";
+
+    const { error } = await supabase.from("documents").insert({
+      title, content, doc_type: docType, author_id: user!.id,
+    });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Document imported successfully");
+    setImportDialogOpen(false);
+    loadDocs();
+  };
+
+  const filteredGov = govDocs.filter(d =>
+    d.title.toLowerCase().includes(search.toLowerCase()) ||
+    d.category?.toLowerCase().includes(search.toLowerCase())
+  );
+  const filteredDocs = documents.filter(d =>
+    d.title.toLowerCase().includes(search.toLowerCase()) ||
+    d.doc_type?.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-6 max-w-5xl">
-      <motion.div variants={item} className="flex items-center justify-between">
+      <motion.div variants={item} className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold">Documents & SOPs</h1>
           <p className="text-xs text-muted-foreground font-mono">{govDocs.length + documents.length} documents</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="gap-2"><Plus className="h-3.5 w-3.5" /> New Document</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Create Document</DialogTitle></DialogHeader>
-            <form onSubmit={handleCreateDoc} className="space-y-4">
-              <div className="space-y-2"><Label>Title</Label><Input name="title" required placeholder="Project Charter" /></div>
-              <div className="space-y-2">
-                <Label>Type</Label>
-                <Select name="doc_type" defaultValue="general">
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="general">General</SelectItem>
-                    <SelectItem value="charter">Charter</SelectItem>
-                    <SelectItem value="report">Report</SelectItem>
-                    <SelectItem value="research">Research</SelectItem>
-                    <SelectItem value="decision_log">Decision Log</SelectItem>
-                    <SelectItem value="risk_log">Risk Log</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2"><Label>Content</Label><Textarea name="content" rows={6} placeholder="Start writing..." /></div>
-              <Button type="submit" className="w-full">Create</Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2">
+          {/* Import dialog */}
+          <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" variant="outline" className="gap-2">
+                <Upload className="h-3.5 w-3.5" /> Import
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Import Document</DialogTitle>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Import from Google Docs, Notion, or link any external document.
+                </p>
+              </DialogHeader>
+              <form onSubmit={handleImportDoc} className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Document Title</Label>
+                  <Input name="title" required placeholder="e.g. Project Charter v1" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Source URL</Label>
+                  <Input name="source_url" placeholder="https://docs.google.com/..." type="url" />
+                  <p className="text-[10px] text-muted-foreground">Google Docs, Notion, PDF link, or any URL</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Type</Label>
+                  <Select name="doc_type" defaultValue="general">
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {docTypes.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Notes / Summary</Label>
+                  <Textarea name="notes" rows={3} placeholder="Brief summary or paste content..." />
+                </div>
+                <Button type="submit" className="w-full gap-2">
+                  <Link2 className="h-3.5 w-3.5" /> Import Document
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          {/* Create dialog */}
+          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="gap-2"><Plus className="h-3.5 w-3.5" /> New Document</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Create Document</DialogTitle></DialogHeader>
+              <form onSubmit={handleCreateDoc} className="space-y-4">
+                <div className="space-y-2"><Label>Title</Label><Input name="title" required placeholder="Project Charter" /></div>
+                <div className="space-y-2">
+                  <Label>Type</Label>
+                  <Select name="doc_type" defaultValue="general">
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {docTypes.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2"><Label>Content</Label><Textarea name="content" rows={6} placeholder="Start writing..." /></div>
+                <Button type="submit" className="w-full">Create</Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </motion.div>
 
       <motion.div variants={item} className="relative max-w-sm">
@@ -111,28 +194,42 @@ export default function Docs() {
           ) : filteredDocs.length === 0 ? (
             <Card className="flex flex-col items-center py-12">
               <FileText className="h-10 w-10 text-muted-foreground/30 mb-3" />
-              <p className="text-sm text-muted-foreground">No documents yet. Create one to get started.</p>
+              <p className="text-sm text-muted-foreground mb-3">No documents yet.</p>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => setImportDialogOpen(true)} className="gap-2">
+                  <Upload className="h-3.5 w-3.5" /> Import
+                </Button>
+                <Button size="sm" onClick={() => setCreateDialogOpen(true)} className="gap-2">
+                  <Plus className="h-3.5 w-3.5" /> Create
+                </Button>
+              </div>
             </Card>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
-              {filteredDocs.map(doc => (
-                <motion.div key={doc.id} variants={item}>
-                  <Card className="cursor-pointer hover:border-accent/40 transition-all group" onClick={() => setSelectedDoc(doc)}>
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between mb-1">
-                        <h3 className="text-sm font-semibold">{doc.title}</h3>
-                        <Badge variant="outline" className="text-[9px] font-mono shrink-0">{doc.doc_type}</Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground line-clamp-2">{doc.content?.slice(0, 100) || "Empty document"}</p>
-                      <div className="flex items-center gap-2 mt-2 text-[10px] text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        {new Date(doc.updated_at).toLocaleDateString()}
-                        <span className="font-mono">v{doc.version}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
+              {filteredDocs.map(doc => {
+                const isImported = doc.content?.startsWith("📎 Imported");
+                return (
+                  <motion.div key={doc.id} variants={item}>
+                    <Card className="cursor-pointer hover:border-accent/40 transition-all group" onClick={() => setSelectedDoc(doc)}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-1">
+                          <h3 className="text-sm font-semibold">{doc.title}</h3>
+                          <div className="flex gap-1 shrink-0">
+                            {isImported && <Badge variant="secondary" className="text-[9px] font-mono gap-1"><Link2 className="h-2.5 w-2.5" />Linked</Badge>}
+                            <Badge variant="outline" className="text-[9px] font-mono">{doc.doc_type}</Badge>
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-2">{doc.content?.replace("📎 Imported document\n\n", "").slice(0, 100) || "Empty"}</p>
+                        <div className="flex items-center gap-2 mt-2 text-[10px] text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          {new Date(doc.updated_at).toLocaleDateString()}
+                          <span className="font-mono">v{doc.version}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })}
             </div>
           )}
         </TabsContent>
@@ -149,7 +246,7 @@ export default function Docs() {
                 <motion.div key={doc.id} variants={item}>
                   <Card className="cursor-pointer hover:border-accent/40 transition-all group" onClick={() => setSelectedDoc(doc)}>
                     <CardContent className="flex items-center gap-4 p-4">
-                      <FileText className="h-5 w-5 text-accent shrink-0" />
+                      <FileText className="h-5 w-5 text-accent-foreground shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold">{doc.title}</p>
                         <div className="flex items-center gap-2 mt-1">
@@ -157,7 +254,7 @@ export default function Docs() {
                           <Badge variant="secondary" className="text-[9px] font-mono">{doc.visibility}</Badge>
                         </div>
                       </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground/0 group-hover:text-muted-foreground transition-colors shrink-0" />
+                      <ChevronRight className="h-4 w-4 text-transparent group-hover:text-muted-foreground transition-colors shrink-0" />
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -177,6 +274,19 @@ export default function Docs() {
                 <div className="flex items-center gap-2 mt-1">
                   <Badge variant="outline" className="text-[9px] font-mono">{selectedDoc.doc_type || selectedDoc.category || "general"}</Badge>
                   <span className="text-[10px] text-muted-foreground font-mono">v{selectedDoc.version}</span>
+                  {selectedDoc.content?.includes("Source: http") && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 text-[10px] gap-1"
+                      onClick={() => {
+                        const urlMatch = selectedDoc.content.match(/Source: (https?:\/\/[^\s]+)/);
+                        if (urlMatch) window.open(urlMatch[1], "_blank");
+                      }}
+                    >
+                      <ExternalLink className="h-3 w-3" /> Open Source
+                    </Button>
+                  )}
                 </div>
               </DialogHeader>
               <div className="prose prose-sm dark:prose-invert max-w-none mt-4">
