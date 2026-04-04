@@ -339,9 +339,11 @@ export default function Dashboard() {
                   { icon: Cpu, label: "Cohort Hub", path: "/app/cohort" },
                   { icon: FolderKanban, label: "Projects", path: "/app/projects" },
                   { icon: MessageSquare, label: "Messages", path: "/app/messages" },
+                  { icon: Clock, label: "Scheduling", path: "/app/scheduling" },
                   { icon: CalendarDays, label: "Events", path: "/app/events" },
                   { icon: GraduationCap, label: "Academy", path: "/app/academy" },
                   { icon: FileText, label: "Documents", path: "/app/docs" },
+                  { icon: Briefcase, label: "Ops Command", path: "/app/ops" },
                 ].map((a) => (
                   <Button key={a.path} variant="ghost" size="sm" className="w-full justify-start h-8 text-[11px] font-sans" onClick={() => navigate(a.path)}>
                     <a.icon className="mr-2 h-3.5 w-3.5 text-muted-foreground" /> {a.label}
