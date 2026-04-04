@@ -38,7 +38,7 @@ export function CommandPalette() {
   const [manuals, setManuals] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   const [knowledgeCards, setKnowledgeCards] = useState<any[]>([]);
-  const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
