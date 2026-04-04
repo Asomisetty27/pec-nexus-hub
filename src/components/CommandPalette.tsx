@@ -117,6 +117,32 @@ export function CommandPalette() {
           </>
         )}
 
+        {knowledgeCards.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Knowledge Base">
+              {knowledgeCards.map(k => (
+                <CommandItem key={k.id} onSelect={() => go("/app/docs")} className="gap-3">
+                  <Zap className="h-4 w-4 text-muted-foreground" />
+                  <span>{k.title}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Lab Manuals">
+              {manuals.map(m => (
+                <CommandItem key={m.id} onSelect={() => go(`/app/lab/${m.id}`)} className="gap-3">
+                  <BookOpen className="h-4 w-4 text-muted-foreground" />
+                  <span>{m.title}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
+
         {members.length > 0 && (
           <>
             <CommandSeparator />
