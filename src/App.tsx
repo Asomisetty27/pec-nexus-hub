@@ -29,6 +29,9 @@ import Settings from "./pages/app/Settings";
 import CohortHub from "./pages/app/CohortHub";
 import LabManual from "./pages/app/LabManual";
 import MockProject from "./pages/app/MockProject";
+import Scheduling from "./pages/app/Scheduling";
+import OpsDashboard from "./pages/app/OpsDashboard";
+import PermissionInspector from "./pages/app/PermissionInspector";
 
 const queryClient = new QueryClient();
 
