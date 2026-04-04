@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { logAuditAction } from "@/lib/audit";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } };
@@ -47,6 +48,7 @@ export default function Admin() {
     if (status === "approved") {
       await supabase.from("user_roles").insert([{ user_id: userId, role: role as any }]);
     }
+    await logAuditAction(`role_request_${status}`, "role_requests", id, { userId, role });
     toast.success(`Request ${status}`);
     fetchAll();
   };

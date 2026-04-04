@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, FolderKanban, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -43,6 +44,7 @@ export default function Projects() {
       description: form.get("description") as string,
       status: "draft",
       created_by: user!.id,
+      project_mode: (form.get("project_mode") as any) || "training_mock",
     });
     if (error) { toast.error(error.message); return; }
     toast.success("Project created");
@@ -67,6 +69,19 @@ export default function Projects() {
               <form onSubmit={handleCreate} className="space-y-4">
                 <div className="space-y-2"><Label>Project Name</Label><Input name="name" required placeholder="Website Redesign" /></div>
                 <div className="space-y-2"><Label>Description</Label><Textarea name="description" placeholder="Project scope and objectives..." /></div>
+                <div className="space-y-2">
+                  <Label>Project Mode</Label>
+                  <Select name="project_mode" defaultValue="training_mock">
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="training_mock">Training / Mock</SelectItem>
+                      <SelectItem value="internal_initiative">Internal Initiative</SelectItem>
+                      <SelectItem value="competition">Competition</SelectItem>
+                      <SelectItem value="client_engagement">Client Engagement</SelectItem>
+                      <SelectItem value="sponsor_deliverable">Sponsor Deliverable</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Button type="submit" className="w-full">Create Project</Button>
               </form>
             </DialogContent>
@@ -97,9 +112,12 @@ export default function Projects() {
                 onClick={() => navigate(`/app/projects/${p.id}`)}
               >
                 <CardHeader className="pb-2 pt-4 px-4">
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between gap-2">
                     <CardTitle className="text-sm font-sans">{p.name}</CardTitle>
-                    <Badge variant="outline" className="text-[9px] font-mono shrink-0">{p.status}</Badge>
+                    <div className="flex gap-1 shrink-0">
+                      <Badge variant="secondary" className="text-[8px] font-mono">{(p.project_mode || "training_mock").replace("_", " ")}</Badge>
+                      <Badge variant="outline" className="text-[9px] font-mono">{p.status}</Badge>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="px-4 pb-4">

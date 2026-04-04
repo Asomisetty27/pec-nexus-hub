@@ -29,6 +29,9 @@ import Settings from "./pages/app/Settings";
 import CohortHub from "./pages/app/CohortHub";
 import LabManual from "./pages/app/LabManual";
 import MockProject from "./pages/app/MockProject";
+import Scheduling from "./pages/app/Scheduling";
+import OpsDashboard from "./pages/app/OpsDashboard";
+import PermissionInspector from "./pages/app/PermissionInspector";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +68,9 @@ const App = () => (
               <Route path="cohort" element={<CohortHub />} />
               <Route path="lab/:id" element={<LabManual />} />
               <Route path="mock-project/:id" element={<MockProject />} />
+              <Route path="scheduling" element={<Scheduling />} />
+              <Route path="ops" element={<OpsDashboard />} />
+              <Route path="permissions" element={<PermissionInspector />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

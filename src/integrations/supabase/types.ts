@@ -71,6 +71,39 @@ export type Database = {
         }
         Relationships: []
       }
+      availability_windows: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          end_time: string
+          id: string
+          preference_weight: number
+          start_time: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          end_time: string
+          id?: string
+          preference_weight?: number
+          start_time: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          preference_weight?: number
+          start_time?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       badges: {
         Row: {
           created_at: string
@@ -165,6 +198,57 @@ export type Database = {
           },
         ]
       }
+      client_contacts: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          is_primary: boolean
+          name: string
+          org_id: string | null
+          phone: string | null
+          project_id: string
+          role_title: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_primary?: boolean
+          name: string
+          org_id?: string | null
+          phone?: string | null
+          project_id: string
+          role_title?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_primary?: boolean
+          name?: string
+          org_id?: string | null
+          phone?: string | null
+          project_id?: string
+          role_title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_contacts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_contacts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cohort_memberships: {
         Row: {
           cohort_id: string
@@ -204,6 +288,7 @@ export type Database = {
           email: string | null
           full_name: string
           id: string
+          identity_status: string
           matched_at: string | null
           matched_user_id: string | null
           role: string
@@ -215,6 +300,7 @@ export type Database = {
           email?: string | null
           full_name: string
           id?: string
+          identity_status?: string
           matched_at?: string | null
           matched_user_id?: string | null
           role?: string
@@ -226,6 +312,7 @@ export type Database = {
           email?: string | null
           full_name?: string
           id?: string
+          identity_status?: string
           matched_at?: string | null
           matched_user_id?: string | null
           role?: string
@@ -451,6 +538,8 @@ export type Database = {
       }
       deliverables: {
         Row: {
+          approval_required: boolean
+          approval_status: Database["public"]["Enums"]["approval_status"]
           approved: boolean
           approved_at: string | null
           approved_by: string | null
@@ -458,15 +547,21 @@ export type Database = {
           created_at: string
           created_by: string
           description: string | null
+          due_date: string | null
           file_url: string | null
           id: string
           milestone_id: string | null
+          owner_id: string | null
           project_id: string
+          required: boolean
+          stage_id: string | null
           title: string
           updated_at: string
           version: number
         }
         Insert: {
+          approval_required?: boolean
+          approval_status?: Database["public"]["Enums"]["approval_status"]
           approved?: boolean
           approved_at?: string | null
           approved_by?: string | null
@@ -474,15 +569,21 @@ export type Database = {
           created_at?: string
           created_by: string
           description?: string | null
+          due_date?: string | null
           file_url?: string | null
           id?: string
           milestone_id?: string | null
+          owner_id?: string | null
           project_id: string
+          required?: boolean
+          stage_id?: string | null
           title: string
           updated_at?: string
           version?: number
         }
         Update: {
+          approval_required?: boolean
+          approval_status?: Database["public"]["Enums"]["approval_status"]
           approved?: boolean
           approved_at?: string | null
           approved_by?: string | null
@@ -490,10 +591,14 @@ export type Database = {
           created_at?: string
           created_by?: string
           description?: string | null
+          due_date?: string | null
           file_url?: string | null
           id?: string
           milestone_id?: string | null
+          owner_id?: string | null
           project_id?: string
+          required?: boolean
+          stage_id?: string | null
           title?: string
           updated_at?: string
           version?: number
@@ -511,6 +616,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deliverables_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "project_stages"
             referencedColumns: ["id"]
           },
         ]
@@ -1252,6 +1364,66 @@ export type Database = {
           },
         ]
       }
+      meeting_proposals: {
+        Row: {
+          attendance_score: number
+          candidate_time: string
+          cohort_id: string | null
+          conflict_count: number
+          created_at: string
+          duration_minutes: number
+          explanation: string | null
+          id: string
+          project_id: string | null
+          proposed_by: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attendance_score?: number
+          candidate_time: string
+          cohort_id?: string | null
+          conflict_count?: number
+          created_at?: string
+          duration_minutes?: number
+          explanation?: string | null
+          id?: string
+          project_id?: string | null
+          proposed_by: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attendance_score?: number
+          candidate_time?: string
+          cohort_id?: string | null
+          conflict_count?: number
+          created_at?: string
+          duration_minutes?: number
+          explanation?: string | null
+          id?: string
+          project_id?: string | null
+          proposed_by?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_proposals_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_proposals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           author_id: string
@@ -1423,6 +1595,59 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      ops_tasks: {
+        Row: {
+          assignee_id: string | null
+          category: string
+          cohort_id: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          due_date: string | null
+          id: string
+          priority: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assignee_id?: string | null
+          category?: string
+          cohort_id?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assignee_id?: string | null
+          category?: string
+          cohort_id?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ops_tasks_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       organizations: {
         Row: {
@@ -1696,10 +1921,13 @@ export type Database = {
           end_date: string | null
           id: string
           name: string
+          project_mode: Database["public"]["Enums"]["project_mode"]
+          requires_client_gate: boolean
           scope: string | null
           start_date: string | null
           status: Database["public"]["Enums"]["project_status"]
           updated_at: string
+          visibility_scope: Database["public"]["Enums"]["visibility_scope"]
         }
         Insert: {
           client_org_id?: string | null
@@ -1709,10 +1937,13 @@ export type Database = {
           end_date?: string | null
           id?: string
           name: string
+          project_mode?: Database["public"]["Enums"]["project_mode"]
+          requires_client_gate?: boolean
           scope?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["project_status"]
           updated_at?: string
+          visibility_scope?: Database["public"]["Enums"]["visibility_scope"]
         }
         Update: {
           client_org_id?: string | null
@@ -1722,10 +1953,13 @@ export type Database = {
           end_date?: string | null
           id?: string
           name?: string
+          project_mode?: Database["public"]["Enums"]["project_mode"]
+          requires_client_gate?: boolean
           scope?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["project_status"]
           updated_at?: string
+          visibility_scope?: Database["public"]["Enums"]["visibility_scope"]
         }
         Relationships: [
           {
@@ -2243,6 +2477,11 @@ export type Database = {
         | "board_member"
         | "admin"
         | "superadmin"
+      approval_status:
+        | "pending"
+        | "approved"
+        | "rejected"
+        | "revision_requested"
       doc_visibility: "public" | "members" | "board" | "admin"
       event_type:
         | "workshop"
@@ -2263,10 +2502,17 @@ export type Database = {
       member_status: "active" | "inactive" | "suspended" | "alumni"
       message_type: "message" | "update" | "blocker" | "decision" | "action"
       milestone_status: "not_started" | "in_progress" | "completed" | "overdue"
+      project_mode:
+        | "training_mock"
+        | "internal_initiative"
+        | "competition"
+        | "client_engagement"
+        | "sponsor_deliverable"
       project_status: "draft" | "active" | "on_hold" | "completed" | "archived"
       role_request_status: "pending" | "approved" | "rejected"
       task_priority: "low" | "medium" | "high" | "urgent"
       task_status: "todo" | "in_progress" | "review" | "done"
+      visibility_scope: "internal_only" | "client_visible" | "mixed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2403,6 +2649,12 @@ export const Constants = {
         "admin",
         "superadmin",
       ],
+      approval_status: [
+        "pending",
+        "approved",
+        "rejected",
+        "revision_requested",
+      ],
       doc_visibility: ["public", "members", "board", "admin"],
       event_type: [
         "workshop",
@@ -2425,10 +2677,18 @@ export const Constants = {
       member_status: ["active", "inactive", "suspended", "alumni"],
       message_type: ["message", "update", "blocker", "decision", "action"],
       milestone_status: ["not_started", "in_progress", "completed", "overdue"],
+      project_mode: [
+        "training_mock",
+        "internal_initiative",
+        "competition",
+        "client_engagement",
+        "sponsor_deliverable",
+      ],
       project_status: ["draft", "active", "on_hold", "completed", "archived"],
       role_request_status: ["pending", "approved", "rejected"],
       task_priority: ["low", "medium", "high", "urgent"],
       task_status: ["todo", "in_progress", "review", "done"],
+      visibility_scope: ["internal_only", "client_visible", "mixed"],
     },
   },
 } as const
