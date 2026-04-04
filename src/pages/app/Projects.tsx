@@ -68,6 +68,19 @@ export default function Projects() {
               <form onSubmit={handleCreate} className="space-y-4">
                 <div className="space-y-2"><Label>Project Name</Label><Input name="name" required placeholder="Website Redesign" /></div>
                 <div className="space-y-2"><Label>Description</Label><Textarea name="description" placeholder="Project scope and objectives..." /></div>
+                <div className="space-y-2">
+                  <Label>Project Mode</Label>
+                  <Select name="project_mode" defaultValue="training_mock">
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="training_mock">Training / Mock</SelectItem>
+                      <SelectItem value="internal_initiative">Internal Initiative</SelectItem>
+                      <SelectItem value="competition">Competition</SelectItem>
+                      <SelectItem value="client_engagement">Client Engagement</SelectItem>
+                      <SelectItem value="sponsor_deliverable">Sponsor Deliverable</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Button type="submit" className="w-full">Create Project</Button>
               </form>
             </DialogContent>
