@@ -55,14 +55,16 @@ export function CommandPalette() {
   useEffect(() => {
     if (!open || !user) return;
     const load = async () => {
-      const [p, m, mem] = await Promise.all([
+      const [p, m, mem, kc] = await Promise.all([
         supabase.from("projects").select("id, name").order("name").limit(20),
         supabase.from("lab_manuals").select("id, title").limit(20),
         supabase.from("profiles").select("user_id, full_name").order("full_name").limit(30),
+        supabase.from("knowledge_cards").select("id, title").order("created_at", { ascending: false }).limit(20),
       ]);
       setProjects(p.data || []);
       setManuals(m.data || []);
       setMembers(mem.data || []);
+      setKnowledgeCards(kc.data || []);
     };
     load();
   }, [open, user]);
