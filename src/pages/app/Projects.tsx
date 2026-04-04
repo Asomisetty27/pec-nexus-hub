@@ -43,6 +43,7 @@ export default function Projects() {
       description: form.get("description") as string,
       status: "draft",
       created_by: user!.id,
+      project_mode: (form.get("project_mode") as any) || "training_mock",
     });
     if (error) { toast.error(error.message); return; }
     toast.success("Project created");
