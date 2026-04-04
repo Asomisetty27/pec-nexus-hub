@@ -37,7 +37,7 @@ export function CommandPalette() {
   const [projects, setProjects] = useState<any[]>([]);
   const [manuals, setManuals] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
-  const navigate = useNavigate();
+  const [knowledgeCards, setKnowledgeCards] = useState<any[]>([]);
   const { user } = useAuth();
 
   useEffect(() => {
