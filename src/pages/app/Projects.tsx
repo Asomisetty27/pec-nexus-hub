@@ -112,9 +112,12 @@ export default function Projects() {
                 onClick={() => navigate(`/app/projects/${p.id}`)}
               >
                 <CardHeader className="pb-2 pt-4 px-4">
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between gap-2">
                     <CardTitle className="text-sm font-sans">{p.name}</CardTitle>
-                    <Badge variant="outline" className="text-[9px] font-mono shrink-0">{p.status}</Badge>
+                    <div className="flex gap-1 shrink-0">
+                      <Badge variant="secondary" className="text-[8px] font-mono">{(p.project_mode || "training_mock").replace("_", " ")}</Badge>
+                      <Badge variant="outline" className="text-[9px] font-mono">{p.status}</Badge>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="px-4 pb-4">
