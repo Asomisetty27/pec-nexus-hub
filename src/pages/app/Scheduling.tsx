@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import AvailabilityChips from "@/components/AvailabilityChips";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -167,18 +168,21 @@ export default function Scheduling() {
         </Dialog>
       </motion.div>
 
-      {/* My availability */}
+      {/* Quick availability chips */}
       <motion.div variants={item}>
-        <Card>
-          <CardHeader className="py-3 px-5">
-            <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
-              <Clock className="h-3.5 w-3.5 text-accent-foreground" />My Availability
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0 px-5 pb-4">
-            {windows.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-6">No availability set. Add your free windows above.</p>
-            ) : (
+        <AvailabilityChips />
+      </motion.div>
+
+      {/* Detailed availability list */}
+      {windows.length > 0 && (
+        <motion.div variants={item}>
+          <Card>
+            <CardHeader className="py-3 px-5">
+              <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
+                <Clock className="h-3.5 w-3.5 text-accent-foreground" />Saved Windows
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0 px-5 pb-4">
               <div className="grid gap-2 sm:grid-cols-2">
                 {windows.map(w => (
                   <div key={w.id} className="flex items-center gap-3 p-3 rounded-lg border group hover:border-accent/40 transition-colors">
@@ -197,10 +201,10 @@ export default function Scheduling() {
                   </div>
                 ))}
               </div>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
       {/* Overlap heatmap */}
       {cohortWindows.length > 0 && (

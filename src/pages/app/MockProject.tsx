@@ -1,20 +1,30 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowLeft, Target, FileText, CheckSquare, ChevronRight, Lock, Unlock, Plus } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  ArrowLeft, Target, FileText, CheckSquare, Lock, Unlock, Plus,
+  Users, BookOpen, Shield, AlertTriangle, MessageSquare, Layers,
+  ChevronRight, Play, Zap, FolderOpen, Award, Clock, BarChart3,
+} from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import SmartDocImport from "@/components/SmartDocImport";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
 const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } };
+
+const stageIcons: Record<string, any> = {
+  Kickoff: Zap, Discovery: Target, Midpoint: BarChart3, Final: Award, Retro: BookOpen,
+};
 
 export default function MockProject() {
   const { id } = useParams();
@@ -23,39 +33,77 @@ export default function MockProject() {
   const [project, setProject] = useState<any>(null);
   const [stages, setStages] = useState<any[]>([]);
   const [membership, setMembership] = useState<any>(null);
+  const [mockMembers, setMockMembers] = useState<any[]>([]);
+  const [playbooks, setPlaybooks] = useState<any[]>([]);
+  const [rubrics, setRubrics] = useState<any[]>([]);
+  const [folders, setFolders] = useState<any[]>([]);
+  const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [laneDialog, setLaneDialog] = useState<any>(null);
+  const [overrideDialog, setOverrideDialog] = useState<any>(null);
+  const [overrideReason, setOverrideReason] = useState("");
+  const [importDialog, setImportDialog] = useState(false);
 
   const isLeader = membership?.role === "pm" || membership?.role === "lead" || membership?.role === "integration_lead";
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!id || !user) return;
-    const load = async () => {
-      const [projRes, stagesRes] = await Promise.all([
-        supabase.from("mock_projects").select("*, cohorts(name, id)").eq("id", id).single(),
-        supabase.from("project_stages").select("*").eq("mock_project_id", id).order("order_index"),
-      ]);
-      setProject(projRes.data);
-      setStages(stagesRes.data || []);
+    const [projRes, stagesRes, membersRes, playbooksRes, rubricsRes, foldersRes, docsRes] = await Promise.all([
+      supabase.from("mock_projects").select("*, cohorts(name, id)").eq("id", id).single(),
+      supabase.from("project_stages").select("*").eq("mock_project_id", id).order("order_index"),
+      supabase.from("mock_project_memberships").select("*").eq("mock_project_id", id),
+      supabase.from("lab_manuals").select("*, lab_steps(*)").eq("cohort_id", "22eb320a-f4e8-424b-8a17-b1f78038243d"),
+      supabase.from("review_rubrics").select("*").eq("mock_project_id", id),
+      supabase.from("folders").select("*").eq("mock_project_id", id),
+      supabase.from("documents").select("*").eq("mock_project_id", id).order("created_at", { ascending: false }),
+    ]);
+    setProject(projRes.data);
+    setStages(stagesRes.data || []);
+    setMockMembers(membersRes.data || []);
+    setPlaybooks((playbooksRes.data || []).map((p: any) => ({ ...p, steps: p.lab_steps || [] })));
+    setRubrics(rubricsRes.data || []);
+    setFolders(foldersRes.data || []);
+    setDocuments(docsRes.data || []);
 
-      if (projRes.data) {
-        const { data: cm } = await supabase.from("cohort_memberships").select("*")
-          .eq("cohort_id", (projRes.data as any).cohorts?.id)
-          .eq("user_id", user.id).maybeSingle();
-        setMembership(cm);
-      }
-      setLoading(false);
-    };
-    load();
+    if (projRes.data) {
+      const { data: cm } = await supabase.from("cohort_memberships").select("*")
+        .eq("cohort_id", (projRes.data as any).cohorts?.id)
+        .eq("user_id", user.id).maybeSingle();
+      setMembership(cm);
+    }
+    setLoading(false);
   }, [id, user]);
+
+  useEffect(() => { load(); }, [load]);
 
   const advanceStage = async (stageId: string, nextStageId: string) => {
     await supabase.from("project_stages").update({ status: "completed", completed_at: new Date().toISOString() }).eq("id", stageId);
     await supabase.from("project_stages").update({ status: "active", unlocked_at: new Date().toISOString() }).eq("id", nextStageId);
     toast.success("Stage advanced!");
-    window.location.reload();
+    load();
   };
 
-  if (loading) return <Card className="h-48 animate-pulse bg-muted/30" />;
+  const overrideStage = async (stageId: string, nextStageId: string) => {
+    if (!overrideReason.trim()) { toast.error("Override reason required"); return; }
+    await supabase.from("audit_logs").insert({
+      user_id: user?.id, action: "stage_override", target_type: "project_stage", target_id: stageId,
+      metadata: { reason: overrideReason, project_id: id } as any,
+    });
+    await advanceStage(stageId, nextStageId);
+    setOverrideDialog(null);
+    setOverrideReason("");
+    toast.success("Stage overridden with logged justification");
+  };
+
+  const assignLane = async (memberId: string, lane: string) => {
+    await supabase.from("mock_project_memberships").update({ lane }).eq("mock_project_id", id!).eq("id", memberId);
+    toast.success(`Lane assigned: ${lane}`);
+    setLaneDialog(null);
+    load();
+  };
+
+  if (loading) return <div className="max-w-5xl mx-auto py-8"><Card className="h-48 animate-pulse bg-muted/30" /></div>;
   if (!project) return (
     <div className="flex flex-col items-center py-20 text-muted-foreground">
       <Target className="h-12 w-12 mb-3 opacity-30" />
@@ -63,122 +111,466 @@ export default function MockProject() {
     </div>
   );
 
+  const activeStage = stages.find(s => s.status === "active");
+  const completedCount = stages.filter(s => s.status === "completed").length;
+  const myMembership = mockMembers.find(m => m.user_id === user?.id);
   const rubric = Array.isArray(project.rubric) ? project.rubric : [];
 
   return (
-    <motion.div variants={container} initial="hidden" animate="show" className="max-w-4xl space-y-6">
+    <motion.div variants={container} initial="hidden" animate="show" className="max-w-5xl mx-auto space-y-6">
+      {/* Header */}
       <motion.div variants={item} className="flex items-center gap-3">
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/app/cohort")}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div>
-          <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">{(project as any).cohorts?.name} • Mock Project</p>
+        <div className="flex-1">
+          <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+            {(project as any).cohorts?.name} • Training Program
+          </p>
           <h1 className="font-display text-2xl font-bold">{project.title}</h1>
         </div>
-        <Badge variant="outline" className="ml-auto text-xs font-mono">{project.status}</Badge>
+        <div className="flex items-center gap-2">
+          {myMembership?.lane && (
+            <Badge variant="outline" className="text-xs font-mono border-accent/40 text-accent">
+              {myMembership.lane === "foundations" ? "Foundations Lane" : "Systems Lane"}
+            </Badge>
+          )}
+          <Badge variant="outline" className="text-xs font-mono">{project.status}</Badge>
+        </div>
       </motion.div>
 
-      {/* Lifecycle Timeline */}
-      {stages.length > 0 && (
-        <motion.div variants={item}>
-          <Card>
-            <CardHeader className="py-4">
-              <CardTitle className="text-base font-sans font-semibold">Project Lifecycle</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="flex items-center gap-1.5">
-                {stages.map((stage, i) => {
-                  const isActive = stage.status === "active";
-                  const isCompleted = stage.status === "completed";
-                  const nextStage = stages[i + 1];
-                  return (
-                    <div key={stage.id} className="flex items-center gap-1.5 flex-1">
-                      <div className={`flex-1 rounded-xl p-4 border text-center transition-all ${
-                        isCompleted ? "bg-success/10 border-success/30" :
-                        isActive ? "bg-accent/10 border-accent/30 glow-accent" :
-                        "bg-muted/20 border-border/50"
-                      }`}>
-                        <div className="flex items-center justify-center gap-1.5 mb-1">
-                          {isCompleted ? <CheckSquare className="h-3.5 w-3.5 text-success" /> :
-                           isActive ? <Unlock className="h-3.5 w-3.5 text-accent" /> :
-                           <Lock className="h-3.5 w-3.5 text-muted-foreground/50" />}
+      {/* Stage Timeline */}
+      <motion.div variants={item}>
+        <Card className="border-border/50">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-1">
+              {stages.map((stage, i) => {
+                const isActive = stage.status === "active";
+                const isCompleted = stage.status === "completed";
+                const nextStage = stages[i + 1];
+                const Icon = stageIcons[stage.name] || Target;
+                return (
+                  <div key={stage.id} className="flex items-center gap-1 flex-1">
+                    <div className={`flex-1 rounded-lg p-3 border text-center transition-all ${
+                      isCompleted ? "bg-success/10 border-success/30" :
+                      isActive ? "bg-accent/10 border-accent/30 shadow-sm" :
+                      "bg-muted/20 border-border/30 opacity-60"
+                    }`}>
+                      <Icon className={`h-4 w-4 mx-auto mb-1 ${
+                        isCompleted ? "text-success" : isActive ? "text-accent" : "text-muted-foreground/50"
+                      }`} />
+                      <p className="text-[11px] font-semibold">{stage.name}</p>
+                      {stage.due_date && (
+                        <p className="text-[9px] text-muted-foreground mt-0.5">
+                          {new Date(stage.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        </p>
+                      )}
+                      {isActive && isLeader && nextStage && (
+                        <div className="flex gap-1 mt-2 justify-center">
+                          <Button size="sm" variant="outline" className="text-[10px] h-6 px-2"
+                            onClick={() => advanceStage(stage.id, nextStage.id)}>
+                            Complete
+                          </Button>
+                          <Button size="sm" variant="ghost" className="text-[10px] h-6 px-2 text-warning"
+                            onClick={() => setOverrideDialog({ stageId: stage.id, nextId: nextStage.id })}>
+                            Override
+                          </Button>
                         </div>
-                        <p className="text-xs font-semibold">{stage.name}</p>
-                        <p className="text-[9px] text-muted-foreground capitalize mt-0.5">{stage.status}</p>
-                        {isActive && isLeader && nextStage && (
-                          <Button size="sm" variant="outline" className="mt-2 text-[10px] h-6" onClick={() => advanceStage(stage.id, nextStage.id)}>
-                            Complete & Advance
+                      )}
+                    </div>
+                    {i < stages.length - 1 && <ChevronRight className="h-3 w-3 text-muted-foreground/30 shrink-0" />}
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="bg-muted/30 w-full justify-start">
+          <TabsTrigger value="overview" className="text-xs">Overview</TabsTrigger>
+          <TabsTrigger value="deliverables" className="text-xs">Deliverables</TabsTrigger>
+          <TabsTrigger value="playbooks" className="text-xs">Playbooks</TabsTrigger>
+          <TabsTrigger value="team" className="text-xs">Team & Lanes</TabsTrigger>
+          <TabsTrigger value="docs" className="text-xs">Documents</TabsTrigger>
+          <TabsTrigger value="rubric" className="text-xs">Rubric</TabsTrigger>
+          {isLeader && <TabsTrigger value="control" className="text-xs">Control</TabsTrigger>}
+        </TabsList>
+
+        {/* Overview */}
+        <TabsContent value="overview" className="mt-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <motion.div variants={item}>
+              <Card>
+                <CardHeader className="py-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Target className="h-4 w-4 text-accent" /> Project Brief
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-3">
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{project.scenario}</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+            <motion.div variants={item}>
+              <Card>
+                <CardHeader className="py-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <CheckSquare className="h-4 w-4 text-accent" /> Objectives
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">{project.objectives}</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+            <motion.div variants={item}>
+              <Card>
+                <CardHeader className="py-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-accent" /> Deliverables Overview
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">{project.deliverables_desc}</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+            <motion.div variants={item}>
+              <Card>
+                <CardHeader className="py-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Layers className="h-4 w-4 text-accent" /> Execution Lanes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-2">
+                  <div className="p-2 rounded-md bg-accent/5 border border-accent/20">
+                    <p className="text-xs font-semibold text-accent">Foundations Lane</p>
+                    <p className="text-[11px] text-muted-foreground">Architecture understanding, codebase walkthrough, guided outputs</p>
+                  </div>
+                  <div className="p-2 rounded-md bg-primary/5 border border-primary/20">
+                    <p className="text-xs font-semibold text-primary">Systems Lane</p>
+                    <p className="text-[11px] text-muted-foreground">Implementation ownership, systems reasoning, consulting-grade artifacts</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
+        </TabsContent>
+
+        {/* Deliverables by Stage */}
+        <TabsContent value="deliverables" className="mt-4 space-y-4">
+          {stages.map(stage => {
+            const reqs = Array.isArray(stage.required_deliverables) ? stage.required_deliverables : [];
+            const isActive = stage.status === "active";
+            return (
+              <Card key={stage.id} className={isActive ? "border-accent/30" : "opacity-70"}>
+                <CardHeader className="py-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    {isActive ? <Unlock className="h-4 w-4 text-accent" /> : <Lock className="h-4 w-4 text-muted-foreground/50" />}
+                    {stage.name}
+                    <Badge variant="outline" className="text-[10px] ml-auto">{reqs.length} deliverables</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="space-y-1.5">
+                    {reqs.map((d: string, i: number) => (
+                      <div key={i} className="flex items-center gap-2 text-sm py-1.5 px-2 rounded-md hover:bg-muted/30 transition-colors">
+                        <CheckSquare className="h-3.5 w-3.5 text-muted-foreground/40" />
+                        <span className="flex-1">{d}</span>
+                        {isActive && (
+                          <Button size="sm" variant="ghost" className="h-6 text-[10px] text-accent"
+                            onClick={() => setImportDialog(true)}>
+                            Submit
                           </Button>
                         )}
                       </div>
-                      {i < stages.length - 1 && <div className="w-3 h-px bg-border shrink-0" />}
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <motion.div variants={item}>
-          <Card>
-            <CardHeader className="py-4">
-              <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
-                <Target className="h-4 w-4 text-accent" /> Scenario
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <p className="text-sm whitespace-pre-wrap leading-relaxed">{project.scenario || "No scenario defined yet."}</p>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div variants={item}>
-          <Card>
-            <CardHeader className="py-4">
-              <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
-                <CheckSquare className="h-4 w-4 text-accent" /> Objectives
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <p className="text-sm whitespace-pre-wrap leading-relaxed">{project.objectives || "No objectives defined yet."}</p>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div variants={item}>
-          <Card>
-            <CardHeader className="py-4">
-              <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
-                <FileText className="h-4 w-4 text-accent" /> Deliverables
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <p className="text-sm whitespace-pre-wrap leading-relaxed">{project.deliverables_desc || "No deliverables defined yet."}</p>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {rubric.length > 0 && (
-          <motion.div variants={item}>
-            <Card>
-              <CardHeader className="py-4">
-                <CardTitle className="text-sm font-sans font-semibold">Rubric</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0 space-y-2">
-                {rubric.map((r: any, i: number) => (
-                  <div key={i} className="flex items-center justify-between text-sm border-b last:border-0 pb-2 last:pb-0">
-                    <span>{r.criteria || r.name || `Criteria ${i + 1}`}</span>
-                    <Badge variant="outline" className="text-[10px] font-mono">{r.points || r.weight || "—"} pts</Badge>
+                    ))}
                   </div>
-                ))}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </TabsContent>
+
+        {/* Playbooks */}
+        <TabsContent value="playbooks" className="mt-4 space-y-4">
+          {playbooks.map(pb => (
+            <Card key={pb.id}>
+              <CardHeader className="py-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <BookOpen className="h-4 w-4 text-accent" />
+                  {pb.title}
+                  <Badge variant="outline" className="text-[10px] ml-auto">{pb.steps.length} steps</Badge>
+                </CardTitle>
+                <p className="text-xs text-muted-foreground mt-1">{pb.description}</p>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-1">
+                  {pb.steps.sort((a: any, b: any) => a.order_index - b.order_index).map((step: any, i: number) => (
+                    <div key={step.id}
+                      className="flex items-center gap-2 text-sm py-2 px-2 rounded-md hover:bg-muted/30 transition-colors cursor-pointer"
+                      onClick={() => navigate(`/app/lab/${pb.id}`)}>
+                      <span className="text-[10px] font-mono text-muted-foreground w-5">{i + 1}</span>
+                      <span className="flex-1">{step.title}</span>
+                      <ChevronRight className="h-3 w-3 text-muted-foreground/40" />
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
-          </motion.div>
+          ))}
+        </TabsContent>
+
+        {/* Team & Lanes */}
+        <TabsContent value="team" className="mt-4">
+          <Card>
+            <CardHeader className="py-3 flex flex-row items-center justify-between">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Users className="h-4 w-4 text-accent" /> Team Members
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {mockMembers.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">
+                  No members assigned yet. {isLeader ? "Add team members from the Control tab." : ""}
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {mockMembers.map(m => (
+                    <div key={m.id} className="flex items-center gap-3 py-2 px-2 rounded-md hover:bg-muted/20">
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-mono">
+                        {m.user_id?.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{m.role_on_project}</p>
+                        <p className="text-[10px] text-muted-foreground font-mono">{m.user_id?.slice(0, 8)}</p>
+                      </div>
+                      <Badge variant="outline" className={`text-[10px] ${
+                        m.lane === "foundations" ? "border-accent/40 text-accent" :
+                        m.lane === "systems" ? "border-primary/40 text-primary" :
+                        "text-muted-foreground"
+                      }`}>
+                        {m.lane ? (m.lane === "foundations" ? "Foundations" : "Systems") : "Unassigned"}
+                      </Badge>
+                      {isLeader && (
+                        <Button size="sm" variant="ghost" className="h-6 text-[10px]"
+                          onClick={() => setLaneDialog(m)}>
+                          Assign
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Documents */}
+        <TabsContent value="docs" className="mt-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold">Project Files</h3>
+            <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => setImportDialog(true)}>
+              <Plus className="h-3 w-3 mr-1" /> Import Document
+            </Button>
+          </div>
+          <div className="grid gap-2 md:grid-cols-3">
+            {folders.map(f => (
+              <Card key={f.id} className="cursor-pointer hover:bg-muted/20 transition-colors">
+                <CardContent className="py-3 flex items-center gap-2">
+                  <FolderOpen className="h-4 w-4 text-accent" />
+                  <span className="text-sm font-medium">{f.name}</span>
+                  <Badge variant="outline" className="text-[9px] ml-auto">
+                    {documents.filter(d => d.folder_id === f.id).length}
+                  </Badge>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          {documents.length > 0 && (
+            <Card>
+              <CardContent className="py-3">
+                <div className="space-y-1">
+                  {documents.slice(0, 10).map(doc => (
+                    <div key={doc.id} className="flex items-center gap-2 text-sm py-1.5 px-2 rounded-md hover:bg-muted/20">
+                      <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="flex-1">{doc.title}</span>
+                      <Badge variant="outline" className="text-[9px]">v{doc.version}</Badge>
+                      <span className="text-[10px] text-muted-foreground">{doc.doc_type}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Rubric */}
+        <TabsContent value="rubric" className="mt-4">
+          <Card>
+            <CardHeader className="py-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Award className="h-4 w-4 text-accent" /> Review Rubric
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-2">
+              {(rubrics.length > 0 ? rubrics : rubric).map((r: any, i: number) => (
+                <div key={i} className="flex items-center justify-between text-sm border-b border-border/30 last:border-0 pb-2 last:pb-0">
+                  <div>
+                    <span className="font-medium">{r.category || r.criteria || `Criteria ${i + 1}`}</span>
+                    {r.description && <p className="text-[11px] text-muted-foreground mt-0.5">{r.description}</p>}
+                  </div>
+                  <Badge variant="outline" className="text-[10px] font-mono shrink-0 ml-4">
+                    {r.weight || r.points || "—"} pts
+                  </Badge>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Control Surface (Leader Only) */}
+        {isLeader && (
+          <TabsContent value="control" className="mt-4 space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card>
+                <CardHeader className="py-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-accent" /> Stage Readiness
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-2">
+                  {stages.map(stage => {
+                    const reqs = Array.isArray(stage.required_deliverables) ? stage.required_deliverables : [];
+                    return (
+                      <div key={stage.id} className="flex items-center justify-between text-sm">
+                        <span className={stage.status === "active" ? "font-semibold text-accent" : "text-muted-foreground"}>
+                          {stage.name}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-muted-foreground">{reqs.length} req</span>
+                          <Badge variant={stage.status === "completed" ? "default" : "outline"} className="text-[10px]">
+                            {stage.status}
+                          </Badge>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="py-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-warning" /> Quick Actions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-2">
+                  <Button size="sm" variant="outline" className="w-full text-xs justify-start h-8"
+                    onClick={() => navigate("/app/messages")}>
+                    <MessageSquare className="h-3 w-3 mr-2" /> Open Project Channels
+                  </Button>
+                  <Button size="sm" variant="outline" className="w-full text-xs justify-start h-8"
+                    onClick={() => setImportDialog(true)}>
+                    <Plus className="h-3 w-3 mr-2" /> Import Document
+                  </Button>
+                  <Button size="sm" variant="outline" className="w-full text-xs justify-start h-8"
+                    onClick={() => navigate("/app/scheduling")}>
+                    <Clock className="h-3 w-3 mr-2" /> Meeting Planner
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader className="py-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Users className="h-4 w-4 text-accent" /> Lane Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-xs text-muted-foreground mb-3">Assign members to Foundations or Systems lane to control their playbooks, deliverables, and review queue.</p>
+                <div className="space-y-2">
+                  {mockMembers.map(m => (
+                    <div key={m.id} className="flex items-center gap-3 py-1.5">
+                      <span className="text-sm flex-1">{m.role_on_project} ({m.user_id?.slice(0, 8)})</span>
+                      <Select value={m.lane || ""} onValueChange={(val) => assignLane(m.id, val)}>
+                        <SelectTrigger className="w-36 h-7 text-xs"><SelectValue placeholder="Assign lane" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="foundations">Foundations</SelectItem>
+                          <SelectItem value="systems">Systems</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ))}
+                  {mockMembers.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-3">
+                      Members will appear here once added via the cohort hub.
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
         )}
-      </div>
+      </Tabs>
+
+      {/* Lane Assignment Dialog */}
+      <Dialog open={!!laneDialog} onOpenChange={() => setLaneDialog(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base">Assign Lane</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Button className="w-full justify-start" variant="outline"
+              onClick={() => laneDialog && assignLane(laneDialog.id, "foundations")}>
+              <Layers className="h-4 w-4 mr-2 text-accent" /> Foundations Lane
+            </Button>
+            <Button className="w-full justify-start" variant="outline"
+              onClick={() => laneDialog && assignLane(laneDialog.id, "systems")}>
+              <Zap className="h-4 w-4 mr-2 text-primary" /> Systems Lane
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Override Dialog */}
+      <Dialog open={!!overrideDialog} onOpenChange={() => setOverrideDialog(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-warning" /> Stage Override
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground">This will advance the stage without all deliverables being approved. A justification is required and will be logged.</p>
+          <Textarea placeholder="Why is this override necessary?"
+            value={overrideReason} onChange={e => setOverrideReason(e.target.value)}
+            className="text-sm" rows={3} />
+          <Button size="sm" className="w-full" onClick={() => overrideDialog && overrideStage(overrideDialog.stageId, overrideDialog.nextId)}>
+            Confirm Override
+          </Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* Smart Import Dialog */}
+      <Dialog open={importDialog} onOpenChange={setImportDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base">Import Document</DialogTitle>
+          </DialogHeader>
+          <SmartDocImport
+            projectId={id!}
+            projectTitle={project.title}
+            stages={stages}
+            folders={folders}
+            activeStage={activeStage}
+            onComplete={() => { setImportDialog(false); load(); }}
+          />
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }
