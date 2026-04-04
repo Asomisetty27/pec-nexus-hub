@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, FolderKanban, MessageSquare, Users, CalendarDays,
   Trophy, Briefcase, GraduationCap, FileText, BarChart3, Shield,
-  Building2, Megaphone, Settings, LogOut, Beaker, Cpu,
+  Building2, Megaphone, Settings, LogOut, Beaker, Cpu, Clock, Eye,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -20,12 +20,14 @@ const mainNav = [
   { title: "Cohort Hub", url: "/app/cohort", icon: Cpu },
   { title: "Projects", url: "/app/projects", icon: FolderKanban },
   { title: "Messages", url: "/app/messages", icon: MessageSquare },
+  { title: "Scheduling", url: "/app/scheduling", icon: Clock },
   { title: "Events", url: "/app/events", icon: CalendarDays },
   { title: "Academy", url: "/app/academy", icon: GraduationCap },
 ];
 
 const orgNav = [
   { title: "Members", url: "/app/members", icon: Users },
+  { title: "Ops Command", url: "/app/ops", icon: Briefcase },
   { title: "Sponsors & CRM", url: "/app/crm", icon: Building2 },
   { title: "Competitions", url: "/app/competitions", icon: Trophy },
   { title: "Documents", url: "/app/docs", icon: FileText },
@@ -33,6 +35,7 @@ const orgNav = [
 
 const adminNav = [
   { title: "Admin Console", url: "/app/admin", icon: Shield },
+  { title: "Permissions", url: "/app/permissions", icon: Eye },
   { title: "Analytics", url: "/app/analytics", icon: BarChart3 },
   { title: "Announcements", url: "/app/announcements", icon: Megaphone },
 ];
