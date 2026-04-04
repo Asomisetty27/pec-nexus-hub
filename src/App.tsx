@@ -68,6 +68,9 @@ const App = () => (
               <Route path="cohort" element={<CohortHub />} />
               <Route path="lab/:id" element={<LabManual />} />
               <Route path="mock-project/:id" element={<MockProject />} />
+              <Route path="scheduling" element={<Scheduling />} />
+              <Route path="ops" element={<OpsDashboard />} />
+              <Route path="permissions" element={<PermissionInspector />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
