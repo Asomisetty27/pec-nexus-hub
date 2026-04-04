@@ -1522,6 +1522,41 @@ export type Database = {
           },
         ]
       }
+      mock_project_memberships: {
+        Row: {
+          id: string
+          joined_at: string
+          lane: string | null
+          mock_project_id: string
+          role_on_project: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          lane?: string | null
+          mock_project_id: string
+          role_on_project?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          lane?: string | null
+          mock_project_id?: string
+          role_on_project?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mock_project_memberships_mock_project_id_fkey"
+            columns: ["mock_project_id"]
+            isOneToOne: false
+            referencedRelation: "mock_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mock_projects: {
         Row: {
           cohort_id: string
@@ -1796,6 +1831,7 @@ export type Database = {
         Row: {
           id: string
           joined_at: string
+          lane: string | null
           project_id: string
           role_on_project: string
           user_id: string
@@ -1803,6 +1839,7 @@ export type Database = {
         Insert: {
           id?: string
           joined_at?: string
+          lane?: string | null
           project_id: string
           role_on_project?: string
           user_id: string
@@ -1810,6 +1847,7 @@ export type Database = {
         Update: {
           id?: string
           joined_at?: string
+          lane?: string | null
           project_id?: string
           role_on_project?: string
           user_id?: string
@@ -2038,6 +2076,51 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      review_rubrics: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          mock_project_id: string | null
+          project_id: string | null
+          weight: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          mock_project_id?: string | null
+          project_id?: string | null
+          weight?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          mock_project_id?: string | null
+          project_id?: string | null
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_rubrics_mock_project_id_fkey"
+            columns: ["mock_project_id"]
+            isOneToOne: false
+            referencedRelation: "mock_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_rubrics_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reviewer_scores: {
         Row: {
