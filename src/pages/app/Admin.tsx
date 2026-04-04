@@ -48,6 +48,7 @@ export default function Admin() {
     if (status === "approved") {
       await supabase.from("user_roles").insert([{ user_id: userId, role: role as any }]);
     }
+    await logAuditAction(`role_request_${status}`, "role_requests", id, { userId, role });
     toast.success(`Request ${status}`);
     fetchAll();
   };
