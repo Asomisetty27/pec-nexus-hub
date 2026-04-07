@@ -7,7 +7,7 @@ import {
   FolderKanban, CheckCircle2, CalendarDays, Megaphone, ArrowRight,
   AlertTriangle, Zap, BookOpen, MessageSquare, Cpu, ChevronRight,
   Target, Sparkles, Play, GraduationCap, Shield, Users, BarChart3,
-  Clock, Activity, Wrench, Code, Briefcase, FileText, Award,
+  Clock, Wrench, Code, Briefcase, FileText,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,43 +27,51 @@ function getGreeting() {
   return "Late night";
 }
 
+interface NextMove {
+  label: string;
+  sublabel: string;
+  reason: string;
+  action: () => void;
+  icon: any;
+  urgent: boolean;
+}
+
 export default function Dashboard() {
   const { user, profile, highestRole, isAdmin, isBoardOrAdmin } = useAuth();
   const navigate = useNavigate();
-  const [projects, setProjects] = useState<any[]>([]);
-  const [tasks, setTasks] = useState<any[]>([]);
+  const [deliverables, setDeliverables] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [cohort, setCohort] = useState<any>(null);
-  const [cohortProgress, setCohortProgress] = useState(0);
   const [labManual, setLabManual] = useState<any>(null);
   const [mockProject, setMockProject] = useState<any>(null);
   const [currentStage, setCurrentStage] = useState<any>(null);
   const [rosterMembers, setRosterMembers] = useState<any[]>([]);
-  const [stats, setStats] = useState({ activeProjects: 0, overdueTasks: 0, upcomingEvents: 0, totalMembers: 0 });
+  const [helpRequests, setHelpRequests] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [stats, setStats] = useState({ activeProjects: 0, overdueDeliverables: 0, upcomingEvents: 0, totalMembers: 0 });
 
   useEffect(() => {
     if (!user) return;
     const load = async () => {
-      const [projRes, taskRes, annRes, cohortRes] = await Promise.all([
-        supabase.from("projects").select("*, project_memberships!inner(user_id)").eq("project_memberships.user_id", user.id).eq("status", "active").limit(5),
-        supabase.from("tasks").select("*, projects(name)").eq("assignee_id", user.id).in("status", ["todo", "in_progress"]).order("due_date", { ascending: true }).limit(10),
+      // Use deliverables as the primary task system (they exist in schema)
+      const [delRes, annRes, cohortRes, helpRes] = await Promise.all([
+        supabase.from("deliverables").select("*, projects(name)").eq("owner_id", user.id).in("approval_status", ["pending", "revision_requested"]).order("due_date", { ascending: true }).limit(10),
         supabase.from("announcements").select("*").order("created_at", { ascending: false }).limit(3),
         supabase.from("cohort_memberships").select("*, cohorts(*)").eq("user_id", user.id).limit(1).maybeSingle(),
+        supabase.from("help_requests").select("*").eq("requester_id", user.id).eq("status", "open").limit(5),
       ]);
-      setProjects(projRes.data || []);
-      setTasks(taskRes.data || []);
+      setDeliverables(delRes.data || []);
       setAnnouncements(annRes.data || []);
+      setHelpRequests(helpRes.data || []);
 
       if (cohortRes.data) {
         setCohort(cohortRes.data);
         const cohortId = cohortRes.data.cohort_id;
-        const [subsRes, manualRes, mpRes, rosterRes] = await Promise.all([
-          supabase.from("submissions").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "approved"),
+        const [manualRes, mpRes, rosterRes] = await Promise.all([
           supabase.from("lab_manuals").select("*").eq("cohort_id", cohortId).limit(1).maybeSingle(),
           supabase.from("mock_projects").select("*").eq("cohort_id", cohortId).eq("status", "active").limit(1).maybeSingle(),
           supabase.from("cohort_memberships").select("*, profiles:user_id(full_name)").eq("cohort_id", cohortId).order("role"),
         ]);
-        setCohortProgress(Math.min((subsRes.count || 0) * 15, 100));
         setLabManual(manualRes.data);
         setMockProject(mpRes.data);
         setRosterMembers(rosterRes.data || []);
@@ -73,13 +81,21 @@ export default function Dashboard() {
         }
       }
 
-      const [eventRes, memberRes] = await Promise.all([
+      // Fetch reviews where user is reviewer
+      const { data: revData } = await supabase.from("reviews").select("*, submissions(title)").eq("reviewer_id", user.id).eq("status", "pending").limit(5);
+      setReviews(revData || []);
+
+      const [projRes, eventRes, memberRes] = await Promise.all([
+        supabase.from("project_memberships").select("project_id").eq("user_id", user.id),
         supabase.from("events").select("*", { count: "exact", head: true }).gte("start_time", new Date().toISOString()),
         supabase.from("profiles").select("*", { count: "exact", head: true }),
       ]);
+
+      const overdueCount = (delRes.data || []).filter((d: any) => d.due_date && new Date(d.due_date) < new Date()).length;
+
       setStats({
         activeProjects: projRes.data?.length || 0,
-        overdueTasks: (taskRes.data || []).filter((t: any) => t.due_date && new Date(t.due_date) < new Date()).length,
+        overdueDeliverables: overdueCount,
         upcomingEvents: eventRes.count || 0,
         totalMembers: memberRes.count || 0,
       });
@@ -90,14 +106,57 @@ export default function Dashboard() {
   const isApplicant = highestRole === "applicant";
   const firstName = profile?.full_name?.split(" ")[0] || "Operator";
 
-  const computeNextMove = () => {
-    const overdueTasks = tasks.filter(t => t.due_date && new Date(t.due_date) < new Date());
-    if (overdueTasks.length > 0) return { label: overdueTasks[0].title, sublabel: "Overdue — immediate action required", action: () => navigate("/app/projects"), icon: AlertTriangle, urgent: true };
-    if (tasks.length > 0) return { label: tasks[0].title, sublabel: `Next task · ${(tasks[0] as any).projects?.name || ""}`, action: () => navigate("/app/projects"), icon: CheckCircle2, urgent: false };
-    if (labManual) return { label: "Continue Lab Manual", sublabel: labManual.title, action: () => navigate(`/app/lab/${labManual.id}`), icon: BookOpen, urgent: false };
-    return { label: "Explore Projects", sublabel: "Browse active projects", action: () => navigate("/app/projects"), icon: FolderKanban, urgent: false };
+  const computeNextMoves = (): NextMove[] => {
+    const moves: NextMove[] = [];
+    const overdue = deliverables.filter(d => d.due_date && new Date(d.due_date) < new Date());
+    overdue.forEach(d => moves.push({
+      label: d.title, sublabel: (d.projects as any)?.name || "Project",
+      reason: "Overdue — immediate action required",
+      action: () => navigate("/app/projects"), icon: AlertTriangle, urgent: true,
+    }));
+
+    const changesRequested = deliverables.filter(d => d.approval_status === "revision_requested");
+    changesRequested.forEach(d => moves.push({
+      label: d.title, sublabel: (d.projects as any)?.name || "Project",
+      reason: "Review feedback waiting — revision needed",
+      action: () => navigate("/app/projects"), icon: Zap, urgent: true,
+    }));
+
+    reviews.forEach(r => moves.push({
+      label: `Review: ${(r.submissions as any)?.title || "Submission"}`, sublabel: "Pending your review",
+      reason: "Assigned to you for review",
+      action: () => navigate("/app/projects"), icon: CheckCircle2, urgent: false,
+    }));
+
+    helpRequests.forEach(h => moves.push({
+      label: h.subject, sublabel: "Open help request",
+      reason: "Unresolved — blocking progress",
+      action: () => navigate("/app/messages"), icon: MessageSquare, urgent: false,
+    }));
+
+    const upcoming = deliverables.filter(d => d.due_date && !overdue.includes(d));
+    upcoming.slice(0, 2).forEach(d => moves.push({
+      label: d.title, sublabel: (d.projects as any)?.name || "Project",
+      reason: `Due ${new Date(d.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
+      action: () => navigate("/app/projects"), icon: Target, urgent: false,
+    }));
+
+    if (labManual && moves.length < 3) moves.push({
+      label: "Continue Lab Manual", sublabel: labManual.title,
+      reason: "Training progress — resume where you left off",
+      action: () => navigate(`/app/lab/${labManual.id}`), icon: BookOpen, urgent: false,
+    });
+
+    if (moves.length === 0) moves.push({
+      label: "Explore Projects", sublabel: "Browse active projects",
+      reason: "No pending items — stay ahead",
+      action: () => navigate("/app/projects"), icon: FolderKanban, urgent: false,
+    });
+
+    return moves.slice(0, 4);
   };
-  const nextMove = computeNextMove();
+  const nextMoves = computeNextMoves();
+  const primaryMove = nextMoves[0];
 
   if (isApplicant) return <ApplicantDashboard />;
 
@@ -110,10 +169,8 @@ export default function Dashboard() {
       <motion.div variants={item} className="relative overflow-hidden rounded-2xl border bg-card">
         <div className="absolute inset-0 bg-grid-animate pointer-events-none" />
         <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-accent/5 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-20 -left-20 w-64 h-64 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
 
         <div className="relative p-6 sm:p-8">
-          {/* Top bar: date + status */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="h-2 w-2 rounded-full bg-success status-pulse" />
@@ -128,7 +185,6 @@ export default function Dashboard() {
           </div>
 
           <div className="flex flex-col lg:flex-row lg:items-start gap-8">
-            {/* Left: Greeting + Next Move */}
             <div className="flex-1 space-y-5">
               <div>
                 <h1 className="font-display text-3xl sm:text-4xl font-bold leading-tight tracking-tight">
@@ -141,7 +197,6 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Current Phase */}
               {currentStage && (
                 <div className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-accent/5 border border-accent/15">
                   <div className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
@@ -150,40 +205,36 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Next Move Card */}
-              <div className={`glass-strong rounded-xl p-5 max-w-md ${nextMove.urgent ? "border-destructive/30" : ""}`}>
-                <div className="flex items-center gap-2 mb-3">
+              {/* Next Moves */}
+              <div className="space-y-2 max-w-md">
+                <div className="flex items-center gap-2 mb-1">
                   <Sparkles className="h-3 w-3 text-accent-foreground" />
-                  <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-muted-foreground">Your Next Move</span>
+                  <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-muted-foreground">Your Next Moves</span>
                 </div>
-                <div className="flex items-start gap-3">
-                  <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${nextMove.urgent ? "bg-destructive/10" : "bg-accent/10"}`}>
-                    <nextMove.icon className={`h-4 w-4 ${nextMove.urgent ? "text-destructive" : "text-accent-foreground"}`} />
+                {nextMoves.map((move, i) => (
+                  <div key={i} className={`glass-strong rounded-xl p-4 cursor-pointer hover:border-accent/30 transition-all ${move.urgent ? "border-destructive/30" : ""}`} onClick={move.action}>
+                    <div className="flex items-start gap-3">
+                      <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${move.urgent ? "bg-destructive/10" : "bg-accent/10"}`}>
+                        <move.icon className={`h-3.5 w-3.5 ${move.urgent ? "text-destructive" : "text-accent-foreground"}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold leading-tight truncate">{move.label}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">{move.sublabel}</p>
+                        <p className="text-[9px] font-mono text-accent-foreground/70 mt-1">{move.reason}</p>
+                      </div>
+                      {i === 0 && (
+                        <Button size="sm" variant={move.urgent ? "destructive" : "default"} className="shrink-0 gap-1 h-7 text-[10px]">
+                          <Play className="h-2.5 w-2.5" />Resume
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold leading-tight">{nextMove.label}</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">{nextMove.sublabel}</p>
-                  </div>
-                </div>
-                <Button size="sm" onClick={nextMove.action} className="mt-4 gap-2 rounded-lg w-full justify-center" variant={nextMove.urgent ? "destructive" : "default"}>
-                  <Play className="h-3 w-3" />Resume Work
-                  <ChevronRight className="h-3 w-3" />
-                </Button>
+                ))}
               </div>
             </div>
 
             {/* Right: Cohort + Project status */}
             <div className="flex flex-col gap-4 min-w-[200px]">
-              {cohort && (
-                <div className="glass-strong rounded-xl p-5 flex flex-col items-center text-center">
-                  <ProgressRing progress={cohortProgress} size={88} strokeWidth={5}>
-                    <CohortIcon className="h-6 w-6 text-accent-foreground" />
-                  </ProgressRing>
-                  <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mt-3">{cohortName}</p>
-                  <p className="text-2xl font-bold font-mono mt-1">{cohortProgress}%</p>
-                  <p className="text-[10px] text-muted-foreground">Training Progress</p>
-                </div>
-              )}
               {mockProject && (
                 <motion.div whileHover={{ scale: 1.02 }} className="glass rounded-xl p-4 cursor-pointer text-center card-hover" onClick={() => navigate(`/app/mock-project/${mockProject.id}`)}>
                   <Target className="h-4 w-4 text-accent-foreground mx-auto mb-1.5" />
@@ -198,6 +249,19 @@ export default function Dashboard() {
                   <p className="text-[10px] text-muted-foreground">Continue Lab</p>
                 </motion.div>
               )}
+              {cohort && rosterMembers.length > 0 && (
+                <div className="glass rounded-xl p-4 cursor-pointer card-hover" onClick={() => navigate("/app/cohort")}>
+                  <div className="flex items-center -space-x-2 justify-center mb-2">
+                    {rosterMembers.slice(0, 6).map((m: any) => (
+                      <div key={m.id} className="h-6 w-6 rounded-full bg-secondary flex items-center justify-center text-[9px] font-bold text-secondary-foreground border-2 border-card">
+                        {(m.profiles as any)?.full_name?.[0] || "?"}
+                      </div>
+                    ))}
+                    {rosterMembers.length > 6 && <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[9px] font-mono border-2 border-card">+{rosterMembers.length - 6}</div>}
+                  </div>
+                  <p className="text-[10px] font-mono text-muted-foreground text-center">{cohortName} · {rosterMembers.length} members</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -205,39 +269,40 @@ export default function Dashboard() {
 
       {/* ── STATS ROW ── */}
       <motion.div variants={item} className="grid gap-3 grid-cols-2 sm:grid-cols-4">
-        <StatTile icon={FolderKanban} label="Active Projects" value={stats.activeProjects} />
-        <StatTile icon={AlertTriangle} label="Overdue" value={stats.overdueTasks} variant={stats.overdueTasks > 0 ? "destructive" : "default"} />
+        <StatTile icon={FolderKanban} label="Projects" value={stats.activeProjects} />
+        <StatTile icon={AlertTriangle} label="Overdue" value={stats.overdueDeliverables} variant={stats.overdueDeliverables > 0 ? "destructive" : "default"} />
         <StatTile icon={CalendarDays} label="Events" value={stats.upcomingEvents} />
         <StatTile icon={Users} label="Members" value={stats.totalMembers} />
       </motion.div>
 
       {/* ── MAIN GRID ── */}
       <div className="grid gap-5 lg:grid-cols-12">
-        {/* Left column: Tasks + Projects */}
         <div className="lg:col-span-7 space-y-5">
+          {/* Deliverables */}
           <motion.div variants={item}>
             <Card className="overflow-hidden">
               <CardHeader className="flex-row items-center justify-between py-3 px-5">
                 <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-accent-foreground" />My Tasks
+                  <CheckCircle2 className="h-3.5 w-3.5 text-accent-foreground" />My Deliverables
                 </CardTitle>
                 <Button variant="ghost" size="sm" className="text-[10px] font-mono h-7" onClick={() => navigate("/app/projects")}>View all <ArrowRight className="ml-1 h-3 w-3" /></Button>
               </CardHeader>
               <CardContent className="pt-0 px-5 pb-4">
-                {tasks.length === 0 ? (
-                  <EmptyState icon={CheckCircle2} text="All clear — no pending tasks" />
+                {deliverables.length === 0 ? (
+                  <EmptyState icon={CheckCircle2} text="All clear — no pending deliverables" />
                 ) : (
                   <div className="space-y-0.5">
-                    {tasks.slice(0, 6).map((task: any) => (
-                      <motion.div key={task.id} whileHover={{ x: 2 }} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-muted/40 transition-all cursor-pointer group">
-                        <div className={`h-2 w-2 rounded-full shrink-0 ${task.priority === "urgent" ? "bg-destructive animate-pulse" : task.priority === "high" ? "bg-warning" : "bg-muted-foreground/30"}`} />
+                    {deliverables.slice(0, 6).map((d: any) => (
+                      <motion.div key={d.id} whileHover={{ x: 2 }} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-muted/40 transition-all cursor-pointer group" onClick={() => navigate("/app/projects")}>
+                        <div className={`h-2 w-2 rounded-full shrink-0 ${d.due_date && new Date(d.due_date) < new Date() ? "bg-destructive animate-pulse" : d.approval_status === "changes_requested" ? "bg-warning" : "bg-muted-foreground/30"}`} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate leading-tight">{task.title}</p>
-                          <p className="text-[10px] text-muted-foreground font-mono">{(task as any).projects?.name}</p>
+                          <p className="text-sm font-medium truncate leading-tight">{d.title}</p>
+                          <p className="text-[10px] text-muted-foreground font-mono">{(d.projects as any)?.name}</p>
                         </div>
-                        {task.due_date && (
-                          <span className={`text-[10px] font-mono ${new Date(task.due_date) < new Date() ? "text-destructive font-semibold" : "text-muted-foreground"}`}>
-                            {new Date(task.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        <Badge variant="outline" className="text-[9px] font-mono shrink-0">{d.approval_status}</Badge>
+                        {d.due_date && (
+                          <span className={`text-[10px] font-mono ${new Date(d.due_date) < new Date() ? "text-destructive font-semibold" : "text-muted-foreground"}`}>
+                            {new Date(d.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                           </span>
                         )}
                         <ChevronRight className="h-3 w-3 text-transparent group-hover:text-muted-foreground transition-colors" />
@@ -248,65 +313,9 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </motion.div>
-
-          <motion.div variants={item}>
-            <Card>
-              <CardHeader className="flex-row items-center justify-between py-3 px-5">
-                <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
-                  <FolderKanban className="h-3.5 w-3.5 text-accent-foreground" />My Projects
-                </CardTitle>
-                <Button variant="ghost" size="sm" className="text-[10px] font-mono h-7" onClick={() => navigate("/app/projects")}>View all <ArrowRight className="ml-1 h-3 w-3" /></Button>
-              </CardHeader>
-              <CardContent className="pt-0 px-5 pb-4">
-                {projects.length === 0 ? (
-                  <EmptyState icon={FolderKanban} text="No active projects" />
-                ) : (
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {projects.map((p: any) => (
-                      <motion.div key={p.id} whileHover={{ scale: 1.01 }} className="rounded-xl border p-4 card-hover cursor-pointer" onClick={() => navigate(`/app/projects/${p.id}`)}>
-                        <div className="flex items-start justify-between mb-1">
-                          <h3 className="font-medium text-sm leading-tight">{p.name}</h3>
-                          <Badge variant="outline" className="text-[9px] font-mono shrink-0">{p.status}</Badge>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground line-clamp-2">{p.description || "No description"}</p>
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
         </div>
 
-        {/* Right column: Activity + Quick Actions */}
         <div className="lg:col-span-5 space-y-5">
-          {/* Cohort team mini-roster */}
-          {rosterMembers.length > 0 && (
-            <motion.div variants={item}>
-              <Card className="card-hover cursor-pointer" onClick={() => navigate("/app/cohort")}>
-                <CardHeader className="py-3 px-5">
-                  <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
-                    <CohortIcon className="h-3.5 w-3.5 text-accent-foreground" /> Cohort Team
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0 px-5 pb-4">
-                  <div className="flex items-center -space-x-2">
-                    {rosterMembers.slice(0, 8).map((m: any) => (
-                      <div key={m.id} className="h-7 w-7 rounded-full bg-secondary flex items-center justify-center text-[10px] font-bold text-secondary-foreground border-2 border-card" title={(m.profiles as any)?.full_name}>
-                        {(m.profiles as any)?.full_name?.[0] || "?"}
-                      </div>
-                    ))}
-                    {rosterMembers.length > 8 && (
-                      <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-[10px] font-mono text-muted-foreground border-2 border-card">+{rosterMembers.length - 8}</div>
-                    )}
-                  </div>
-                  <p className="text-[10px] font-mono text-muted-foreground mt-2">{rosterMembers.length} members · View cohort hub →</p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-
-          {/* Announcements */}
           <motion.div variants={item}>
             <Card>
               <CardHeader className="py-3 px-5">
@@ -328,7 +337,6 @@ export default function Dashboard() {
             </Card>
           </motion.div>
 
-          {/* Quick Actions */}
           <motion.div variants={item}>
             <Card>
               <CardHeader className="py-3 px-5">
@@ -343,7 +351,6 @@ export default function Dashboard() {
                   { icon: CalendarDays, label: "Events", path: "/app/events" },
                   { icon: GraduationCap, label: "Academy", path: "/app/academy" },
                   { icon: FileText, label: "Documents", path: "/app/docs" },
-                  { icon: Briefcase, label: "Ops Command", path: "/app/ops" },
                 ].map((a) => (
                   <Button key={a.path} variant="ghost" size="sm" className="w-full justify-start h-8 text-[11px] font-sans" onClick={() => navigate(a.path)}>
                     <a.icon className="mr-2 h-3.5 w-3.5 text-muted-foreground" /> {a.label}
@@ -353,21 +360,22 @@ export default function Dashboard() {
             </Card>
           </motion.div>
 
-          {/* Admin panel */}
-          {isAdmin && (
+          {(isBoardOrAdmin || highestRole === "project_lead") && (
             <motion.div variants={item}>
               <Card className="border-accent/20">
                 <CardHeader className="py-3 px-5">
                   <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
-                    <Shield className="h-3.5 w-3.5 text-accent-foreground" /> Admin
+                    <Shield className="h-3.5 w-3.5 text-accent-foreground" /> Leadership
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0 px-5 pb-3 grid grid-cols-2 gap-2">
                   {[
-                    { label: "Approvals", path: "/app/admin", icon: Shield },
+                    { label: "Lead Workspace", path: "/app/lead", icon: Briefcase },
                     { label: "Members", path: "/app/members", icon: Users },
-                    { label: "Analytics", path: "/app/analytics", icon: BarChart3 },
-                    { label: "Pipeline", path: "/app/crm", icon: Activity },
+                    ...(isAdmin ? [
+                      { label: "Admin Console", path: "/app/admin", icon: Shield },
+                      { label: "Command Center", path: "/app/command", icon: BarChart3 },
+                    ] : []),
                   ].map((m) => (
                     <Button key={m.path} variant="outline" className="h-auto flex-col py-3 text-[10px] gap-1.5 card-hover" onClick={() => navigate(m.path)}>
                       <m.icon className="h-3.5 w-3.5 text-muted-foreground" />
@@ -383,8 +391,6 @@ export default function Dashboard() {
     </motion.div>
   );
 }
-
-/* ── Sub-components ── */
 
 function StatTile({ icon: Icon, label, value, variant = "default" }: { icon: any; label: string; value: number; variant?: string }) {
   return (

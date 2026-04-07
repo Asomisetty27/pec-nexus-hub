@@ -32,6 +32,8 @@ import MockProject from "./pages/app/MockProject";
 import Scheduling from "./pages/app/Scheduling";
 import OpsDashboard from "./pages/app/OpsDashboard";
 import PermissionInspector from "./pages/app/PermissionInspector";
+import LeadWorkspace from "./pages/app/LeadWorkspace";
+import CommandCenter from "./pages/app/CommandCenter";
 
 const queryClient = new QueryClient();
 
@@ -71,6 +73,8 @@ const App = () => (
               <Route path="scheduling" element={<Scheduling />} />
               <Route path="ops" element={<OpsDashboard />} />
               <Route path="permissions" element={<PermissionInspector />} />
+              <Route path="lead" element={<LeadWorkspace />} />
+              <Route path="command" element={<CommandCenter />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

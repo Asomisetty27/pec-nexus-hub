@@ -23,6 +23,7 @@ const mainNav = [
   { title: "Scheduling", url: "/app/scheduling", icon: Clock },
   { title: "Events", url: "/app/events", icon: CalendarDays },
   { title: "Academy", url: "/app/academy", icon: GraduationCap },
+  { title: "Lead Workspace", url: "/app/lead", icon: Briefcase, leadOnly: true },
 ];
 
 const orgNav = [
@@ -34,6 +35,7 @@ const orgNav = [
 ];
 
 const adminNav = [
+  { title: "Command Center", url: "/app/command", icon: Shield },
   { title: "Admin Console", url: "/app/admin", icon: Shield },
   { title: "Permissions", url: "/app/permissions", icon: Eye },
   { title: "Analytics", url: "/app/analytics", icon: BarChart3 },
