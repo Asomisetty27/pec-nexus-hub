@@ -304,6 +304,7 @@ export default function MockProject() {
 
         {/* Playbooks */}
         <TabsContent value="playbooks" className="mt-4 space-y-4">
+          <SectionExplainer text="Playbooks guide you step-by-step on how to complete your work. Follow each step and submit when done." className="mb-2" />
           {playbooks.map(pb => (
             <Card key={pb.id}>
               <CardHeader className="py-3">
