@@ -285,8 +285,9 @@ export default function Dashboard() {
           <motion.div variants={item}>
             <Card className="overflow-hidden">
               <CardHeader className="flex-row items-center justify-between py-3 px-5">
-                <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
+              <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
                   <CheckCircle2 className="h-3.5 w-3.5 text-accent-foreground" />My Deliverables
+                  <InfoDot tip="Deliverables are required outputs you must submit and get approved before your project can advance." />
                 </CardTitle>
                 <Button variant="ghost" size="sm" className="text-[10px] font-mono h-7" onClick={() => navigate("/app/projects")}>View all <ArrowRight className="ml-1 h-3 w-3" /></Button>
               </CardHeader>
