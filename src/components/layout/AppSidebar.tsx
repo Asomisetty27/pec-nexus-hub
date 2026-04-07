@@ -23,6 +23,7 @@ const mainNav = [
   { title: "Scheduling", url: "/app/scheduling", icon: Clock },
   { title: "Events", url: "/app/events", icon: CalendarDays },
   { title: "Academy", url: "/app/academy", icon: GraduationCap },
+  { title: "Lead Workspace", url: "/app/lead", icon: Briefcase, leadOnly: true },
 ];
 
 const orgNav = [
