@@ -338,6 +338,7 @@ export default function MockProject() {
             <CardHeader className="py-3 flex flex-row items-center justify-between">
               <CardTitle className="text-sm flex items-center gap-2">
                 <Users className="h-4 w-4 text-accent" /> Team Members
+                <InfoDot tip="Workstreams define your responsibility within the project. Your lane determines your playbooks and deliverables." />
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
