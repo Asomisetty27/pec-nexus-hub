@@ -2583,7 +2583,16 @@ export type Database = {
         | "completed"
         | "lost"
       member_status: "active" | "inactive" | "suspended" | "alumni"
-      message_type: "message" | "update" | "blocker" | "decision" | "action"
+      message_type:
+        | "message"
+        | "update"
+        | "blocker"
+        | "decision"
+        | "action"
+        | "review_request"
+        | "help_request"
+        | "announcement"
+        | "fyi"
       milestone_status: "not_started" | "in_progress" | "completed" | "overdue"
       project_mode:
         | "training_mock"
@@ -2758,7 +2767,17 @@ export const Constants = {
         "lost",
       ],
       member_status: ["active", "inactive", "suspended", "alumni"],
-      message_type: ["message", "update", "blocker", "decision", "action"],
+      message_type: [
+        "message",
+        "update",
+        "blocker",
+        "decision",
+        "action",
+        "review_request",
+        "help_request",
+        "announcement",
+        "fyi",
+      ],
       milestone_status: ["not_started", "in_progress", "completed", "overdue"],
       project_mode: [
         "training_mock",
