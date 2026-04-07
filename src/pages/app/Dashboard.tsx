@@ -172,11 +172,11 @@ export default function Dashboard() {
         <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-accent/5 blur-3xl pointer-events-none" />
 
         <div className="relative p-6 sm:p-8">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
               <div className="h-2 w-2 rounded-full bg-success status-pulse" />
               <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground">
-                {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+                Mission Control · {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
               </span>
             </div>
             <div className="badge-verified">
@@ -184,6 +184,7 @@ export default function Dashboard() {
               <span>{highestRole}</span>
             </div>
           </div>
+          <SectionExplainer text="This is your personal command center. Follow your next moves to stay on track." className="mb-4" />
 
           <div className="flex flex-col lg:flex-row lg:items-start gap-8">
             <div className="flex-1 space-y-5">
