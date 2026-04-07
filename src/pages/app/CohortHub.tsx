@@ -14,6 +14,7 @@ import { Users, BookOpen, Target, ChevronRight, Cpu, Wrench, Code, Briefcase, Pl
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { SectionExplainer, InfoDot } from "@/components/ui/SectionExplainer";
 
 const cohortIcons: Record<string, any> = { cpu: Cpu, wrench: Wrench, code: Code, briefcase: Briefcase };
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
