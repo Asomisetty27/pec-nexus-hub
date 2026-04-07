@@ -173,7 +173,7 @@ export default function Messages() {
                       {msg.message_type !== "message" && (
                         <Badge variant="outline" className="text-[9px] font-mono gap-1 py-0">
                           <TypeIcon className="h-2.5 w-2.5" />
-                          {msg.message_type}
+                          {config.label}
                         </Badge>
                       )}
                       <span className="text-[10px] text-muted-foreground font-mono ml-auto">
