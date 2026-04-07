@@ -343,8 +343,8 @@ export default function MockProject() {
             </CardHeader>
             <CardContent className="pt-0">
               {mockMembers.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">
-                  No members assigned yet. {isLeader ? "Add team members from the Control tab." : ""}
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                  No members assigned yet. {isLeader ? "Add team members from the Control tab." : "Your PM will assign team members soon."}
                 </p>
               ) : (
                 <div className="space-y-2">
