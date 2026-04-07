@@ -103,6 +103,7 @@ export default function LeadWorkspace() {
       <motion.div variants={item}>
         <h1 className="font-display text-2xl font-bold">Leadership Workspace</h1>
         <p className="text-xs text-muted-foreground font-mono">{cohortName} · {cohort?.role}</p>
+        <SectionExplainer text="You manage progress, assign work, and move stages forward. Review pending deliverables and resolve blockers here." className="mt-1" />
       </motion.div>
 
       {/* Summary cards */}
