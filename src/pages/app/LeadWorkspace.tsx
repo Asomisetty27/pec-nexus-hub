@@ -73,7 +73,7 @@ export default function LeadWorkspace() {
   };
 
   const requestChanges = async (id: string) => {
-    await supabase.from("deliverables").update({ approval_status: "changes_requested" as any }).eq("id", id);
+    await supabase.from("deliverables").update({ approval_status: "revision_requested" as any }).eq("id", id);
     toast.info("Revision requested");
     setDeliverables(prev => prev.map(d => d.id === id ? { ...d, approval_status: "changes_requested" } : d));
   };

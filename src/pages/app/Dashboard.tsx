@@ -115,7 +115,7 @@ export default function Dashboard() {
       action: () => navigate("/app/projects"), icon: AlertTriangle, urgent: true,
     }));
 
-    const changesRequested = deliverables.filter(d => d.approval_status === "changes_requested");
+    const changesRequested = deliverables.filter(d => d.approval_status === "revision_requested");
     changesRequested.forEach(d => moves.push({
       label: d.title, sublabel: (d.projects as any)?.name || "Project",
       reason: "Review feedback waiting — revision needed",
