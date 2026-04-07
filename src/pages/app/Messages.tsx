@@ -13,12 +13,16 @@ import {
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
-const typeConfig: Record<string, { icon: any; bg: string; border: string }> = {
-  update: { icon: Zap, bg: "bg-accent/5", border: "border-l-accent" },
-  blocker: { icon: AlertTriangle, bg: "bg-destructive/5", border: "border-l-destructive" },
-  decision: { icon: Lightbulb, bg: "bg-warning/5", border: "border-l-warning" },
-  action: { icon: CheckCircle2, bg: "bg-success/5", border: "border-l-success" },
-  message: { icon: MessageSquare, bg: "", border: "border-l-transparent" },
+const typeConfig: Record<string, { icon: any; bg: string; border: string; label: string }> = {
+  update: { icon: Zap, bg: "bg-accent/5", border: "border-l-accent", label: "Update" },
+  blocker: { icon: AlertTriangle, bg: "bg-destructive/5", border: "border-l-destructive", label: "Blocker" },
+  decision: { icon: Lightbulb, bg: "bg-warning/5", border: "border-l-warning", label: "Decision" },
+  action: { icon: CheckCircle2, bg: "bg-success/5", border: "border-l-success", label: "Action" },
+  review_request: { icon: CheckCircle2, bg: "bg-primary/5", border: "border-l-primary", label: "Review Request" },
+  help_request: { icon: HelpCircle, bg: "bg-warning/5", border: "border-l-warning", label: "Help Request" },
+  announcement: { icon: Globe, bg: "bg-accent/10", border: "border-l-accent", label: "Announcement" },
+  fyi: { icon: Lightbulb, bg: "bg-muted/30", border: "border-l-muted-foreground", label: "FYI" },
+  message: { icon: MessageSquare, bg: "", border: "border-l-transparent", label: "Message" },
 };
 
 export default function Messages() {
