@@ -264,9 +264,10 @@ export default function LabManual() {
                         <div className="prose prose-sm dark:prose-invert max-w-none">
                           <div className="whitespace-pre-wrap text-sm leading-relaxed">{currentStep.content || "No content yet."}</div>
                         </div>
-                        {!currentSubmission ? (
+                    {!currentSubmission ? (
                           <div className="border-t pt-4 space-y-3">
                             <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Submit your work</p>
+                            <SectionExplainer text="If you're unsure about anything, request help — do not guess." />
                             <Input placeholder="Link to your work (optional)" value={submissionLink} onChange={e => setSubmissionLink(e.target.value)} className="h-9" />
                             <Textarea placeholder="Notes, explanation, or paste content..." value={submissionText} onChange={e => setSubmissionText(e.target.value)} rows={4} />
                             <Button onClick={handleSubmit} disabled={submitting || (!submissionText && !submissionLink)} className="gap-2">
