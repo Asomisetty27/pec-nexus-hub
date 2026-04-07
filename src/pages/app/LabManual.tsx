@@ -235,7 +235,7 @@ export default function LabManual() {
               <Card className="flex flex-col items-center py-16">
                 <BookOpen className="h-10 w-10 text-muted-foreground/20 mb-3" />
                 <p className="text-sm text-muted-foreground">No steps yet.</p>
-                {isLeader && <p className="text-[11px] text-muted-foreground/60 mt-1">Add steps using the button on the left.</p>}
+                <p className="text-[11px] text-muted-foreground/60 mt-1">{isLeader ? "Add steps using the button on the left." : "Your Tech Lead will add playbook steps soon."}</p>
               </Card>
             ) : currentStep && (
               <motion.div key={currentStep.id} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.2 }}>

@@ -189,6 +189,7 @@ export default function LeadWorkspace() {
             <Card className="flex flex-col items-center py-12">
               <HelpCircle className="h-10 w-10 text-muted-foreground/30 mb-3" />
               <p className="text-sm text-muted-foreground">No open help requests.</p>
+              <p className="text-[10px] text-muted-foreground/60 mt-1">When members need help, their requests will appear here for you to resolve.</p>
             </Card>
           ) : helpRequests.map(h => (
             <Card key={h.id}>

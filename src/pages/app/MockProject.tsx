@@ -380,6 +380,7 @@ export default function MockProject() {
 
         {/* Documents */}
         <TabsContent value="docs" className="mt-4 space-y-4">
+          <SectionExplainer text="Upload files, link documents, and track versions. The system infers stage and deliverable automatically." className="mb-1" />
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold">Project Files</h3>
             <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => setImportDialog(true)}>

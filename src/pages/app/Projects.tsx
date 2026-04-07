@@ -102,7 +102,8 @@ export default function Projects() {
       ) : filtered.length === 0 ? (
         <Card className="flex flex-col items-center justify-center py-16">
           <FolderKanban className="h-10 w-10 text-muted-foreground/30 mb-3" />
-          <p className="text-sm text-muted-foreground">No projects found</p>
+          <p className="text-sm text-muted-foreground">No projects found.</p>
+          <p className="text-[10px] text-muted-foreground/60 mt-1">Projects will appear here once created by leadership.</p>
         </Card>
       ) : (
         <motion.div variants={container} initial="hidden" animate="show" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

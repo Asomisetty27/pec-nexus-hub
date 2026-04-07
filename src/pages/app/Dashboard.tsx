@@ -328,7 +328,7 @@ export default function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0 px-5 pb-4">
-                {announcements.length === 0 ? <p className="text-[11px] text-muted-foreground text-center py-4">No announcements.</p> : (
+                {announcements.length === 0 ? <p className="text-[11px] text-muted-foreground text-center py-4">No announcements yet. Leadership updates will appear here.</p> : (
                   <div className="space-y-3">{announcements.map((a: any) => (
                     <div key={a.id} className="border-l-2 border-accent/40 pl-3">
                       <p className="text-sm font-medium leading-tight">{a.title}</p>

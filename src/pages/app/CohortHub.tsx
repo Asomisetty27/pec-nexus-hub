@@ -331,6 +331,7 @@ export default function CohortHub() {
                   <div className="flex flex-col items-center py-8 text-muted-foreground">
                     <Target className="h-8 w-8 mb-2 opacity-20" />
                     <p className="text-[11px]">No mock projects yet.</p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-1">Your PM will create a project when your cohort is ready.</p>
                     {isLeader && <p className="text-[10px] mt-1 text-muted-foreground/60">Create one using the button above.</p>}
                   </div>
                 ) : (
