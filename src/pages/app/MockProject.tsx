@@ -129,6 +129,7 @@ export default function MockProject() {
             {(project as any).cohorts?.name} • Training Program
           </p>
           <h1 className="font-display text-2xl font-bold">{project.title}</h1>
+          <SectionExplainer text="This is your project workspace. It shows what your team is building and where you are in the process." className="mt-1" />
         </div>
         <div className="flex items-center gap-2">
           {myMembership?.lane && (
