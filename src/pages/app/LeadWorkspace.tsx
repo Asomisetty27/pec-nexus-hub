@@ -132,9 +132,10 @@ export default function LeadWorkspace() {
 
         <TabsContent value="review" className="mt-4 space-y-2">
           {pendingReview.length === 0 ? (
-            <Card className="flex flex-col items-center py-12">
+           <Card className="flex flex-col items-center py-12">
               <CheckCircle2 className="h-10 w-10 text-success/30 mb-3" />
               <p className="text-sm text-muted-foreground">No pending reviews.</p>
+              <p className="text-[10px] text-muted-foreground/60 mt-1">Deliverables needing your approval will appear here.</p>
             </Card>
           ) : pendingReview.map(d => (
             <motion.div key={d.id} variants={item}>
