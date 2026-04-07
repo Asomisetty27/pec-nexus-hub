@@ -209,9 +209,10 @@ export default function Dashboard() {
 
               {/* Next Moves */}
               <div className="space-y-2 max-w-md">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-0.5">
                   <Sparkles className="h-3 w-3 text-accent-foreground" />
                   <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-muted-foreground">Your Next Moves</span>
+                  <InfoDot tip="These are your highest-priority tasks right now, ranked by urgency. Complete them in order to keep your team on track." />
                 </div>
                 {nextMoves.map((move, i) => (
                   <div key={i} className={`glass-strong rounded-xl p-4 cursor-pointer hover:border-accent/30 transition-all ${move.urgent ? "border-destructive/30" : ""}`} onClick={move.action}>
