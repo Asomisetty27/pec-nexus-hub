@@ -32,6 +32,8 @@ import MockProject from "./pages/app/MockProject";
 import Scheduling from "./pages/app/Scheduling";
 import OpsDashboard from "./pages/app/OpsDashboard";
 import PermissionInspector from "./pages/app/PermissionInspector";
+import LeadWorkspace from "./pages/app/LeadWorkspace";
+import CommandCenter from "./pages/app/CommandCenter";
 
 const queryClient = new QueryClient();
 
