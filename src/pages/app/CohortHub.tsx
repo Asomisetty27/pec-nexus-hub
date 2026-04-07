@@ -162,7 +162,7 @@ export default function CohortHub() {
             </div>
             <div className="flex-1">
               <h1 className="font-display text-2xl font-bold">{cohort.name}</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">{cohort.description}</p>
+              <SectionExplainer text="Your cohort hub — see your team, projects, and training materials in one place." className="mt-0.5" />
               <div className="flex items-center gap-2 mt-2">
                 <Badge variant={roleBadgeVariant(membership.role) as any} className="text-[9px] font-mono uppercase">{roleLabel(membership.role)}</Badge>
                 <span className="text-[10px] font-mono text-muted-foreground">{members.length} members</span>
