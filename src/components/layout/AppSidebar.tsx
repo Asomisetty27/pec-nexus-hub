@@ -2,6 +2,7 @@ import {
   LayoutDashboard, FolderKanban, MessageSquare, Users, CalendarDays,
   Trophy, Briefcase, GraduationCap, FileText, BarChart3, Shield,
   Building2, Megaphone, Settings, LogOut, Beaker, Cpu, Clock, Eye,
+  UserPlus,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
