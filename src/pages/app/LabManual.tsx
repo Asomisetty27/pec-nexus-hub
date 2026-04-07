@@ -150,8 +150,9 @@ export default function LabManual() {
             </Button>
           )}
           <div>
-            <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-muted-foreground">{(manual as any).cohorts?.name} · Lab Manual</p>
+            <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-muted-foreground">{(manual as any).cohorts?.name} · Playbook</p>
             <h1 className="font-display text-xl font-bold leading-tight">{manual.title}</h1>
+            <SectionExplainer text="This playbook guides you through completing this part of the project. Follow each step and submit your work." className="mt-1" />
           </div>
         </div>
         <div className="flex items-center gap-3">
