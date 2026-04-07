@@ -34,6 +34,7 @@ import OpsDashboard from "./pages/app/OpsDashboard";
 import PermissionInspector from "./pages/app/PermissionInspector";
 import LeadWorkspace from "./pages/app/LeadWorkspace";
 import CommandCenter from "./pages/app/CommandCenter";
+import InviteManagement from "./pages/app/InviteManagement";
 
 const queryClient = new QueryClient();
 
