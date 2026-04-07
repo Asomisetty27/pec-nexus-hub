@@ -18,6 +18,7 @@ import {
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import SmartDocImport from "@/components/SmartDocImport";
+import { SectionExplainer, InfoDot } from "@/components/ui/SectionExplainer";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
 const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } };
