@@ -55,7 +55,7 @@ export default function Dashboard() {
     const load = async () => {
       // Use deliverables as the primary task system (they exist in schema)
       const [delRes, annRes, cohortRes, helpRes] = await Promise.all([
-        supabase.from("deliverables").select("*, projects(name)").eq("owner_id", user.id).in("approval_status", ["pending", "changes_requested"]).order("due_date", { ascending: true }).limit(10),
+        supabase.from("deliverables").select("*, projects(name)").eq("owner_id", user.id).in("approval_status", ["pending", "revision_requested"]).order("due_date", { ascending: true }).limit(10),
         supabase.from("announcements").select("*").order("created_at", { ascending: false }).limit(3),
         supabase.from("cohort_memberships").select("*, cohorts(*)").eq("user_id", user.id).limit(1).maybeSingle(),
         supabase.from("help_requests").select("*").eq("requester_id", user.id).eq("status", "open").limit(5),
