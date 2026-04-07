@@ -13,6 +13,7 @@ import { Plus, Search, FolderKanban, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { SectionExplainer } from "@/components/ui/SectionExplainer";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } };
@@ -57,7 +58,7 @@ export default function Projects() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold">Projects</h1>
-          <p className="text-xs text-muted-foreground font-mono">{projects.length} total</p>
+          <SectionExplainer text="All active and past projects. Click any project to see stages, deliverables, and team." />
         </div>
         {isAdmin && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -101,7 +102,8 @@ export default function Projects() {
       ) : filtered.length === 0 ? (
         <Card className="flex flex-col items-center justify-center py-16">
           <FolderKanban className="h-10 w-10 text-muted-foreground/30 mb-3" />
-          <p className="text-sm text-muted-foreground">No projects found</p>
+          <p className="text-sm text-muted-foreground">No projects found.</p>
+          <p className="text-[10px] text-muted-foreground/60 mt-1">Projects will appear here once created by leadership.</p>
         </Card>
       ) : (
         <motion.div variants={container} initial="hidden" animate="show" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

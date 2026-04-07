@@ -18,6 +18,7 @@ import {
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import SmartDocImport from "@/components/SmartDocImport";
+import { SectionExplainer, InfoDot } from "@/components/ui/SectionExplainer";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
 const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } };
@@ -128,6 +129,7 @@ export default function MockProject() {
             {(project as any).cohorts?.name} • Training Program
           </p>
           <h1 className="font-display text-2xl font-bold">{project.title}</h1>
+          <SectionExplainer text="This is your project workspace. It shows what your team is building and where you are in the process." className="mt-1" />
         </div>
         <div className="flex items-center gap-2">
           {myMembership?.lane && (
@@ -143,6 +145,10 @@ export default function MockProject() {
       <motion.div variants={item}>
         <Card className="border-border/50">
           <CardContent className="py-4">
+            <div className="flex items-center gap-1.5 mb-3">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Project Stages</span>
+              <InfoDot tip="Stages show where you are in the project timeline. Complete all required deliverables before moving to the next stage." />
+            </div>
             <div className="flex items-center gap-1">
               {stages.map((stage, i) => {
                 const isActive = stage.status === "active";
@@ -262,6 +268,7 @@ export default function MockProject() {
 
         {/* Deliverables by Stage */}
         <TabsContent value="deliverables" className="mt-4 space-y-4">
+          <SectionExplainer text="Deliverables are required outputs. They must be submitted and approved before the project can progress to the next stage." className="mb-2" />
           {stages.map(stage => {
             const reqs = Array.isArray(stage.required_deliverables) ? stage.required_deliverables : [];
             const isActive = stage.status === "active";
@@ -297,6 +304,7 @@ export default function MockProject() {
 
         {/* Playbooks */}
         <TabsContent value="playbooks" className="mt-4 space-y-4">
+          <SectionExplainer text="Playbooks guide you step-by-step on how to complete your work. Follow each step and submit when done." className="mb-2" />
           {playbooks.map(pb => (
             <Card key={pb.id}>
               <CardHeader className="py-3">
@@ -330,12 +338,13 @@ export default function MockProject() {
             <CardHeader className="py-3 flex flex-row items-center justify-between">
               <CardTitle className="text-sm flex items-center gap-2">
                 <Users className="h-4 w-4 text-accent" /> Team Members
+                <InfoDot tip="Workstreams define your responsibility within the project. Your lane determines your playbooks and deliverables." />
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
               {mockMembers.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">
-                  No members assigned yet. {isLeader ? "Add team members from the Control tab." : ""}
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                  No members assigned yet. {isLeader ? "Add team members from the Control tab." : "Your PM will assign team members soon."}
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -371,6 +380,7 @@ export default function MockProject() {
 
         {/* Documents */}
         <TabsContent value="docs" className="mt-4 space-y-4">
+          <SectionExplainer text="Upload files, link documents, and track versions. The system infers stage and deliverable automatically." className="mb-1" />
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold">Project Files</h3>
             <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => setImportDialog(true)}>

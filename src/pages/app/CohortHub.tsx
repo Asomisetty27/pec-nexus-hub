@@ -14,6 +14,7 @@ import { Users, BookOpen, Target, ChevronRight, Cpu, Wrench, Code, Briefcase, Pl
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { SectionExplainer, InfoDot } from "@/components/ui/SectionExplainer";
 
 const cohortIcons: Record<string, any> = { cpu: Cpu, wrench: Wrench, code: Code, briefcase: Briefcase };
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
@@ -161,7 +162,7 @@ export default function CohortHub() {
             </div>
             <div className="flex-1">
               <h1 className="font-display text-2xl font-bold">{cohort.name}</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">{cohort.description}</p>
+              <SectionExplainer text="Your cohort hub — see your team, projects, and training materials in one place." className="mt-0.5" />
               <div className="flex items-center gap-2 mt-2">
                 <Badge variant={roleBadgeVariant(membership.role) as any} className="text-[9px] font-mono uppercase">{roleLabel(membership.role)}</Badge>
                 <span className="text-[10px] font-mono text-muted-foreground">{members.length} members</span>
@@ -245,6 +246,7 @@ export default function CohortHub() {
             <CardHeader className="py-3 px-5">
               <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
                 <Target className="h-3.5 w-3.5 text-accent-foreground" /> Project Lifecycle
+                <InfoDot tip="Your project moves through stages. Complete all required deliverables to advance." />
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0 px-5 pb-4">
@@ -329,6 +331,7 @@ export default function CohortHub() {
                   <div className="flex flex-col items-center py-8 text-muted-foreground">
                     <Target className="h-8 w-8 mb-2 opacity-20" />
                     <p className="text-[11px]">No mock projects yet.</p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-1">Your PM will create a project when your cohort is ready.</p>
                     {isLeader && <p className="text-[10px] mt-1 text-muted-foreground/60">Create one using the button above.</p>}
                   </div>
                 ) : (

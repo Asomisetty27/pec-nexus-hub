@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { logAuditAction } from "@/lib/audit";
+import { SectionExplainer, InfoDot } from "@/components/ui/SectionExplainer";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } };
@@ -102,6 +103,7 @@ export default function LeadWorkspace() {
       <motion.div variants={item}>
         <h1 className="font-display text-2xl font-bold">Leadership Workspace</h1>
         <p className="text-xs text-muted-foreground font-mono">{cohortName} · {cohort?.role}</p>
+        <SectionExplainer text="You manage progress, assign work, and move stages forward. Review pending deliverables and resolve blockers here." className="mt-1" />
       </motion.div>
 
       {/* Summary cards */}
@@ -130,9 +132,10 @@ export default function LeadWorkspace() {
 
         <TabsContent value="review" className="mt-4 space-y-2">
           {pendingReview.length === 0 ? (
-            <Card className="flex flex-col items-center py-12">
+           <Card className="flex flex-col items-center py-12">
               <CheckCircle2 className="h-10 w-10 text-success/30 mb-3" />
               <p className="text-sm text-muted-foreground">No pending reviews.</p>
+              <p className="text-[10px] text-muted-foreground/60 mt-1">Deliverables needing your approval will appear here.</p>
             </Card>
           ) : pendingReview.map(d => (
             <motion.div key={d.id} variants={item}>
@@ -186,6 +189,7 @@ export default function LeadWorkspace() {
             <Card className="flex flex-col items-center py-12">
               <HelpCircle className="h-10 w-10 text-muted-foreground/30 mb-3" />
               <p className="text-sm text-muted-foreground">No open help requests.</p>
+              <p className="text-[10px] text-muted-foreground/60 mt-1">When members need help, their requests will appear here for you to resolve.</p>
             </Card>
           ) : helpRequests.map(h => (
             <Card key={h.id}>

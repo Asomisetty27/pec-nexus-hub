@@ -14,6 +14,7 @@ import { BookOpen, ChevronLeft, ChevronRight, CheckCircle2, Send, Lock, ArrowLef
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { HelpRequestButton } from "@/components/HelpRequestButton";
+import { SectionExplainer } from "@/components/ui/SectionExplainer";
 
 export default function LabManual() {
   const { id } = useParams();
@@ -149,8 +150,9 @@ export default function LabManual() {
             </Button>
           )}
           <div>
-            <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-muted-foreground">{(manual as any).cohorts?.name} · Lab Manual</p>
+            <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-muted-foreground">{(manual as any).cohorts?.name} · Playbook</p>
             <h1 className="font-display text-xl font-bold leading-tight">{manual.title}</h1>
+            <SectionExplainer text="This playbook guides you through completing this part of the project. Follow each step and submit your work." className="mt-1" />
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -233,7 +235,7 @@ export default function LabManual() {
               <Card className="flex flex-col items-center py-16">
                 <BookOpen className="h-10 w-10 text-muted-foreground/20 mb-3" />
                 <p className="text-sm text-muted-foreground">No steps yet.</p>
-                {isLeader && <p className="text-[11px] text-muted-foreground/60 mt-1">Add steps using the button on the left.</p>}
+                <p className="text-[11px] text-muted-foreground/60 mt-1">{isLeader ? "Add steps using the button on the left." : "Your Tech Lead will add playbook steps soon."}</p>
               </Card>
             ) : currentStep && (
               <motion.div key={currentStep.id} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.2 }}>
@@ -262,9 +264,10 @@ export default function LabManual() {
                         <div className="prose prose-sm dark:prose-invert max-w-none">
                           <div className="whitespace-pre-wrap text-sm leading-relaxed">{currentStep.content || "No content yet."}</div>
                         </div>
-                        {!currentSubmission ? (
+                    {!currentSubmission ? (
                           <div className="border-t pt-4 space-y-3">
                             <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Submit your work</p>
+                            <SectionExplainer text="If you're unsure about anything, request help — do not guess." />
                             <Input placeholder="Link to your work (optional)" value={submissionLink} onChange={e => setSubmissionLink(e.target.value)} className="h-9" />
                             <Textarea placeholder="Notes, explanation, or paste content..." value={submissionText} onChange={e => setSubmissionText(e.target.value)} rows={4} />
                             <Button onClick={handleSubmit} disabled={submitting || (!submissionText && !submissionLink)} className="gap-2">

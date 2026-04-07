@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { SectionExplainer, InfoDot } from "@/components/ui/SectionExplainer";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
 const item = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: 0.22 } } };
@@ -171,11 +172,11 @@ export default function Dashboard() {
         <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-accent/5 blur-3xl pointer-events-none" />
 
         <div className="relative p-6 sm:p-8">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
               <div className="h-2 w-2 rounded-full bg-success status-pulse" />
               <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground">
-                {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+                Mission Control · {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
               </span>
             </div>
             <div className="badge-verified">
@@ -183,6 +184,7 @@ export default function Dashboard() {
               <span>{highestRole}</span>
             </div>
           </div>
+          <SectionExplainer text="This is your personal command center. Follow your next moves to stay on track." className="mb-4" />
 
           <div className="flex flex-col lg:flex-row lg:items-start gap-8">
             <div className="flex-1 space-y-5">
@@ -207,9 +209,10 @@ export default function Dashboard() {
 
               {/* Next Moves */}
               <div className="space-y-2 max-w-md">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-0.5">
                   <Sparkles className="h-3 w-3 text-accent-foreground" />
                   <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-muted-foreground">Your Next Moves</span>
+                  <InfoDot tip="These are your highest-priority tasks right now, ranked by urgency. Complete them in order to keep your team on track." />
                 </div>
                 {nextMoves.map((move, i) => (
                   <div key={i} className={`glass-strong rounded-xl p-4 cursor-pointer hover:border-accent/30 transition-all ${move.urgent ? "border-destructive/30" : ""}`} onClick={move.action}>
@@ -282,14 +285,15 @@ export default function Dashboard() {
           <motion.div variants={item}>
             <Card className="overflow-hidden">
               <CardHeader className="flex-row items-center justify-between py-3 px-5">
-                <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
+              <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
                   <CheckCircle2 className="h-3.5 w-3.5 text-accent-foreground" />My Deliverables
+                  <InfoDot tip="Deliverables are required outputs you must submit and get approved before your project can advance." />
                 </CardTitle>
                 <Button variant="ghost" size="sm" className="text-[10px] font-mono h-7" onClick={() => navigate("/app/projects")}>View all <ArrowRight className="ml-1 h-3 w-3" /></Button>
               </CardHeader>
               <CardContent className="pt-0 px-5 pb-4">
                 {deliverables.length === 0 ? (
-                  <EmptyState icon={CheckCircle2} text="All clear — no pending deliverables" />
+                  <EmptyState icon={CheckCircle2} text="All clear — no pending deliverables. Your PM will assign work soon." />
                 ) : (
                   <div className="space-y-0.5">
                     {deliverables.slice(0, 6).map((d: any) => (
@@ -324,7 +328,7 @@ export default function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0 px-5 pb-4">
-                {announcements.length === 0 ? <p className="text-[11px] text-muted-foreground text-center py-4">No announcements.</p> : (
+                {announcements.length === 0 ? <p className="text-[11px] text-muted-foreground text-center py-4">No announcements yet. Leadership updates will appear here.</p> : (
                   <div className="space-y-3">{announcements.map((a: any) => (
                     <div key={a.id} className="border-l-2 border-accent/40 pl-3">
                       <p className="text-sm font-medium leading-tight">{a.title}</p>
