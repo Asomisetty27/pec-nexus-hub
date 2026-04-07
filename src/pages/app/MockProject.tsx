@@ -268,6 +268,7 @@ export default function MockProject() {
 
         {/* Deliverables by Stage */}
         <TabsContent value="deliverables" className="mt-4 space-y-4">
+          <SectionExplainer text="Deliverables are required outputs. They must be submitted and approved before the project can progress to the next stage." className="mb-2" />
           {stages.map(stage => {
             const reqs = Array.isArray(stage.required_deliverables) ? stage.required_deliverables : [];
             const isActive = stage.status === "active";
