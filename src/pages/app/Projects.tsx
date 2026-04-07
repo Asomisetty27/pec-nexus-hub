@@ -58,7 +58,7 @@ export default function Projects() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold">Projects</h1>
-          <p className="text-xs text-muted-foreground font-mono">{projects.length} total</p>
+          <SectionExplainer text="All active and past projects. Click any project to see stages, deliverables, and team." />
         </div>
         {isAdmin && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
