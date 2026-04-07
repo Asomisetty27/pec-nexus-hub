@@ -246,6 +246,7 @@ export default function CohortHub() {
             <CardHeader className="py-3 px-5">
               <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
                 <Target className="h-3.5 w-3.5 text-accent-foreground" /> Project Lifecycle
+                <InfoDot tip="Your project moves through stages. Complete all required deliverables to advance." />
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0 px-5 pb-4">
