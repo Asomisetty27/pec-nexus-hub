@@ -76,6 +76,7 @@ const App = () => (
               <Route path="permissions" element={<PermissionInspector />} />
               <Route path="lead" element={<LeadWorkspace />} />
               <Route path="command" element={<CommandCenter />} />
+              <Route path="invites" element={<InviteManagement />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
