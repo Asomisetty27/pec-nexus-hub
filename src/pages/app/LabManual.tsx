@@ -14,6 +14,7 @@ import { BookOpen, ChevronLeft, ChevronRight, CheckCircle2, Send, Lock, ArrowLef
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { HelpRequestButton } from "@/components/HelpRequestButton";
+import { SectionExplainer } from "@/components/ui/SectionExplainer";
 
 export default function LabManual() {
   const { id } = useParams();
