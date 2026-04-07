@@ -35,6 +35,7 @@ const orgNav = [
 ];
 
 const adminNav = [
+  { title: "Command Center", url: "/app/command", icon: Shield },
   { title: "Admin Console", url: "/app/admin", icon: Shield },
   { title: "Permissions", url: "/app/permissions", icon: Eye },
   { title: "Analytics", url: "/app/analytics", icon: BarChart3 },

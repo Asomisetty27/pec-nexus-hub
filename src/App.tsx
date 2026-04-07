@@ -73,6 +73,8 @@ const App = () => (
               <Route path="scheduling" element={<Scheduling />} />
               <Route path="ops" element={<OpsDashboard />} />
               <Route path="permissions" element={<PermissionInspector />} />
+              <Route path="lead" element={<LeadWorkspace />} />
+              <Route path="command" element={<CommandCenter />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
