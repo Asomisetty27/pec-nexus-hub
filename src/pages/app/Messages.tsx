@@ -193,11 +193,13 @@ export default function Messages() {
             <Select value={msgType} onValueChange={setMsgType}>
               <SelectTrigger className="w-28 h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="message">Message</SelectItem>
-                <SelectItem value="update">Update</SelectItem>
-                <SelectItem value="blocker">Blocker</SelectItem>
-                <SelectItem value="decision">Decision</SelectItem>
-                <SelectItem value="action">Action</SelectItem>
+                {Object.entries(typeConfig).map(([key, cfg]) => (
+                  <SelectItem key={key} value={key}>
+                    <span className="flex items-center gap-1.5">
+                      <cfg.icon className="h-3 w-3" />{cfg.label}
+                    </span>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Input
