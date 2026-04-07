@@ -145,6 +145,10 @@ export default function MockProject() {
       <motion.div variants={item}>
         <Card className="border-border/50">
           <CardContent className="py-4">
+            <div className="flex items-center gap-1.5 mb-3">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Project Stages</span>
+              <InfoDot tip="Stages show where you are in the project timeline. Complete all required deliverables before moving to the next stage." />
+            </div>
             <div className="flex items-center gap-1">
               {stages.map((stage, i) => {
                 const isActive = stage.status === "active";
