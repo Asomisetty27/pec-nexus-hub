@@ -13,12 +13,16 @@ import {
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
-const typeConfig: Record<string, { icon: any; bg: string; border: string }> = {
-  update: { icon: Zap, bg: "bg-accent/5", border: "border-l-accent" },
-  blocker: { icon: AlertTriangle, bg: "bg-destructive/5", border: "border-l-destructive" },
-  decision: { icon: Lightbulb, bg: "bg-warning/5", border: "border-l-warning" },
-  action: { icon: CheckCircle2, bg: "bg-success/5", border: "border-l-success" },
-  message: { icon: MessageSquare, bg: "", border: "border-l-transparent" },
+const typeConfig: Record<string, { icon: any; bg: string; border: string; label: string }> = {
+  update: { icon: Zap, bg: "bg-accent/5", border: "border-l-accent", label: "Update" },
+  blocker: { icon: AlertTriangle, bg: "bg-destructive/5", border: "border-l-destructive", label: "Blocker" },
+  decision: { icon: Lightbulb, bg: "bg-warning/5", border: "border-l-warning", label: "Decision" },
+  action: { icon: CheckCircle2, bg: "bg-success/5", border: "border-l-success", label: "Action" },
+  review_request: { icon: CheckCircle2, bg: "bg-primary/5", border: "border-l-primary", label: "Review Request" },
+  help_request: { icon: HelpCircle, bg: "bg-warning/5", border: "border-l-warning", label: "Help Request" },
+  announcement: { icon: Globe, bg: "bg-accent/10", border: "border-l-accent", label: "Announcement" },
+  fyi: { icon: Lightbulb, bg: "bg-muted/30", border: "border-l-muted-foreground", label: "FYI" },
+  message: { icon: MessageSquare, bg: "", border: "border-l-transparent", label: "Message" },
 };
 
 export default function Messages() {
@@ -169,7 +173,7 @@ export default function Messages() {
                       {msg.message_type !== "message" && (
                         <Badge variant="outline" className="text-[9px] font-mono gap-1 py-0">
                           <TypeIcon className="h-2.5 w-2.5" />
-                          {msg.message_type}
+                          {config.label}
                         </Badge>
                       )}
                       <span className="text-[10px] text-muted-foreground font-mono ml-auto">
@@ -189,11 +193,13 @@ export default function Messages() {
             <Select value={msgType} onValueChange={setMsgType}>
               <SelectTrigger className="w-28 h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="message">Message</SelectItem>
-                <SelectItem value="update">Update</SelectItem>
-                <SelectItem value="blocker">Blocker</SelectItem>
-                <SelectItem value="decision">Decision</SelectItem>
-                <SelectItem value="action">Action</SelectItem>
+                {Object.entries(typeConfig).map(([key, cfg]) => (
+                  <SelectItem key={key} value={key}>
+                    <span className="flex items-center gap-1.5">
+                      <cfg.icon className="h-3 w-3" />{cfg.label}
+                    </span>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Input

@@ -2,6 +2,7 @@ import {
   LayoutDashboard, FolderKanban, MessageSquare, Users, CalendarDays,
   Trophy, Briefcase, GraduationCap, FileText, BarChart3, Shield,
   Building2, Megaphone, Settings, LogOut, Beaker, Cpu, Clock, Eye,
+  UserPlus,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -37,6 +38,7 @@ const orgNav = [
 const adminNav = [
   { title: "Command Center", url: "/app/command", icon: Shield },
   { title: "Admin Console", url: "/app/admin", icon: Shield },
+  { title: "Invites", url: "/app/invites", icon: UserPlus },
   { title: "Permissions", url: "/app/permissions", icon: Eye },
   { title: "Analytics", url: "/app/analytics", icon: BarChart3 },
   { title: "Announcements", url: "/app/announcements", icon: Megaphone },

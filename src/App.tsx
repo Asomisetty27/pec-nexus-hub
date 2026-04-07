@@ -34,6 +34,7 @@ import OpsDashboard from "./pages/app/OpsDashboard";
 import PermissionInspector from "./pages/app/PermissionInspector";
 import LeadWorkspace from "./pages/app/LeadWorkspace";
 import CommandCenter from "./pages/app/CommandCenter";
+import InviteManagement from "./pages/app/InviteManagement";
 
 const queryClient = new QueryClient();
 
@@ -75,6 +76,7 @@ const App = () => (
               <Route path="permissions" element={<PermissionInspector />} />
               <Route path="lead" element={<LeadWorkspace />} />
               <Route path="command" element={<CommandCenter />} />
+              <Route path="invites" element={<InviteManagement />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
