@@ -293,7 +293,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent className="pt-0 px-5 pb-4">
                 {deliverables.length === 0 ? (
-                  <EmptyState icon={CheckCircle2} text="All clear — no pending deliverables" />
+                  <EmptyState icon={CheckCircle2} text="All clear — no pending deliverables. Your PM will assign work soon." />
                 ) : (
                   <div className="space-y-0.5">
                     {deliverables.slice(0, 6).map((d: any) => (
