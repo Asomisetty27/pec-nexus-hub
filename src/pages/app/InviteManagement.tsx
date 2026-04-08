@@ -122,13 +122,34 @@ export default function InviteManagement() {
   const issueInvite = async (entry: RosterEntry) => {
     if (!entry.email) { toast.error("Add email first"); return; }
     setSending(entry.id);
-    const { error } = await supabase.from("invite_tokens").insert({ email: entry.email, created_by: user!.id });
+
+    // Insert invite token and get the token value back
+    const { data: tokenData, error } = await supabase
+      .from("invite_tokens")
+      .insert({ email: entry.email, created_by: user!.id })
+      .select("token")
+      .single();
     if (error) { toast.error(error.message); setSending(null); return; }
+
+    // Log the invite
     await supabase.from("audit_logs").insert({
       action: "invite_issued", target_type: "invite_tokens", target_id: entry.id,
       user_id: user!.id, metadata: { email: entry.email, roster_name: entry.full_name },
     });
-    toast.success(`Invite issued for ${entry.email}`);
+
+    // Send invite email via edge function
+    try {
+      const { data: emailResult, error: emailError } = await supabase.functions.invoke("send-invite-email", {
+        body: { email: entry.email, token: tokenData.token, fullName: entry.full_name },
+      });
+      if (emailError) throw emailError;
+      if (emailResult?.error) throw new Error(emailResult.error);
+      toast.success(`Invite sent to ${entry.email}`);
+    } catch (emailErr: any) {
+      console.error("Email send failed:", emailErr);
+      toast.warning(`Invite created but email failed to send. You may need to share the link manually.`);
+    }
+
     setSending(null);
     fetchData();
   };
