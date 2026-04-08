@@ -1,5 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
 const APP_URL = "https://pec-nexus-hub.lovable.app";
@@ -16,7 +20,6 @@ Deno.serve(async (req) => {
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY not configured");
 
-    // Verify caller is authenticated
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -31,19 +34,15 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: claims, error: claimsErr } = await supabase.auth.getClaims(
-      authHeader.replace("Bearer ", "")
-    );
-    if (claimsErr || !claims?.claims) {
+    const { data: { user }, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Check admin role
-    const userId = claims.claims.sub as string;
-    const { data: isAdmin } = await supabase.rpc("is_admin", { _user_id: userId });
+    const { data: isAdmin } = await supabase.rpc("is_admin", { _user_id: user.id });
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: "Admin access required" }), {
         status: 403,
@@ -83,7 +82,7 @@ Deno.serve(async (req) => {
             </a>
           </div>
           <p style="font-size: 12px; color: #71717a; margin: 24px 0 0; padding-top: 16px; border-top: 1px solid #27272a;">
-            ⚠️ Use your <strong style="color: #a1a1aa;">Cal Poly email (@calpoly.edu)</strong> when signing up to ensure your account is properly matched.
+            Use your <strong style="color: #a1a1aa;">Cal Poly email (@calpoly.edu)</strong> when signing up to ensure your account is properly matched.
           </p>
           <p style="font-size: 11px; color: #52525b; margin: 12px 0 0;">
             This invite expires in 7 days. If you didn't expect this, you can safely ignore it.
@@ -116,10 +115,7 @@ Deno.serve(async (req) => {
       console.error("Resend API error:", JSON.stringify(result));
       return new Response(
         JSON.stringify({ error: "Email delivery failed", details: result }),
-        {
-          status: 502,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -131,10 +127,7 @@ Deno.serve(async (req) => {
     console.error("send-invite-email error:", err);
     return new Response(
       JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
