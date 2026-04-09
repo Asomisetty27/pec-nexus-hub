@@ -1,58 +1,87 @@
-import { Outlet, Navigate } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { motion } from "framer-motion";
+
 import { useAuth } from "@/lib/auth";
+import { CommandPalette } from "@/components/CommandPalette";
 import { SidebarProvider } from "@/components/ui/sidebar";
+
 import { AppSidebar } from "./AppSidebar";
 import { AppTopBar } from "./AppTopBar";
-import { CommandPalette } from "@/components/CommandPalette";
-import { motion } from "framer-motion";
+
+function AppLoadingScreen() {
+  return (
+    <div
+      className="flex min-h-screen items-center justify-center bg-background bg-grid-animate"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 6 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+        className="flex flex-col items-center gap-5"
+      >
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-lg glow-primary">
+          <span className="font-display text-2xl font-bold text-primary-foreground">P</span>
+        </div>
+
+        <div className="h-1 w-32 overflow-hidden rounded-full bg-muted" aria-hidden="true">
+          <motion.div
+            className="h-full rounded-full bg-primary"
+            initial={{ x: "-100%" }}
+            animate={{ x: "100%" }}
+            transition={{
+              duration: 1.25,
+              ease: "easeInOut",
+              repeat: Infinity,
+              repeatType: "loop",
+            }}
+          />
+        </div>
+
+        <p className="text-[10px] font-mono uppercase tracking-[0.3em] text-muted-foreground">Loading Nexus</p>
+
+        <span className="sr-only">Loading application</span>
+      </motion.div>
+    </div>
+  );
+}
 
 export function AppLayout() {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background bg-grid-animate">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex flex-col items-center gap-5"
-        >
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary glow-primary">
-            <span className="font-display text-2xl font-bold text-primary-foreground">P</span>
-          </div>
-          <div className="h-1 w-32 rounded-full bg-muted overflow-hidden">
-            <motion.div
-              className="h-full bg-primary rounded-full"
-              initial={{ width: "0%" }}
-              animate={{ width: "100%" }}
-              transition={{ duration: 1.5, ease: "easeInOut" }}
-            />
-          </div>
-          <p className="text-[10px] font-mono uppercase tracking-[0.3em] text-muted-foreground">Loading Nexus</p>
-        </motion.div>
-      </div>
-    );
+    return <AppLoadingScreen />;
   }
 
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) {
+    return <Navigate to="/login" replace state={{ from: location.pathname + location.search + location.hash }} />;
+  }
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
+      <div className="flex min-h-screen w-full bg-background text-foreground">
         <AppSidebar />
-        <div className="flex-1 flex flex-col min-w-0">
+
+        <div className="flex min-w-0 flex-1 flex-col">
           <AppTopBar />
-          <main className="flex-1 overflow-auto p-4 sm:p-6 bg-grid-animate relative">
+
+          <main id="app-main-content" className="relative flex-1 overflow-auto bg-grid-animate p-4 sm:p-6">
             <motion.div
-              initial={{ opacity: 0, y: 6 }}
+              key={location.pathname}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className="min-w-0"
             >
               <Outlet />
             </motion.div>
           </main>
         </div>
       </div>
+
       <CommandPalette />
     </SidebarProvider>
   );
