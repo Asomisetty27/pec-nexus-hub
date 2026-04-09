@@ -52,6 +52,7 @@ const App = () => (
               <Route path="/sponsors" element={<Sponsors />} />
               <Route path="/intake" element={<Intake />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/invite/:token" element={<Login />} />
             </Route>
             <Route path="/app" element={<AppLayout />}>
               <Route index element={<Dashboard />} />
