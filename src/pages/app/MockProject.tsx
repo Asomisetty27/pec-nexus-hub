@@ -123,6 +123,7 @@ export default function MockProject() {
     </div>
   );
 
+  const isEECohort = (project as any)?.cohorts?.name?.toLowerCase().includes("hardware") || (project as any)?.cohorts?.name?.toLowerCase().includes("embedded");
   const activeStage = stages.find(s => s.status === "active");
   const completedCount = stages.filter(s => s.status === "completed").length;
   const myMembership = mockMembers.find(m => m.user_id === user?.id);
