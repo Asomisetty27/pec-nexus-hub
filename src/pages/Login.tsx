@@ -127,16 +127,6 @@ export default function Login() {
       if (error) {
         toast.error(error.message);
       } else {
-        if (token) {
-          const { error: claimError, data: claimData } = await supabase.functions.invoke("validate-invite-token", {
-            body: { token, email, markUsed: true },
-          });
-
-          if (claimError || claimData?.error) {
-            console.error("Invite claim failed:", claimError || claimData?.error);
-          }
-        }
-
         toast.success("Check your email to verify your account");
         if (inviteMode) navigate("/login");
       }

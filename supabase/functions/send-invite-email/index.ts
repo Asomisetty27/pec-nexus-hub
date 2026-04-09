@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
         "X-Connection-Api-Key": RESEND_API_KEY,
       },
       body: JSON.stringify({
-        from: "PEC Nexus <onboarding@resend.dev>",
+        from: "PEC Nexus <invites@blinn.pro>",
         to: [email],
         subject: "You're invited to PEC Nexus",
         html: emailHtml,

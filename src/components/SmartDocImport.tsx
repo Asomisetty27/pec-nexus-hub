@@ -36,9 +36,15 @@ function inferStage(name: string, stages: any[]): any {
   const n = name.toLowerCase();
   const stageKeywords: Record<string, string[]> = {
     Kickoff: ["charter", "scope", "role", "timeline", "setup", "familiarization"],
-    Discovery: ["architecture", "ownership", "risk log v1", "decision log v1", "build", "walkthrough", "critique", "improvement"],
-    Midpoint: ["midpoint", "demo", "updated", "review summary", "revised plan", "progress"],
-    Final: ["final", "launch", "packaging", "bundle", "quality"],
+    Discovery: ["discovery", "research", "analysis", "walkthrough", "critique", "assumption", "constraint"],
+    "Direction / Concept Selection": ["concept", "direction", "tradeoff", "selection", "criteria"],
+    "Build / Detailed Design": ["build", "detailed design", "cad", "prototype", "implementation", "debug"],
+    "Strategy Direction": ["strategy", "positioning", "targeting", "segmentation", "channel"],
+    "Execution Design": ["execution", "outreach", "campaign", "operations", "pipeline", "playbook"],
+    "System Design": ["system design", "architecture", "state", "logic", "flow", "decision rules"],
+    "Integration Build": ["integration", "sensor", "display", "logging", "stability", "bring-up"],
+    "Final Delivery": ["final", "delivery", "handoff", "presentation", "demo", "launch"],
+    "Final System": ["final system", "stable runtime", "integrated", "demo", "final"],
     Retro: ["retro", "lesson", "recommendation", "knowledge"],
   };
   for (const stage of stages) {
