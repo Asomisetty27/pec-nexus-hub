@@ -54,7 +54,8 @@ export default function MockProject() {
       supabase.from("mock_projects").select("*, cohorts(name, id)").eq("id", id).single(),
       supabase.from("project_stages").select("*").eq("mock_project_id", id).order("order_index"),
       supabase.from("mock_project_memberships").select("*").eq("mock_project_id", id),
-      supabase.from("lab_manuals").select("*, lab_steps(*)").eq("cohort_id", "22eb320a-f4e8-424b-8a17-b1f78038243d"),
+      // Playbooks query deferred until we know cohort_id
+      Promise.resolve({ data: null }),
       supabase.from("review_rubrics").select("*").eq("mock_project_id", id),
       supabase.from("folders").select("*").eq("mock_project_id", id),
       supabase.from("documents").select("*").eq("mock_project_id", id).order("created_at", { ascending: false }),
@@ -62,7 +63,17 @@ export default function MockProject() {
     setProject(projRes.data);
     setStages(stagesRes.data || []);
     setMockMembers(membersRes.data || []);
-    setPlaybooks((playbooksRes.data || []).map((p: any) => ({ ...p, steps: p.lab_steps || [] })));
+    setRubrics(rubricsRes.data || []);
+    setFolders(foldersRes.data || []);
+    setDocuments(docsRes.data || []);
+
+    // Fetch playbooks using actual cohort_id from project
+    if (projRes.data?.cohorts?.id) {
+      const { data: pbData } = await supabase.from("lab_manuals").select("*, lab_steps(*)").eq("cohort_id", (projRes.data as any).cohorts.id);
+      setPlaybooks((pbData || []).map((p: any) => ({ ...p, steps: p.lab_steps || [] })));
+    } else {
+      setPlaybooks([]);
+    }
     setRubrics(rubricsRes.data || []);
     setFolders(foldersRes.data || []);
     setDocuments(docsRes.data || []);
@@ -112,6 +123,7 @@ export default function MockProject() {
     </div>
   );
 
+  const isEECohort = (project as any)?.cohorts?.name?.toLowerCase().includes("hardware") || (project as any)?.cohorts?.name?.toLowerCase().includes("embedded");
   const activeStage = stages.find(s => s.status === "active");
   const completedCount = stages.filter(s => s.status === "completed").length;
   const myMembership = mockMembers.find(m => m.user_id === user?.id);
@@ -248,18 +260,37 @@ export default function MockProject() {
               <Card>
                 <CardHeader className="py-3">
                   <CardTitle className="text-sm flex items-center gap-2">
-                    <Layers className="h-4 w-4 text-accent" /> Execution Lanes
+                    <Layers className="h-4 w-4 text-accent" /> Workstreams
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0 space-y-2">
-                  <div className="p-2 rounded-md bg-accent/5 border border-accent/20">
-                    <p className="text-xs font-semibold text-accent">Foundations Lane</p>
-                    <p className="text-[11px] text-muted-foreground">Architecture understanding, codebase walkthrough, guided outputs</p>
-                  </div>
-                  <div className="p-2 rounded-md bg-primary/5 border border-primary/20">
-                    <p className="text-xs font-semibold text-primary">Systems Lane</p>
-                    <p className="text-[11px] text-muted-foreground">Implementation ownership, systems reasoning, consulting-grade artifacts</p>
-                  </div>
+                  {isEECohort ? (
+                    <>
+                      {[
+                        { name: "Hardware & Bring-Up", desc: "Pi setup, GPIO/I2C config, sensor wiring, hardware validation", key: "hardware_bringup", color: "accent" },
+                        { name: "Sensor Integration", desc: "Reading data, validating signals, combining inputs, reliability", key: "sensor_integration", color: "primary" },
+                        { name: "Decision Logic", desc: "State definitions, transitions, noise filtering, edge cases", key: "decision_logic", color: "accent" },
+                        { name: "Interface & Display", desc: "UI build, real-time updates, status communication, readability", key: "interface_display", color: "primary" },
+                        { name: "Data Logging & Stability", desc: "CSV/DB logging, error handling, long-running stability, debugging", key: "data_logging", color: "accent" },
+                      ].map(ws => (
+                        <div key={ws.key} className={`p-2 rounded-md bg-${ws.color}/5 border border-${ws.color}/20`}>
+                          <p className={`text-xs font-semibold text-${ws.color}`}>{ws.name}</p>
+                          <p className="text-[11px] text-muted-foreground">{ws.desc}</p>
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    <>
+                      <div className="p-2 rounded-md bg-accent/5 border border-accent/20">
+                        <p className="text-xs font-semibold text-accent">Foundations Lane</p>
+                        <p className="text-[11px] text-muted-foreground">Architecture understanding, codebase walkthrough, guided outputs</p>
+                      </div>
+                      <div className="p-2 rounded-md bg-primary/5 border border-primary/20">
+                        <p className="text-xs font-semibold text-primary">Systems Lane</p>
+                        <p className="text-[11px] text-muted-foreground">Implementation ownership, systems reasoning, consulting-grade artifacts</p>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
@@ -358,11 +389,9 @@ export default function MockProject() {
                         <p className="text-[10px] text-muted-foreground font-mono">{m.user_id?.slice(0, 8)}</p>
                       </div>
                       <Badge variant="outline" className={`text-[10px] ${
-                        m.lane === "foundations" ? "border-accent/40 text-accent" :
-                        m.lane === "systems" ? "border-primary/40 text-primary" :
-                        "text-muted-foreground"
+                        m.lane ? "border-accent/40 text-accent" : "text-muted-foreground"
                       }`}>
-                        {m.lane ? (m.lane === "foundations" ? "Foundations" : "Systems") : "Unassigned"}
+                        {m.lane ? m.lane.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()) : "Unassigned"}
                       </Badge>
                       {isLeader && (
                         <Button size="sm" variant="ghost" className="h-6 text-[10px]"
@@ -508,10 +537,22 @@ export default function MockProject() {
                     <div key={m.id} className="flex items-center gap-3 py-1.5">
                       <span className="text-sm flex-1">{m.role_on_project} ({m.user_id?.slice(0, 8)})</span>
                       <Select value={m.lane || ""} onValueChange={(val) => assignLane(m.id, val)}>
-                        <SelectTrigger className="w-36 h-7 text-xs"><SelectValue placeholder="Assign lane" /></SelectTrigger>
+                        <SelectTrigger className="w-44 h-7 text-xs"><SelectValue placeholder="Assign workstream" /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="foundations">Foundations</SelectItem>
-                          <SelectItem value="systems">Systems</SelectItem>
+                          {isEECohort ? (
+                            <>
+                              <SelectItem value="hardware_bringup">Hardware & Bring-Up</SelectItem>
+                              <SelectItem value="sensor_integration">Sensor Integration</SelectItem>
+                              <SelectItem value="decision_logic">Decision Logic</SelectItem>
+                              <SelectItem value="interface_display">Interface & Display</SelectItem>
+                              <SelectItem value="data_logging">Data Logging & Stability</SelectItem>
+                            </>
+                          ) : (
+                            <>
+                              <SelectItem value="foundations">Foundations</SelectItem>
+                              <SelectItem value="systems">Systems</SelectItem>
+                            </>
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -528,21 +569,40 @@ export default function MockProject() {
         )}
       </Tabs>
 
-      {/* Lane Assignment Dialog */}
+      {/* Lane/Workstream Assignment Dialog */}
       <Dialog open={!!laneDialog} onOpenChange={() => setLaneDialog(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-base">Assign Lane</DialogTitle>
+            <DialogTitle className="text-base">Assign Workstream</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <Button className="w-full justify-start" variant="outline"
-              onClick={() => laneDialog && assignLane(laneDialog.id, "foundations")}>
-              <Layers className="h-4 w-4 mr-2 text-accent" /> Foundations Lane
-            </Button>
-            <Button className="w-full justify-start" variant="outline"
-              onClick={() => laneDialog && assignLane(laneDialog.id, "systems")}>
-              <Zap className="h-4 w-4 mr-2 text-primary" /> Systems Lane
-            </Button>
+          <div className="space-y-2">
+            {isEECohort ? (
+              <>
+                {[
+                  { key: "hardware_bringup", label: "Hardware & Bring-Up", icon: Zap },
+                  { key: "sensor_integration", label: "Sensor Integration", icon: Target },
+                  { key: "decision_logic", label: "Decision Logic", icon: Layers },
+                  { key: "interface_display", label: "Interface & Display", icon: Play },
+                  { key: "data_logging", label: "Data Logging & Stability", icon: Shield },
+                ].map(ws => (
+                  <Button key={ws.key} className="w-full justify-start" variant="outline"
+                    onClick={() => laneDialog && assignLane(laneDialog.id, ws.key)}>
+                    <ws.icon className="h-4 w-4 mr-2 text-accent" /> {ws.label}
+                  </Button>
+                ))}
+              </>
+            ) : (
+              <>
+                <Button className="w-full justify-start" variant="outline"
+                  onClick={() => laneDialog && assignLane(laneDialog.id, "foundations")}>
+                  <Layers className="h-4 w-4 mr-2 text-accent" /> Foundations Lane
+                </Button>
+                <Button className="w-full justify-start" variant="outline"
+                  onClick={() => laneDialog && assignLane(laneDialog.id, "systems")}>
+                  <Zap className="h-4 w-4 mr-2 text-primary" /> Systems Lane
+                </Button>
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>
