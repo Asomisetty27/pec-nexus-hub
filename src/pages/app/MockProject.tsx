@@ -24,8 +24,87 @@ const container = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } 
 const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } };
 
 const stageIcons: Record<string, any> = {
-  Kickoff: Zap, Discovery: Target, Midpoint: BarChart3, Final: Award, Retro: BookOpen,
+  Kickoff: Zap,
+  Discovery: Target,
+  "Direction / Concept Selection": BarChart3,
+  "Build / Detailed Design": Layers,
+  "Final Delivery": Award,
+  "Strategy Direction": Target,
+  "Execution Design": Layers,
+  "System Design": Layers,
+  "Integration Build": Cpu,
+  "Final System": Award,
+  Retro: BookOpen,
 };
+
+const STANDARD_WORKSTREAMS = [
+  {
+    key: "foundations",
+    name: "Foundations Lane",
+    desc: "Architecture understanding, codebase walkthrough, guided outputs",
+    cardClass: "bg-accent/5 border-accent/20",
+    labelClass: "text-accent-foreground",
+  },
+  {
+    key: "systems",
+    name: "Systems Lane",
+    desc: "Implementation ownership, systems reasoning, consulting-grade artifacts",
+    cardClass: "bg-primary/5 border-primary/20",
+    labelClass: "text-primary",
+  },
+];
+
+const EE_WORKSTREAMS = [
+  {
+    key: "hardware_bringup",
+    name: "Hardware & Bring-Up",
+    desc: "Pi setup, GPIO/I2C config, sensor wiring, hardware validation",
+    cardClass: "bg-accent/5 border-accent/20",
+    labelClass: "text-accent-foreground",
+  },
+  {
+    key: "sensor_integration",
+    name: "Sensor Integration",
+    desc: "Reading data, validating signals, combining inputs, reliability",
+    cardClass: "bg-primary/5 border-primary/20",
+    labelClass: "text-primary",
+  },
+  {
+    key: "decision_logic",
+    name: "Decision Logic",
+    desc: "State definitions, transitions, noise filtering, edge cases",
+    cardClass: "bg-accent/5 border-accent/20",
+    labelClass: "text-accent-foreground",
+  },
+  {
+    key: "interface_display",
+    name: "Interface & Display",
+    desc: "UI build, real-time updates, status communication, readability",
+    cardClass: "bg-primary/5 border-primary/20",
+    labelClass: "text-primary",
+  },
+  {
+    key: "data_logging",
+    name: "Data Logging & Stability",
+    desc: "CSV/DB logging, error handling, long-running stability, debugging",
+    cardClass: "bg-accent/5 border-accent/20",
+    labelClass: "text-accent-foreground",
+  },
+];
+
+const getRoleOnProject = (role?: string) => {
+  if (role === "pm") return "Project Manager";
+  if (role === "lead") return "Tech Lead";
+  if (role === "integration_lead") return "Integration Lead";
+  return "Member";
+};
+
+const formatLaneLabel = (lane?: string | null) =>
+  lane ? lane.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()) : "Unassigned";
+
+const getMemberDisplayName = (member: any) => member?.profiles?.full_name || member?.user_id?.slice(0, 8) || "Unknown member";
+const getMemberSubline = (member: any) => member?.profiles?.cal_poly_email || member?.role_on_project || "";
+const getWorkstreams = (isEECohort: boolean) => (isEECohort ? EE_WORKSTREAMS : STANDARD_WORKSTREAMS);
 
 export default function MockProject() {
   const { id } = useParams();
@@ -50,40 +129,51 @@ export default function MockProject() {
 
   const load = useCallback(async () => {
     if (!id || !user) return;
-    const [projRes, stagesRes, membersRes, playbooksRes, rubricsRes, foldersRes, docsRes] = await Promise.all([
+    const [projRes, stagesRes, membersRes, rubricsRes, foldersRes, docsRes] = await Promise.all([
       supabase.from("mock_projects").select("*, cohorts(name, id)").eq("id", id).single(),
       supabase.from("project_stages").select("*").eq("mock_project_id", id).order("order_index"),
-      supabase.from("mock_project_memberships").select("*").eq("mock_project_id", id),
-      // Playbooks query deferred until we know cohort_id
-      Promise.resolve({ data: null }),
+      supabase.from("mock_project_memberships").select("*, profiles:user_id(full_name, cal_poly_email)").eq("mock_project_id", id),
       supabase.from("review_rubrics").select("*").eq("mock_project_id", id),
       supabase.from("folders").select("*").eq("mock_project_id", id),
       supabase.from("documents").select("*").eq("mock_project_id", id).order("created_at", { ascending: false }),
     ]);
-    setProject(projRes.data);
+    const projectData = projRes.data;
+    setProject(projectData);
     setStages(stagesRes.data || []);
-    setMockMembers(membersRes.data || []);
     setRubrics(rubricsRes.data || []);
     setFolders(foldersRes.data || []);
     setDocuments(docsRes.data || []);
 
-    // Fetch playbooks using actual cohort_id from project
-    if (projRes.data?.cohorts?.id) {
-      const { data: pbData } = await supabase.from("lab_manuals").select("*, lab_steps(*)").eq("cohort_id", (projRes.data as any).cohorts.id);
-      setPlaybooks((pbData || []).map((p: any) => ({ ...p, steps: p.lab_steps || [] })));
+    if (projectData?.cohorts?.id) {
+      const [playbooksRes, cohortMembersRes, membershipRes] = await Promise.all([
+        supabase.from("lab_manuals").select("*, lab_steps(*)").eq("cohort_id", (projectData as any).cohorts.id),
+        supabase.from("cohort_memberships").select("user_id, role, profiles:user_id(full_name, cal_poly_email)").eq("cohort_id", (projectData as any).cohorts.id).order("role"),
+        supabase.from("cohort_memberships").select("*").eq("cohort_id", (projectData as any).cohorts.id).eq("user_id", user.id).maybeSingle(),
+      ]);
+
+      setPlaybooks(((playbooksRes.data as any[]) || []).map((p: any) => ({ ...p, steps: p.lab_steps || [] })));
+      setMembership(membershipRes.data || null);
+
+      const seededMembers = ((membersRes.data as any[]) || []).map((member) => ({ ...member, source: "membership" }));
+      const seededUserIds = new Set(seededMembers.map((member: any) => member.user_id));
+      const fallbackMembers = ((cohortMembersRes.data as any[]) || [])
+        .filter((member: any) => !seededUserIds.has(member.user_id))
+        .map((member: any) => ({
+          id: `cohort-${member.user_id}`,
+          user_id: member.user_id,
+          role_on_project: getRoleOnProject(member.role),
+          lane: null,
+          profiles: member.profiles,
+          source: "cohort",
+        }));
+
+      setMockMembers([...seededMembers, ...fallbackMembers]);
     } else {
       setPlaybooks([]);
+      setMembership(null);
+      setMockMembers((membersRes.data as any[]) || []);
     }
-    setRubrics(rubricsRes.data || []);
-    setFolders(foldersRes.data || []);
-    setDocuments(docsRes.data || []);
 
-    if (projRes.data) {
-      const { data: cm } = await supabase.from("cohort_memberships").select("*")
-        .eq("cohort_id", (projRes.data as any).cohorts?.id)
-        .eq("user_id", user.id).maybeSingle();
-      setMembership(cm);
-    }
     setLoading(false);
   }, [id, user]);
 
@@ -108,9 +198,25 @@ export default function MockProject() {
     toast.success("Stage overridden with logged justification");
   };
 
-  const assignLane = async (memberId: string, lane: string) => {
-    await supabase.from("mock_project_memberships").update({ lane }).eq("mock_project_id", id!).eq("id", memberId);
-    toast.success(`Lane assigned: ${lane}`);
+  const assignLane = async (member: any, lane: string) => {
+    if (!id) return;
+
+    const isFallbackMember = String(member.id).startsWith("cohort-");
+    const { error } = isFallbackMember
+      ? await supabase.from("mock_project_memberships").insert({
+          mock_project_id: id,
+          user_id: member.user_id,
+          role_on_project: member.role_on_project,
+          lane,
+        })
+      : await supabase.from("mock_project_memberships").update({ lane }).eq("mock_project_id", id).eq("id", member.id);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    toast.success(`Workstream assigned: ${formatLaneLabel(lane)}`);
     setLaneDialog(null);
     load();
   };
@@ -128,6 +234,7 @@ export default function MockProject() {
   const completedCount = stages.filter(s => s.status === "completed").length;
   const myMembership = mockMembers.find(m => m.user_id === user?.id);
   const rubric = Array.isArray(project.rubric) ? project.rubric : [];
+  const workstreams = getWorkstreams(isEECohort);
 
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="max-w-5xl mx-auto space-y-6">
@@ -146,7 +253,7 @@ export default function MockProject() {
         <div className="flex items-center gap-2">
           {myMembership?.lane && (
             <Badge variant="outline" className="text-xs font-mono border-accent/40 text-accent">
-              {myMembership.lane === "foundations" ? "Foundations Lane" : "Systems Lane"}
+              {formatLaneLabel(myMembership.lane)}
             </Badge>
           )}
           <Badge variant="outline" className="text-xs font-mono">{project.status}</Badge>
@@ -264,33 +371,12 @@ export default function MockProject() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0 space-y-2">
-                  {isEECohort ? (
-                    <>
-                      {[
-                        { name: "Hardware & Bring-Up", desc: "Pi setup, GPIO/I2C config, sensor wiring, hardware validation", key: "hardware_bringup", color: "accent" },
-                        { name: "Sensor Integration", desc: "Reading data, validating signals, combining inputs, reliability", key: "sensor_integration", color: "primary" },
-                        { name: "Decision Logic", desc: "State definitions, transitions, noise filtering, edge cases", key: "decision_logic", color: "accent" },
-                        { name: "Interface & Display", desc: "UI build, real-time updates, status communication, readability", key: "interface_display", color: "primary" },
-                        { name: "Data Logging & Stability", desc: "CSV/DB logging, error handling, long-running stability, debugging", key: "data_logging", color: "accent" },
-                      ].map(ws => (
-                        <div key={ws.key} className={`p-2 rounded-md bg-${ws.color}/5 border border-${ws.color}/20`}>
-                          <p className={`text-xs font-semibold text-${ws.color}`}>{ws.name}</p>
-                          <p className="text-[11px] text-muted-foreground">{ws.desc}</p>
-                        </div>
-                      ))}
-                    </>
-                  ) : (
-                    <>
-                      <div className="p-2 rounded-md bg-accent/5 border border-accent/20">
-                        <p className="text-xs font-semibold text-accent">Foundations Lane</p>
-                        <p className="text-[11px] text-muted-foreground">Architecture understanding, codebase walkthrough, guided outputs</p>
+                    {workstreams.map((ws) => (
+                      <div key={ws.key} className={`p-2 rounded-md border ${ws.cardClass}`}>
+                        <p className={`text-xs font-semibold ${ws.labelClass}`}>{ws.name}</p>
+                        <p className="text-[11px] text-muted-foreground">{ws.desc}</p>
                       </div>
-                      <div className="p-2 rounded-md bg-primary/5 border border-primary/20">
-                        <p className="text-xs font-semibold text-primary">Systems Lane</p>
-                        <p className="text-[11px] text-muted-foreground">Implementation ownership, systems reasoning, consulting-grade artifacts</p>
-                      </div>
-                    </>
-                  )}
+                    ))}
                 </CardContent>
               </Card>
             </motion.div>
@@ -382,16 +468,17 @@ export default function MockProject() {
                   {mockMembers.map(m => (
                     <div key={m.id} className="flex items-center gap-3 py-2 px-2 rounded-md hover:bg-muted/20">
                       <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-mono">
-                        {m.user_id?.slice(0, 2).toUpperCase()}
+                        {getMemberDisplayName(m).charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-medium">{m.role_on_project}</p>
-                        <p className="text-[10px] text-muted-foreground font-mono">{m.user_id?.slice(0, 8)}</p>
+                        <p className="text-sm font-medium">{getMemberDisplayName(m)}</p>
+                        <p className="text-[10px] text-muted-foreground font-mono">{getMemberSubline(m)}</p>
                       </div>
+                      <Badge variant="secondary" className="text-[10px]">{m.role_on_project}</Badge>
                       <Badge variant="outline" className={`text-[10px] ${
                         m.lane ? "border-accent/40 text-accent" : "text-muted-foreground"
                       }`}>
-                        {m.lane ? m.lane.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()) : "Unassigned"}
+                        {formatLaneLabel(m.lane)}
                       </Badge>
                       {isLeader && (
                         <Button size="sm" variant="ghost" className="h-6 text-[10px]"
@@ -531,12 +618,12 @@ export default function MockProject() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <p className="text-xs text-muted-foreground mb-3">Assign members to Foundations or Systems lane to control their playbooks, deliverables, and review queue.</p>
+                <p className="text-xs text-muted-foreground mb-3">Assign members to a workstream so ownership is visible across playbooks, documents, and reviews.</p>
                 <div className="space-y-2">
                   {mockMembers.map(m => (
                     <div key={m.id} className="flex items-center gap-3 py-1.5">
-                      <span className="text-sm flex-1">{m.role_on_project} ({m.user_id?.slice(0, 8)})</span>
-                      <Select value={m.lane || ""} onValueChange={(val) => assignLane(m.id, val)}>
+                      <span className="text-sm flex-1">{getMemberDisplayName(m)} <span className="text-muted-foreground">· {m.role_on_project}</span></span>
+                      <Select value={m.lane || ""} onValueChange={(val) => assignLane(m, val)}>
                         <SelectTrigger className="w-44 h-7 text-xs"><SelectValue placeholder="Assign workstream" /></SelectTrigger>
                         <SelectContent>
                           {isEECohort ? (
@@ -586,7 +673,7 @@ export default function MockProject() {
                   { key: "data_logging", label: "Data Logging & Stability", icon: Shield },
                 ].map(ws => (
                   <Button key={ws.key} className="w-full justify-start" variant="outline"
-                    onClick={() => laneDialog && assignLane(laneDialog.id, ws.key)}>
+                    onClick={() => laneDialog && assignLane(laneDialog, ws.key)}>
                     <ws.icon className="h-4 w-4 mr-2 text-accent" /> {ws.label}
                   </Button>
                 ))}
@@ -594,11 +681,11 @@ export default function MockProject() {
             ) : (
               <>
                 <Button className="w-full justify-start" variant="outline"
-                  onClick={() => laneDialog && assignLane(laneDialog.id, "foundations")}>
+                  onClick={() => laneDialog && assignLane(laneDialog, "foundations")}>
                   <Layers className="h-4 w-4 mr-2 text-accent" /> Foundations Lane
                 </Button>
                 <Button className="w-full justify-start" variant="outline"
-                  onClick={() => laneDialog && assignLane(laneDialog.id, "systems")}>
+                  onClick={() => laneDialog && assignLane(laneDialog, "systems")}>
                   <Zap className="h-4 w-4 mr-2 text-primary" /> Systems Lane
                 </Button>
               </>
