@@ -537,10 +537,22 @@ export default function MockProject() {
                     <div key={m.id} className="flex items-center gap-3 py-1.5">
                       <span className="text-sm flex-1">{m.role_on_project} ({m.user_id?.slice(0, 8)})</span>
                       <Select value={m.lane || ""} onValueChange={(val) => assignLane(m.id, val)}>
-                        <SelectTrigger className="w-36 h-7 text-xs"><SelectValue placeholder="Assign lane" /></SelectTrigger>
+                        <SelectTrigger className="w-44 h-7 text-xs"><SelectValue placeholder="Assign workstream" /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="foundations">Foundations</SelectItem>
-                          <SelectItem value="systems">Systems</SelectItem>
+                          {isEECohort ? (
+                            <>
+                              <SelectItem value="hardware_bringup">Hardware & Bring-Up</SelectItem>
+                              <SelectItem value="sensor_integration">Sensor Integration</SelectItem>
+                              <SelectItem value="decision_logic">Decision Logic</SelectItem>
+                              <SelectItem value="interface_display">Interface & Display</SelectItem>
+                              <SelectItem value="data_logging">Data Logging & Stability</SelectItem>
+                            </>
+                          ) : (
+                            <>
+                              <SelectItem value="foundations">Foundations</SelectItem>
+                              <SelectItem value="systems">Systems</SelectItem>
+                            </>
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
