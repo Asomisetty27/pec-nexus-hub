@@ -54,7 +54,8 @@ export default function MockProject() {
       supabase.from("mock_projects").select("*, cohorts(name, id)").eq("id", id).single(),
       supabase.from("project_stages").select("*").eq("mock_project_id", id).order("order_index"),
       supabase.from("mock_project_memberships").select("*").eq("mock_project_id", id),
-      supabase.from("lab_manuals").select("*, lab_steps(*)").eq("cohort_id", "22eb320a-f4e8-424b-8a17-b1f78038243d"),
+      // Playbooks query deferred until we know cohort_id
+      Promise.resolve({ data: null }),
       supabase.from("review_rubrics").select("*").eq("mock_project_id", id),
       supabase.from("folders").select("*").eq("mock_project_id", id),
       supabase.from("documents").select("*").eq("mock_project_id", id).order("created_at", { ascending: false }),
