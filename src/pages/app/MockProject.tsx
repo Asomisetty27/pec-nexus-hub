@@ -569,21 +569,40 @@ export default function MockProject() {
         )}
       </Tabs>
 
-      {/* Lane Assignment Dialog */}
+      {/* Lane/Workstream Assignment Dialog */}
       <Dialog open={!!laneDialog} onOpenChange={() => setLaneDialog(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-base">Assign Lane</DialogTitle>
+            <DialogTitle className="text-base">Assign Workstream</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <Button className="w-full justify-start" variant="outline"
-              onClick={() => laneDialog && assignLane(laneDialog.id, "foundations")}>
-              <Layers className="h-4 w-4 mr-2 text-accent" /> Foundations Lane
-            </Button>
-            <Button className="w-full justify-start" variant="outline"
-              onClick={() => laneDialog && assignLane(laneDialog.id, "systems")}>
-              <Zap className="h-4 w-4 mr-2 text-primary" /> Systems Lane
-            </Button>
+          <div className="space-y-2">
+            {isEECohort ? (
+              <>
+                {[
+                  { key: "hardware_bringup", label: "Hardware & Bring-Up", icon: Zap },
+                  { key: "sensor_integration", label: "Sensor Integration", icon: Target },
+                  { key: "decision_logic", label: "Decision Logic", icon: Layers },
+                  { key: "interface_display", label: "Interface & Display", icon: Play },
+                  { key: "data_logging", label: "Data Logging & Stability", icon: Shield },
+                ].map(ws => (
+                  <Button key={ws.key} className="w-full justify-start" variant="outline"
+                    onClick={() => laneDialog && assignLane(laneDialog.id, ws.key)}>
+                    <ws.icon className="h-4 w-4 mr-2 text-accent" /> {ws.label}
+                  </Button>
+                ))}
+              </>
+            ) : (
+              <>
+                <Button className="w-full justify-start" variant="outline"
+                  onClick={() => laneDialog && assignLane(laneDialog.id, "foundations")}>
+                  <Layers className="h-4 w-4 mr-2 text-accent" /> Foundations Lane
+                </Button>
+                <Button className="w-full justify-start" variant="outline"
+                  onClick={() => laneDialog && assignLane(laneDialog.id, "systems")}>
+                  <Zap className="h-4 w-4 mr-2 text-primary" /> Systems Lane
+                </Button>
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>
