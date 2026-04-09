@@ -1,38 +1,75 @@
-import { Outlet } from "react-router-dom";
+import { Link, Outlet } from "react-router-dom";
+
 import { TopBar } from "./TopBar";
 
+const QUICK_LINKS = [
+  { label: "Services", to: "/services" },
+  { label: "Sponsors", to: "/sponsors" },
+  { label: "Work With Us", to: "/intake" },
+] as const;
+
 export function PublicLayout() {
+  const currentYear = new Date().getFullYear();
+
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
       <TopBar />
-      <main className="flex-1">
+
+      <main id="public-main-content" className="flex-1" role="main">
         <Outlet />
       </main>
-      <footer className="border-t bg-primary text-primary-foreground">
+
+      <footer className="border-t bg-primary text-primary-foreground" aria-labelledby="public-footer-heading">
         <div className="container py-12">
           <div className="grid gap-8 md:grid-cols-3">
-            <div>
-              <h3 className="font-display text-lg font-bold">PEC Nexus</h3>
-              <p className="mt-2 text-sm opacity-80">
+            <section className="max-w-sm">
+              <h2 id="public-footer-heading" className="font-display text-lg font-bold">
+                PEC Nexus
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-primary-foreground/80">
                 Poly-Engineering Consulting at Cal Poly SLO. Student-run engineering consulting.
               </p>
-            </div>
-            <div>
-              <h4 className="font-sans text-sm font-semibold uppercase tracking-wider opacity-70">Quick Links</h4>
-              <ul className="mt-3 space-y-2 text-sm opacity-80">
-                <li><a href="/services" className="hover:opacity-100">Services</a></li>
-                <li><a href="/sponsors" className="hover:opacity-100">Sponsors</a></li>
-                <li><a href="/intake" className="hover:opacity-100">Work With Us</a></li>
+            </section>
+
+            <nav aria-label="Footer quick links">
+              <h3 className="font-sans text-sm font-semibold uppercase tracking-wider text-primary-foreground/70">
+                Quick Links
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm text-primary-foreground/80">
+                {QUICK_LINKS.map((link) => (
+                  <li key={link.to}>
+                    <Link
+                      to={link.to}
+                      className="transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/50"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
               </ul>
-            </div>
-            <div>
-              <h4 className="font-sans text-sm font-semibold uppercase tracking-wider opacity-70">Contact</h4>
-              <p className="mt-3 text-sm opacity-80">pec@calpoly.edu</p>
-              <p className="text-sm opacity-80">Cal Poly, San Luis Obispo, CA</p>
-            </div>
+            </nav>
+
+            <section aria-labelledby="footer-contact-heading">
+              <h3
+                id="footer-contact-heading"
+                className="font-sans text-sm font-semibold uppercase tracking-wider text-primary-foreground/70"
+              >
+                Contact
+              </h3>
+              <div className="mt-3 space-y-1 text-sm text-primary-foreground/80">
+                <a
+                  href="mailto:pec@calpoly.edu"
+                  className="block transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/50"
+                >
+                  pec@calpoly.edu
+                </a>
+                <p>Cal Poly, San Luis Obispo, CA</p>
+              </div>
+            </section>
           </div>
-          <div className="mt-8 border-t border-primary-foreground/20 pt-6 text-center text-xs opacity-60">
-            © {new Date().getFullYear()} Poly-Engineering Consulting. All rights reserved.
+
+          <div className="mt-8 border-t border-primary-foreground/20 pt-6 text-center text-xs text-primary-foreground/60">
+            © {currentYear} Poly-Engineering Consulting. All rights reserved.
           </div>
         </div>
       </footer>
