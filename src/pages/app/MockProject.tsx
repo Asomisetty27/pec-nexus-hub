@@ -389,11 +389,9 @@ export default function MockProject() {
                         <p className="text-[10px] text-muted-foreground font-mono">{m.user_id?.slice(0, 8)}</p>
                       </div>
                       <Badge variant="outline" className={`text-[10px] ${
-                        m.lane === "foundations" ? "border-accent/40 text-accent" :
-                        m.lane === "systems" ? "border-primary/40 text-primary" :
-                        "text-muted-foreground"
+                        m.lane ? "border-accent/40 text-accent" : "text-muted-foreground"
                       }`}>
-                        {m.lane ? (m.lane === "foundations" ? "Foundations" : "Systems") : "Unassigned"}
+                        {m.lane ? m.lane.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()) : "Unassigned"}
                       </Badge>
                       {isLeader && (
                         <Button size="sm" variant="ghost" className="h-6 text-[10px]"
