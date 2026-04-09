@@ -63,7 +63,17 @@ export default function MockProject() {
     setProject(projRes.data);
     setStages(stagesRes.data || []);
     setMockMembers(membersRes.data || []);
-    setPlaybooks((playbooksRes.data || []).map((p: any) => ({ ...p, steps: p.lab_steps || [] })));
+    setRubrics(rubricsRes.data || []);
+    setFolders(foldersRes.data || []);
+    setDocuments(docsRes.data || []);
+
+    // Fetch playbooks using actual cohort_id from project
+    if (projRes.data?.cohorts?.id) {
+      const { data: pbData } = await supabase.from("lab_manuals").select("*, lab_steps(*)").eq("cohort_id", (projRes.data as any).cohorts.id);
+      setPlaybooks((pbData || []).map((p: any) => ({ ...p, steps: p.lab_steps || [] })));
+    } else {
+      setPlaybooks([]);
+    }
     setRubrics(rubricsRes.data || []);
     setFolders(foldersRes.data || []);
     setDocuments(docsRes.data || []);
