@@ -259,18 +259,37 @@ export default function MockProject() {
               <Card>
                 <CardHeader className="py-3">
                   <CardTitle className="text-sm flex items-center gap-2">
-                    <Layers className="h-4 w-4 text-accent" /> Execution Lanes
+                    <Layers className="h-4 w-4 text-accent" /> Workstreams
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0 space-y-2">
-                  <div className="p-2 rounded-md bg-accent/5 border border-accent/20">
-                    <p className="text-xs font-semibold text-accent">Foundations Lane</p>
-                    <p className="text-[11px] text-muted-foreground">Architecture understanding, codebase walkthrough, guided outputs</p>
-                  </div>
-                  <div className="p-2 rounded-md bg-primary/5 border border-primary/20">
-                    <p className="text-xs font-semibold text-primary">Systems Lane</p>
-                    <p className="text-[11px] text-muted-foreground">Implementation ownership, systems reasoning, consulting-grade artifacts</p>
-                  </div>
+                  {isEECohort ? (
+                    <>
+                      {[
+                        { name: "Hardware & Bring-Up", desc: "Pi setup, GPIO/I2C config, sensor wiring, hardware validation", key: "hardware_bringup", color: "accent" },
+                        { name: "Sensor Integration", desc: "Reading data, validating signals, combining inputs, reliability", key: "sensor_integration", color: "primary" },
+                        { name: "Decision Logic", desc: "State definitions, transitions, noise filtering, edge cases", key: "decision_logic", color: "accent" },
+                        { name: "Interface & Display", desc: "UI build, real-time updates, status communication, readability", key: "interface_display", color: "primary" },
+                        { name: "Data Logging & Stability", desc: "CSV/DB logging, error handling, long-running stability, debugging", key: "data_logging", color: "accent" },
+                      ].map(ws => (
+                        <div key={ws.key} className={`p-2 rounded-md bg-${ws.color}/5 border border-${ws.color}/20`}>
+                          <p className={`text-xs font-semibold text-${ws.color}`}>{ws.name}</p>
+                          <p className="text-[11px] text-muted-foreground">{ws.desc}</p>
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    <>
+                      <div className="p-2 rounded-md bg-accent/5 border border-accent/20">
+                        <p className="text-xs font-semibold text-accent">Foundations Lane</p>
+                        <p className="text-[11px] text-muted-foreground">Architecture understanding, codebase walkthrough, guided outputs</p>
+                      </div>
+                      <div className="p-2 rounded-md bg-primary/5 border border-primary/20">
+                        <p className="text-xs font-semibold text-primary">Systems Lane</p>
+                        <p className="text-[11px] text-muted-foreground">Implementation ownership, systems reasoning, consulting-grade artifacts</p>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
