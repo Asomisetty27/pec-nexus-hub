@@ -13,7 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   ArrowLeft, Target, FileText, CheckSquare, Lock, Unlock, Plus,
   Users, BookOpen, Shield, AlertTriangle, MessageSquare, Layers,
-  ChevronRight, Play, Zap, FolderOpen, Award, Clock, BarChart3,
+  ChevronRight, Play, Zap, FolderOpen, Award, Clock, BarChart3, Cpu,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
