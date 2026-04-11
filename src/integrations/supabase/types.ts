@@ -131,6 +131,50 @@ export type Database = {
         }
         Relationships: []
       }
+      capacity_allocations: {
+        Row: {
+          cohort_id: string
+          competition_pct: number
+          contract_pct: number
+          created_at: string
+          effective_date: string
+          id: string
+          notes: string | null
+          purpose_pct: number
+          set_by: string
+        }
+        Insert: {
+          cohort_id: string
+          competition_pct?: number
+          contract_pct?: number
+          created_at?: string
+          effective_date?: string
+          id?: string
+          notes?: string | null
+          purpose_pct?: number
+          set_by: string
+        }
+        Update: {
+          cohort_id?: string
+          competition_pct?: number
+          contract_pct?: number
+          created_at?: string
+          effective_date?: string
+          id?: string
+          notes?: string | null
+          purpose_pct?: number
+          set_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capacity_allocations_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       channel_members: {
         Row: {
           channel_id: string
@@ -548,6 +592,7 @@ export type Database = {
           created_by: string
           description: string | null
           due_date: string | null
+          engagement_type: string | null
           file_url: string | null
           id: string
           milestone_id: string | null
@@ -570,6 +615,7 @@ export type Database = {
           created_by: string
           description?: string | null
           due_date?: string | null
+          engagement_type?: string | null
           file_url?: string | null
           id?: string
           milestone_id?: string | null
@@ -592,6 +638,7 @@ export type Database = {
           created_by?: string
           description?: string | null
           due_date?: string | null
+          engagement_type?: string | null
           file_url?: string | null
           id?: string
           milestone_id?: string | null
@@ -1631,6 +1678,91 @@ export type Database = {
         }
         Relationships: []
       }
+      opportunities: {
+        Row: {
+          alignment_tags: string[] | null
+          assigned_cohort_id: string | null
+          created_at: string
+          created_by: string
+          deadline: string | null
+          decision_rationale: string | null
+          effort_estimate: string | null
+          engagement_project_id: string | null
+          id: string
+          recommended_cohort_id: string | null
+          skill_requirements: string[] | null
+          source: string | null
+          status: Database["public"]["Enums"]["opportunity_status"]
+          strategic_value: number | null
+          summary: string | null
+          title: string
+          type: Database["public"]["Enums"]["opportunity_type"]
+          updated_at: string
+        }
+        Insert: {
+          alignment_tags?: string[] | null
+          assigned_cohort_id?: string | null
+          created_at?: string
+          created_by: string
+          deadline?: string | null
+          decision_rationale?: string | null
+          effort_estimate?: string | null
+          engagement_project_id?: string | null
+          id?: string
+          recommended_cohort_id?: string | null
+          skill_requirements?: string[] | null
+          source?: string | null
+          status?: Database["public"]["Enums"]["opportunity_status"]
+          strategic_value?: number | null
+          summary?: string | null
+          title: string
+          type: Database["public"]["Enums"]["opportunity_type"]
+          updated_at?: string
+        }
+        Update: {
+          alignment_tags?: string[] | null
+          assigned_cohort_id?: string | null
+          created_at?: string
+          created_by?: string
+          deadline?: string | null
+          decision_rationale?: string | null
+          effort_estimate?: string | null
+          engagement_project_id?: string | null
+          id?: string
+          recommended_cohort_id?: string | null
+          skill_requirements?: string[] | null
+          source?: string | null
+          status?: Database["public"]["Enums"]["opportunity_status"]
+          strategic_value?: number | null
+          summary?: string | null
+          title?: string
+          type?: Database["public"]["Enums"]["opportunity_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunities_assigned_cohort_id_fkey"
+            columns: ["assigned_cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunities_engagement_project_id_fkey"
+            columns: ["engagement_project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunities_recommended_cohort_id_fkey"
+            columns: ["recommended_cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ops_tasks: {
         Row: {
           assignee_id: string | null
@@ -2005,6 +2137,166 @@ export type Database = {
             columns: ["client_org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purpose_artifacts: {
+        Row: {
+          artifact_type: string
+          content: string | null
+          created_at: string
+          created_by: string
+          file_url: string | null
+          id: string
+          milestone_id: string | null
+          purpose_track_id: string
+          title: string
+        }
+        Insert: {
+          artifact_type?: string
+          content?: string | null
+          created_at?: string
+          created_by: string
+          file_url?: string | null
+          id?: string
+          milestone_id?: string | null
+          purpose_track_id: string
+          title: string
+        }
+        Update: {
+          artifact_type?: string
+          content?: string | null
+          created_at?: string
+          created_by?: string
+          file_url?: string | null
+          id?: string
+          milestone_id?: string | null
+          purpose_track_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purpose_artifacts_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "purpose_milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purpose_artifacts_purpose_track_id_fkey"
+            columns: ["purpose_track_id"]
+            isOneToOne: false
+            referencedRelation: "purpose_tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purpose_milestones: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          order_index: number
+          purpose_track_id: string
+          status: string
+          target_date: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_index?: number
+          purpose_track_id: string
+          status?: string
+          target_date?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_index?: number
+          purpose_track_id?: string
+          status?: string
+          target_date?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purpose_milestones_purpose_track_id_fkey"
+            columns: ["purpose_track_id"]
+            isOneToOne: false
+            referencedRelation: "purpose_tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purpose_tracks: {
+        Row: {
+          cohort_id: string
+          created_at: string
+          created_by: string
+          current_phase: Database["public"]["Enums"]["purpose_phase"]
+          development_themes: string[] | null
+          field_thesis: string | null
+          id: string
+          long_term_objective: string | null
+          mission_statement: string | null
+          open_problems: string[] | null
+          research_themes: string[] | null
+          status: string
+          title: string
+          updated_at: string
+          why_it_matters: string | null
+        }
+        Insert: {
+          cohort_id: string
+          created_at?: string
+          created_by: string
+          current_phase?: Database["public"]["Enums"]["purpose_phase"]
+          development_themes?: string[] | null
+          field_thesis?: string | null
+          id?: string
+          long_term_objective?: string | null
+          mission_statement?: string | null
+          open_problems?: string[] | null
+          research_themes?: string[] | null
+          status?: string
+          title: string
+          updated_at?: string
+          why_it_matters?: string | null
+        }
+        Update: {
+          cohort_id?: string
+          created_at?: string
+          created_by?: string
+          current_phase?: Database["public"]["Enums"]["purpose_phase"]
+          development_themes?: string[] | null
+          field_thesis?: string | null
+          id?: string
+          long_term_objective?: string | null
+          mission_statement?: string | null
+          open_problems?: string[] | null
+          research_themes?: string[] | null
+          status?: string
+          title?: string
+          updated_at?: string
+          why_it_matters?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purpose_tracks_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts"
             referencedColumns: ["id"]
           },
         ]
@@ -2594,6 +2886,15 @@ export type Database = {
         | "announcement"
         | "fyi"
       milestone_status: "not_started" | "in_progress" | "completed" | "overdue"
+      opportunity_status:
+        | "intake"
+        | "evaluating"
+        | "approved"
+        | "active"
+        | "declined"
+        | "completed"
+        | "deferred"
+      opportunity_type: "competition" | "contract"
       project_mode:
         | "training_mock"
         | "internal_initiative"
@@ -2601,6 +2902,13 @@ export type Database = {
         | "client_engagement"
         | "sponsor_deliverable"
       project_status: "draft" | "active" | "on_hold" | "completed" | "archived"
+      purpose_phase:
+        | "thesis"
+        | "research"
+        | "development"
+        | "validation"
+        | "knowledge_transfer"
+        | "roadmap_update"
       role_request_status: "pending" | "approved" | "rejected"
       task_priority: "low" | "medium" | "high" | "urgent"
       task_status: "todo" | "in_progress" | "review" | "done"
@@ -2779,6 +3087,16 @@ export const Constants = {
         "fyi",
       ],
       milestone_status: ["not_started", "in_progress", "completed", "overdue"],
+      opportunity_status: [
+        "intake",
+        "evaluating",
+        "approved",
+        "active",
+        "declined",
+        "completed",
+        "deferred",
+      ],
+      opportunity_type: ["competition", "contract"],
       project_mode: [
         "training_mock",
         "internal_initiative",
@@ -2787,6 +3105,14 @@ export const Constants = {
         "sponsor_deliverable",
       ],
       project_status: ["draft", "active", "on_hold", "completed", "archived"],
+      purpose_phase: [
+        "thesis",
+        "research",
+        "development",
+        "validation",
+        "knowledge_transfer",
+        "roadmap_update",
+      ],
       role_request_status: ["pending", "approved", "rejected"],
       task_priority: ["low", "medium", "high", "urgent"],
       task_status: ["todo", "in_progress", "review", "done"],

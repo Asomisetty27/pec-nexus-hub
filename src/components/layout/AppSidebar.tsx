@@ -5,6 +5,7 @@ import {
   Building2,
   CalendarDays,
   Clock,
+  Compass,
   Cpu,
   Eye,
   FileText,
@@ -14,9 +15,9 @@ import {
   LogOut,
   Megaphone,
   MessageSquare,
+  Rocket,
   Settings,
   Shield,
-  Trophy,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -56,7 +57,9 @@ const GROUP_LABEL_CLASS = "font-mono text-[9px] uppercase tracking-[0.15em] text
 
 const mainNav: NavItem[] = [
   { title: "Mission Control", url: "/app", icon: LayoutDashboard },
+  { title: "Purpose Track", url: "/app/purpose", icon: Compass, hideForApplicants: true },
   { title: "Cohort Hub", url: "/app/cohort", icon: Cpu, hideForApplicants: true },
+  { title: "Opportunities", url: "/app/opportunities", icon: Rocket, hideForApplicants: true },
   { title: "Projects", url: "/app/projects", icon: FolderKanban, hideForApplicants: true },
   { title: "Messages", url: "/app/messages", icon: MessageSquare, hideForApplicants: true },
   { title: "Scheduling", url: "/app/scheduling", icon: Clock, hideForApplicants: true },
@@ -74,7 +77,6 @@ const orgNav: NavItem[] = [
   { title: "Members", url: "/app/members", icon: Users, hideForApplicants: true },
   { title: "Ops Command", url: "/app/ops", icon: Briefcase, requiresBoardOrAdmin: true },
   { title: "Sponsors & CRM", url: "/app/crm", icon: Building2, requiresBoardOrAdmin: true },
-  { title: "Competitions", url: "/app/competitions", icon: Trophy, hideForApplicants: true },
   { title: "Documents", url: "/app/docs", icon: FileText, hideForApplicants: true },
 ];
 

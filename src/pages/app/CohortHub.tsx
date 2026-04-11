@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { ProgressRing } from "@/components/ui/ProgressRing";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, BookOpen, Target, ChevronRight, Cpu, Wrench, Code, Briefcase, Plus, Shield, Activity, Award } from "lucide-react";
+import {
+  Users, BookOpen, Target, ChevronRight, Cpu, Wrench, Code, Briefcase,
+  Plus, Compass, Trophy, Activity, Rocket,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -19,6 +20,11 @@ import { SectionExplainer, InfoDot } from "@/components/ui/SectionExplainer";
 const cohortIcons: Record<string, any> = { cpu: Cpu, wrench: Wrench, code: Code, briefcase: Briefcase };
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
 const item = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: 0.22 } } };
+
+const PHASE_LABELS: Record<string, string> = {
+  thesis: "Thesis", research: "Research", development: "Development",
+  validation: "Validation", knowledge_transfer: "Knowledge Transfer", roadmap_update: "Roadmap Update",
+};
 
 export default function CohortHub() {
   const { user } = useAuth();
@@ -29,14 +35,12 @@ export default function CohortHub() {
   const [mockProjects, setMockProjects] = useState<any[]>([]);
   const [manuals, setManuals] = useState<any[]>([]);
   const [stages, setStages] = useState<any[]>([]);
-  const [tracks, setTracks] = useState<any[]>([]);
+  const [purposeTrack, setPurposeTrack] = useState<any>(null);
+  const [capacity, setCapacity] = useState<any>(null);
+  const [activeOpps, setActiveOpps] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [createMPDialog, setCreateMPDialog] = useState(false);
   const [createLabDialog, setCreateLabDialog] = useState(false);
-  const [createTrackDialog, setCreateTrackDialog] = useState(false);
-  const [assignTrackDialog, setAssignTrackDialog] = useState(false);
-  const [selectedTrack, setSelectedTrack] = useState<string>("");
-  const [selectedMember, setSelectedMember] = useState<string>("");
 
   const isLeader = membership?.role === "pm" || membership?.role === "lead" || membership?.role === "integration_lead";
 
@@ -47,18 +51,22 @@ export default function CohortHub() {
       if (!cm) { setLoading(false); return; }
       setMembership(cm);
       setCohort((cm as any).cohorts);
-      const cohortId = cm.cohort_id;
+      const cid = cm.cohort_id;
 
-      const [membersRes, projRes, manualRes, tracksRes] = await Promise.all([
-        supabase.from("cohort_memberships").select("*, profiles:user_id(full_name, avatar_url, major, user_id)").eq("cohort_id", cohortId).order("role"),
-        supabase.from("mock_projects").select("*").eq("cohort_id", cohortId),
-        supabase.from("lab_manuals").select("*").eq("cohort_id", cohortId),
-        supabase.from("tracks").select("*").eq("cohort_id", cohortId),
+      const [membersRes, projRes, manualRes, ptRes, capRes, oppRes] = await Promise.all([
+        supabase.from("cohort_memberships").select("*, profiles:user_id(full_name, avatar_url, major, user_id)").eq("cohort_id", cid).order("role"),
+        supabase.from("mock_projects").select("*").eq("cohort_id", cid),
+        supabase.from("lab_manuals").select("*").eq("cohort_id", cid),
+        supabase.from("purpose_tracks").select("*").eq("cohort_id", cid).eq("status", "active").limit(1).maybeSingle(),
+        supabase.from("capacity_allocations").select("*").eq("cohort_id", cid).order("effective_date", { ascending: false }).limit(1).maybeSingle(),
+        supabase.from("opportunities").select("*").eq("assigned_cohort_id", cid).in("status", ["approved", "active"]),
       ]);
       setMembers(membersRes.data || []);
       setMockProjects(projRes.data || []);
       setManuals(manualRes.data || []);
-      setTracks(tracksRes.data || []);
+      setPurposeTrack(ptRes.data);
+      setCapacity(capRes.data);
+      setActiveOpps(oppRes.data || []);
 
       if (projRes.data && projRes.data.length > 0) {
         const { data: stageData } = await supabase.from("project_stages").select("*").eq("mock_project_id", projRes.data[0].id).order("order_index");
@@ -78,16 +86,15 @@ export default function CohortHub() {
     }).select().single();
     if (error) { toast.error(error.message); return; }
     if (data) {
-      const defaultStages = [
-        { name: "Kickoff", order_index: 0, status: "active" },
-        { name: "Discovery", order_index: 1, status: "locked" },
-        { name: "Midpoint", order_index: 2, status: "locked" },
-        { name: "Final", order_index: 3, status: "locked" },
-        { name: "Retro", order_index: 4, status: "locked" },
-      ];
-      await supabase.from("project_stages").insert(defaultStages.map(s => ({ ...s, mock_project_id: data.id })));
+      await supabase.from("project_stages").insert([
+        { name: "Kickoff", order_index: 0, status: "active", mock_project_id: data.id },
+        { name: "Discovery", order_index: 1, status: "locked", mock_project_id: data.id },
+        { name: "Midpoint", order_index: 2, status: "locked", mock_project_id: data.id },
+        { name: "Final", order_index: 3, status: "locked", mock_project_id: data.id },
+        { name: "Retro", order_index: 4, status: "locked", mock_project_id: data.id },
+      ]);
     }
-    toast.success("Mock project created with lifecycle stages");
+    toast.success("Mock project created");
     setCreateMPDialog(false);
     window.location.reload();
   };
@@ -104,39 +111,15 @@ export default function CohortHub() {
     window.location.reload();
   };
 
-  const handleCreateTrack = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    const { error } = await supabase.from("tracks").insert({
-      cohort_id: cohort.id, name: f.get("name") as string,
-    });
-    if (error) { toast.error(error.message); return; }
-    toast.success("Track created");
-    setCreateTrackDialog(false);
-    window.location.reload();
-  };
-
-  const handleAssignTrack = async () => {
-    if (!selectedTrack || !selectedMember) return;
-    const { error } = await supabase.from("track_assignments").insert({
-      track_id: selectedTrack, user_id: selectedMember,
-    });
-    if (error) { toast.error(error.message); return; }
-    toast.success("Member assigned to track");
-    setAssignTrackDialog(false);
-  };
-
   if (loading) return <div className="space-y-4">{[1, 2, 3].map(i => <Card key={i} className="h-32 animate-pulse bg-muted/30" />)}</div>;
 
-  if (!cohort) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <Cpu className="h-16 w-16 text-muted-foreground/20 mb-4" />
-        <h2 className="font-display text-xl font-bold mb-2">No Cohort Assigned</h2>
-        <p className="text-muted-foreground text-sm max-w-sm">You haven't been assigned to a cohort yet. Contact your admin or PM.</p>
-      </div>
-    );
-  }
+  if (!cohort) return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <Cpu className="h-16 w-16 text-muted-foreground/20 mb-4" />
+      <h2 className="font-display text-xl font-bold mb-2">No Cohort Assigned</h2>
+      <p className="text-muted-foreground text-sm max-w-sm">Contact your admin or PM.</p>
+    </div>
+  );
 
   const Icon = cohortIcons[cohort.icon] || Cpu;
   const roleOrder = ["pm", "lead", "integration_lead", "member"];
@@ -149,37 +132,47 @@ export default function CohortHub() {
     return "Member";
   };
 
+  // Determine current mode
+  const activeComps = activeOpps.filter(o => o.type === "competition");
+  const activeContracts = activeOpps.filter(o => o.type === "contract");
+  const modes: string[] = [];
+  if (purposeTrack) modes.push("Purpose");
+  if (activeComps.length > 0) modes.push("Competition");
+  if (activeContracts.length > 0) modes.push("Contract");
+  const currentMode = modes.length === 0 ? "Purpose" : modes.join(" + ");
+
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-5 max-w-[1100px]">
-      {/* Header */}
+      {/* Header with Operating Status */}
       <motion.div variants={item} className="relative overflow-hidden rounded-2xl border bg-card">
         <div className="absolute inset-0 bg-grid-animate pointer-events-none" />
         <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-accent/5 blur-3xl pointer-events-none" />
         <div className="relative p-6">
-          <div className="flex items-center gap-5">
+          <div className="flex items-start gap-5">
             <div className="h-14 w-14 rounded-2xl bg-secondary flex items-center justify-center border border-border/50 glow-subtle">
               <Icon className="h-7 w-7 text-accent-foreground" />
             </div>
             <div className="flex-1">
               <h1 className="font-display text-2xl font-bold">{cohort.name}</h1>
-              <SectionExplainer text="Your cohort hub — see your team, projects, and training materials in one place." className="mt-0.5" />
-              <div className="flex items-center gap-2 mt-2">
+              <SectionExplainer text="Your cohort's operating center — see mode, purpose, active engagements, and team." className="mt-0.5" />
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
                 <Badge variant={roleBadgeVariant(membership.role) as any} className="text-[9px] font-mono uppercase">{roleLabel(membership.role)}</Badge>
-                <span className="text-[10px] font-mono text-muted-foreground">{members.length} members</span>
+                <Badge variant="outline" className="text-[9px] font-mono">{members.length} members</Badge>
+                <Badge className="text-[9px] font-mono bg-accent/10 text-accent-foreground border-accent/30">{currentMode}</Badge>
               </div>
             </div>
             {isLeader && (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 shrink-0">
                 <Dialog open={createMPDialog} onOpenChange={setCreateMPDialog}>
                   <DialogTrigger asChild><Button size="sm" variant="outline" className="gap-1.5 text-[10px]"><Target className="h-3 w-3" />New Project</Button></DialogTrigger>
                   <DialogContent>
                     <DialogHeader><DialogTitle>Create Mock Project</DialogTitle></DialogHeader>
                     <form onSubmit={handleCreateMockProject} className="space-y-4">
-                      <div className="space-y-2"><Label>Title</Label><Input name="title" required placeholder="Autonomous Assembly Fixture" /></div>
-                      <div className="space-y-2"><Label>Scenario</Label><Textarea name="scenario" placeholder="A local manufacturing firm needs..." rows={3} /></div>
-                      <div className="space-y-2"><Label>Objectives</Label><Textarea name="objectives" placeholder="Design, prototype, and test..." rows={2} /></div>
-                      <div className="space-y-2"><Label>Deliverables</Label><Textarea name="deliverables" placeholder="Charter, research report, CAD models..." rows={2} /></div>
-                      <Button type="submit" className="w-full">Create Project</Button>
+                      <div className="space-y-2"><Label>Title</Label><Input name="title" required /></div>
+                      <div className="space-y-2"><Label>Scenario</Label><Textarea name="scenario" rows={2} /></div>
+                      <div className="space-y-2"><Label>Objectives</Label><Textarea name="objectives" rows={2} /></div>
+                      <div className="space-y-2"><Label>Deliverables</Label><Textarea name="deliverables" rows={2} /></div>
+                      <Button type="submit" className="w-full">Create</Button>
                     </form>
                   </DialogContent>
                 </Dialog>
@@ -188,55 +181,71 @@ export default function CohortHub() {
                   <DialogContent>
                     <DialogHeader><DialogTitle>Create Lab Manual</DialogTitle></DialogHeader>
                     <form onSubmit={handleCreateLabManual} className="space-y-4">
-                      <div className="space-y-2"><Label>Title</Label><Input name="title" required placeholder="CAD Fundamentals Lab" /></div>
-                      <div className="space-y-2"><Label>Description</Label><Textarea name="description" placeholder="Step-by-step guide to..." rows={3} /></div>
-                      <Button type="submit" className="w-full">Create Manual</Button>
+                      <div className="space-y-2"><Label>Title</Label><Input name="title" required /></div>
+                      <div className="space-y-2"><Label>Description</Label><Textarea name="description" rows={2} /></div>
+                      <Button type="submit" className="w-full">Create</Button>
                     </form>
-                  </DialogContent>
-                </Dialog>
-                <Dialog open={createTrackDialog} onOpenChange={setCreateTrackDialog}>
-                  <DialogTrigger asChild><Button size="sm" variant="outline" className="gap-1.5 text-[10px]"><Plus className="h-3 w-3" />New Track</Button></DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader><DialogTitle>Create Track</DialogTitle></DialogHeader>
-                    <form onSubmit={handleCreateTrack} className="space-y-4">
-                      <div className="space-y-2"><Label>Track Name</Label><Input name="name" required placeholder="CAD Beginner" /></div>
-                      <Button type="submit" className="w-full">Create Track</Button>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-                <Dialog open={assignTrackDialog} onOpenChange={setAssignTrackDialog}>
-                  <DialogTrigger asChild><Button size="sm" variant="outline" className="gap-1.5 text-[10px]"><Users className="h-3 w-3" />Assign Track</Button></DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader><DialogTitle>Assign Member to Track</DialogTitle></DialogHeader>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label>Member</Label>
-                        <Select value={selectedMember} onValueChange={setSelectedMember}>
-                          <SelectTrigger><SelectValue placeholder="Select member" /></SelectTrigger>
-                          <SelectContent>
-                            {members.filter(m => m.role === "member").map(m => (
-                              <SelectItem key={m.user_id} value={m.user_id}>{(m.profiles as any)?.full_name || "Unknown"}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Track</Label>
-                        <Select value={selectedTrack} onValueChange={setSelectedTrack}>
-                          <SelectTrigger><SelectValue placeholder="Select track" /></SelectTrigger>
-                          <SelectContent>
-                            {tracks.map(t => (<SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <Button onClick={handleAssignTrack} className="w-full" disabled={!selectedTrack || !selectedMember}>Assign</Button>
-                    </div>
                   </DialogContent>
                 </Dialog>
               </div>
             )}
           </div>
         </div>
+      </motion.div>
+
+      {/* Operating Status Strip */}
+      <motion.div variants={item} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="card-hover cursor-pointer" onClick={() => navigate("/app/purpose")}>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-lg bg-accent/10 flex items-center justify-center"><Compass className="h-4 w-4 text-accent-foreground" /></div>
+              <div>
+                <p className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground">Purpose Track</p>
+                <p className="text-sm font-semibold truncate">{purposeTrack?.title || "Not defined"}</p>
+                {purposeTrack && <p className="text-[9px] font-mono text-muted-foreground">{PHASE_LABELS[purposeTrack.current_phase]}</p>}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="card-hover">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-lg bg-warning/10 flex items-center justify-center"><Trophy className="h-4 w-4 text-warning" /></div>
+              <div>
+                <p className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground">Competitions</p>
+                <p className="text-sm font-semibold">{activeComps.length > 0 ? activeComps.map(c => c.title).join(", ") : "None active"}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="card-hover">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center"><Briefcase className="h-4 w-4 text-primary" /></div>
+              <div>
+                <p className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground">Contracts</p>
+                <p className="text-sm font-semibold">{activeContracts.length > 0 ? activeContracts.map(c => c.title).join(", ") : "None active"}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="card-hover">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-lg bg-muted/50 flex items-center justify-center"><Activity className="h-4 w-4 text-muted-foreground" /></div>
+              <div>
+                <p className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground">Capacity Split</p>
+                {capacity ? (
+                  <div className="flex gap-2 mt-0.5">
+                    <span className="text-[10px] font-mono">P:{capacity.purpose_pct}%</span>
+                    <span className="text-[10px] font-mono">C:{capacity.competition_pct}%</span>
+                    <span className="text-[10px] font-mono">K:{capacity.contract_pct}%</span>
+                  </div>
+                ) : <p className="text-sm font-semibold">100% Purpose</p>}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </motion.div>
 
       {/* Lifecycle Timeline */}
@@ -296,43 +305,20 @@ export default function CohortHub() {
           </Card>
         </motion.div>
 
-        {/* Projects + Manuals + Tracks */}
+        {/* Projects + Labs */}
         <div className="lg:col-span-2 space-y-5">
-          {/* Tracks */}
-          {tracks.length > 0 && (
-            <motion.div variants={item}>
-              <Card>
-                <CardHeader className="py-3 px-5">
-                  <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
-                    <Activity className="h-3.5 w-3.5 text-accent-foreground" /> Tracks
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0 px-5 pb-4">
-                  <div className="flex flex-wrap gap-2">
-                    {tracks.map(t => (
-                      <Badge key={t.id} variant="secondary" className="text-xs font-mono py-1.5 px-3">{t.name}</Badge>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-
-          {/* Mock Projects */}
           <motion.div variants={item}>
             <Card>
               <CardHeader className="py-3 px-5 flex-row items-center justify-between">
                 <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
-                  <Target className="h-3.5 w-3.5 text-accent-foreground" /> Mock Projects
+                  <Target className="h-3.5 w-3.5 text-accent-foreground" /> Projects
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0 px-5 pb-4">
                 {mockProjects.length === 0 ? (
                   <div className="flex flex-col items-center py-8 text-muted-foreground">
                     <Target className="h-8 w-8 mb-2 opacity-20" />
-                    <p className="text-[11px]">No mock projects yet.</p>
-                    <p className="text-[10px] text-muted-foreground/60 mt-1">Your PM will create a project when your cohort is ready.</p>
-                    {isLeader && <p className="text-[10px] mt-1 text-muted-foreground/60">Create one using the button above.</p>}
+                    <p className="text-[11px]">No projects yet.</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -354,19 +340,18 @@ export default function CohortHub() {
             </Card>
           </motion.div>
 
-          {/* Lab Manuals */}
           <motion.div variants={item}>
             <Card>
               <CardHeader className="py-3 px-5 flex-row items-center justify-between">
                 <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
-                  <BookOpen className="h-3.5 w-3.5 text-accent-foreground" /> Lab Manuals
+                  <BookOpen className="h-3.5 w-3.5 text-accent-foreground" /> Playbooks
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0 px-5 pb-4">
                 {manuals.length === 0 ? (
                   <div className="flex flex-col items-center py-8 text-muted-foreground">
                     <BookOpen className="h-8 w-8 mb-2 opacity-20" />
-                    <p className="text-[11px]">No lab manuals yet.</p>
+                    <p className="text-[11px]">No playbooks yet.</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -379,7 +364,6 @@ export default function CohortHub() {
                           </div>
                           <ChevronRight className="h-4 w-4 text-transparent group-hover:text-muted-foreground transition-colors" />
                         </div>
-                        <span className="text-[9px] font-mono text-muted-foreground">v{m.version}</span>
                       </motion.div>
                     ))}
                   </div>
