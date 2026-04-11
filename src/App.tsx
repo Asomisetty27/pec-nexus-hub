@@ -35,6 +35,8 @@ import PermissionInspector from "./pages/app/PermissionInspector";
 import LeadWorkspace from "./pages/app/LeadWorkspace";
 import CommandCenter from "./pages/app/CommandCenter";
 import InviteManagement from "./pages/app/InviteManagement";
+import PurposeTrack from "./pages/app/PurposeTrack";
+import Opportunities from "./pages/app/Opportunities";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +58,8 @@ const App = () => (
             </Route>
             <Route path="/app" element={<AppLayout />}>
               <Route index element={<Dashboard />} />
+              <Route path="purpose" element={<PurposeTrack />} />
+              <Route path="opportunities" element={<Opportunities />} />
               <Route path="projects" element={<Projects />} />
               <Route path="projects/:id" element={<ProjectDetail />} />
               <Route path="messages" element={<Messages />} />
