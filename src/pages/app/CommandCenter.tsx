@@ -7,33 +7,41 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Shield, Users, AlertTriangle, Clock, CheckCircle2, FolderKanban,
-  HelpCircle, UserCheck, Mail, ChevronRight, Activity, Eye,
-  MessageSquare, Send, Cpu,
+  HelpCircle, Mail, ChevronRight, Activity, Eye, Compass, Trophy,
+  Briefcase, Rocket, Target, Cpu, Wrench, Code,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { logAuditAction } from "@/lib/audit";
+import { SectionExplainer } from "@/components/ui/SectionExplainer";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } };
+const cohortIcons: Record<string, any> = { cpu: Cpu, wrench: Wrench, code: Code, briefcase: Briefcase };
+
+const PHASE_SHORT: Record<string, string> = {
+  thesis: "Thesis", research: "Research", development: "Dev",
+  validation: "Validation", knowledge_transfer: "KT", roadmap_update: "Roadmap",
+};
 
 export default function CommandCenter() {
-  const { user, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const navigate = useNavigate();
   const [cohorts, setCohorts] = useState<any[]>([]);
-  const [cohortStats, setCohortStats] = useState<Record<string, any>>({});
+  const [cohortData, setCohortData] = useState<Record<string, any>>({});
   const [overdue, setOverdue] = useState<any[]>([]);
   const [pendingInvites, setPendingInvites] = useState<any[]>([]);
   const [conflicts, setConflicts] = useState<any[]>([]);
   const [openHelp, setOpenHelp] = useState<any[]>([]);
   const [recentAudit, setRecentAudit] = useState<any[]>([]);
+  const [opportunities, setOpportunities] = useState<any[]>([]);
   const [globalStats, setGlobalStats] = useState({ members: 0, projects: 0, blockedStages: 0, pendingReviews: 0 });
 
   useEffect(() => {
     if (!isAdmin) return;
     const load = async () => {
-      const [cohortRes, delRes, invRes, conflRes, helpRes, auditRes, profRes, projRes, stageRes, revDelRes] = await Promise.all([
+      const [cohortRes, delRes, invRes, conflRes, helpRes, auditRes, profRes, projRes, stageRes, revDelRes, oppRes] = await Promise.all([
         supabase.from("cohorts").select("*").order("name"),
         supabase.from("deliverables").select("*, projects(name), profiles:owner_id(full_name)").lt("due_date", new Date().toISOString()).neq("approval_status", "approved").order("due_date").limit(20),
         supabase.from("invite_tokens").select("*").is("used_at", null).gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }),
@@ -44,6 +52,7 @@ export default function CommandCenter() {
         supabase.from("projects").select("*", { count: "exact", head: true }).eq("status", "active"),
         supabase.from("project_stages").select("*", { count: "exact", head: true }).eq("status", "blocked"),
         supabase.from("deliverables").select("*", { count: "exact", head: true }).eq("approval_status", "pending").eq("approval_required", true),
+        supabase.from("opportunities").select("*, cohorts:recommended_cohort_id(name)").in("status", ["intake", "evaluating", "approved", "active"]).order("strategic_value", { ascending: false }),
       ]);
       setCohorts(cohortRes.data || []);
       setOverdue(delRes.data || []);
@@ -51,6 +60,7 @@ export default function CommandCenter() {
       setConflicts((conflRes.data as any[]) || []);
       setOpenHelp(helpRes.data || []);
       setRecentAudit(auditRes.data || []);
+      setOpportunities(oppRes.data || []);
       setGlobalStats({
         members: profRes.count || 0,
         projects: projRes.count || 0,
@@ -58,24 +68,31 @@ export default function CommandCenter() {
         pendingReviews: revDelRes.count || 0,
       });
 
-      // Build per-cohort stats
+      // Per-cohort enrichment
       for (const c of cohortRes.data || []) {
-        const [memRes, mpRes] = await Promise.all([
+        const [memRes, mpRes, ptRes, capRes, oppRes2] = await Promise.all([
           supabase.from("cohort_memberships").select("*, profiles:user_id(full_name)").eq("cohort_id", c.id),
           supabase.from("mock_projects").select("*").eq("cohort_id", c.id).eq("status", "active").limit(1).maybeSingle(),
+          supabase.from("purpose_tracks").select("*").eq("cohort_id", c.id).eq("status", "active").limit(1).maybeSingle(),
+          supabase.from("capacity_allocations").select("*").eq("cohort_id", c.id).order("effective_date", { ascending: false }).limit(1).maybeSingle(),
+          supabase.from("opportunities").select("*").eq("assigned_cohort_id", c.id).in("status", ["approved", "active"]),
         ]);
         const mems = memRes.data || [];
-        const pm = mems.find((m: any) => m.role === "pm");
-        const lead = mems.find((m: any) => m.role === "lead");
-        setCohortStats(prev => ({ ...prev, [c.id]: { members: mems, pm, lead, project: mpRes.data } }));
+        setCohortData(prev => ({
+          ...prev, [c.id]: {
+            members: mems,
+            pm: mems.find((m: any) => m.role === "pm"),
+            lead: mems.find((m: any) => m.role === "lead"),
+            project: mpRes.data,
+            purpose: ptRes.data,
+            capacity: capRes.data,
+            engagements: oppRes2.data || [],
+          }
+        }));
       }
     };
     load();
   }, [isAdmin]);
-
-  const resendInvite = async (invite: any) => {
-    toast.info(`Invite for ${invite.email} is still valid until ${new Date(invite.expires_at).toLocaleDateString()}`);
-  };
 
   const resolveConflict = async (id: string, action: "matched" | "rejected") => {
     await supabase.from("cohort_roster").update({ identity_status: action } as any).eq("id", id);
@@ -95,16 +112,16 @@ export default function CommandCenter() {
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-6 max-w-6xl">
       <motion.div variants={item}>
         <h1 className="font-display text-2xl font-bold">Command Center</h1>
-        <p className="text-xs text-muted-foreground font-mono">Presidential oversight · Club-wide health · Quick actions</p>
+        <SectionExplainer text="Presidential strategy view — monitor cohort modes, allocations, opportunities, and club health." />
       </motion.div>
 
       {/* Global health */}
       <motion.div variants={item} className="grid gap-3 grid-cols-2 sm:grid-cols-5">
         <HealthCard icon={Users} label="Members" value={globalStats.members} />
-        <HealthCard icon={FolderKanban} label="Active Projects" value={globalStats.projects} />
-        <HealthCard icon={AlertTriangle} label="Overdue Items" value={overdue.length} variant={overdue.length > 0 ? "destructive" : "default"} />
+        <HealthCard icon={FolderKanban} label="Projects" value={globalStats.projects} />
+        <HealthCard icon={AlertTriangle} label="Overdue" value={overdue.length} variant={overdue.length > 0 ? "destructive" : "default"} />
         <HealthCard icon={Clock} label="Pending Reviews" value={globalStats.pendingReviews} variant={globalStats.pendingReviews > 0 ? "warning" : "default"} />
-        <HealthCard icon={HelpCircle} label="Open Help" value={openHelp.length} variant={openHelp.length > 0 ? "warning" : "default"} />
+        <HealthCard icon={Rocket} label="Opportunities" value={opportunities.length} />
       </motion.div>
 
       {/* Alerts strip */}
@@ -116,60 +133,88 @@ export default function CommandCenter() {
             </Badge>
           )}
           {pendingInvites.length > 0 && (
-            <Badge variant="outline" className="gap-1 cursor-pointer" onClick={() => navigate("/app/admin")}>
+            <Badge variant="outline" className="gap-1 cursor-pointer" onClick={() => navigate("/app/invites")}>
               <Mail className="h-3 w-3" />{pendingInvites.length} pending invites
             </Badge>
           )}
         </motion.div>
       )}
 
-      <Tabs defaultValue="cohorts">
+      <Tabs defaultValue="strategy">
         <TabsList>
-          <TabsTrigger value="cohorts" className="gap-1.5"><Cpu className="h-3 w-3" />Cohorts</TabsTrigger>
-          <TabsTrigger value="overdue" className="gap-1.5">
-            <AlertTriangle className="h-3 w-3" />Overdue ({overdue.length})
-          </TabsTrigger>
+          <TabsTrigger value="strategy" className="gap-1.5"><Target className="h-3 w-3" />Strategic Allocation</TabsTrigger>
+          <TabsTrigger value="opportunities" className="gap-1.5"><Rocket className="h-3 w-3" />Opportunities ({opportunities.length})</TabsTrigger>
+          <TabsTrigger value="overdue" className="gap-1.5"><AlertTriangle className="h-3 w-3" />Overdue ({overdue.length})</TabsTrigger>
           <TabsTrigger value="help" className="gap-1.5"><HelpCircle className="h-3 w-3" />Help ({openHelp.length})</TabsTrigger>
-          <TabsTrigger value="invites" className="gap-1.5"><Mail className="h-3 w-3" />Invites ({pendingInvites.length})</TabsTrigger>
           <TabsTrigger value="audit"><Activity className="h-3 w-3" /> Activity</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="cohorts" className="mt-4 space-y-4">
+        {/* Strategic Allocation View */}
+        <TabsContent value="strategy" className="mt-4 space-y-4">
           {cohorts.map(c => {
-            const stats = cohortStats[c.id];
+            const data = cohortData[c.id];
+            const CIcon = cohortIcons[c.icon] || Cpu;
+            const modes: string[] = [];
+            if (data?.purpose) modes.push("Purpose");
+            const comps = (data?.engagements || []).filter((e: any) => e.type === "competition");
+            const contracts = (data?.engagements || []).filter((e: any) => e.type === "contract");
+            if (comps.length > 0) modes.push("Competition");
+            if (contracts.length > 0) modes.push("Contract");
+            const modeLabel = modes.length === 0 ? "Idle" : modes.join(" + ");
+
             return (
               <motion.div key={c.id} variants={item}>
                 <Card className="hover:border-accent/30 transition-all">
                   <CardContent className="p-5">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <h3 className="font-semibold text-sm">{c.name}</h3>
-                        <p className="text-[10px] text-muted-foreground">{c.description}</p>
+                    <div className="flex items-start gap-4">
+                      <div className="h-11 w-11 rounded-xl bg-secondary flex items-center justify-center shrink-0">
+                        <CIcon className="h-5 w-5 text-accent-foreground" />
                       </div>
-                      <Button variant="ghost" size="sm" className="text-[10px] font-mono h-7" onClick={() => navigate("/app/cohort")}>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-2">
+                          <h3 className="font-semibold text-sm">{c.name}</h3>
+                          <Badge className="text-[9px] font-mono bg-accent/10 text-accent-foreground border-accent/30">{modeLabel}</Badge>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-[11px]">
+                          <div>
+                            <p className="text-muted-foreground font-mono text-[9px] uppercase tracking-wider">Purpose Track</p>
+                            <p className="font-medium truncate">{data?.purpose?.title || "—"}</p>
+                            {data?.purpose && <p className="text-[9px] text-muted-foreground">{PHASE_SHORT[data.purpose.current_phase]}</p>}
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground font-mono text-[9px] uppercase tracking-wider">PM</p>
+                            <p className="font-medium">{(data?.pm?.profiles as any)?.full_name || "—"}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground font-mono text-[9px] uppercase tracking-wider">Tech Lead</p>
+                            <p className="font-medium">{(data?.lead?.profiles as any)?.full_name || "—"}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground font-mono text-[9px] uppercase tracking-wider">Members</p>
+                            <p className="font-medium">{data?.members?.length || 0}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground font-mono text-[9px] uppercase tracking-wider">Capacity</p>
+                            {data?.capacity ? (
+                              <div className="flex gap-1">
+                                <span className="font-mono text-[10px]">P:{data.capacity.purpose_pct}%</span>
+                                <span className="font-mono text-[10px]">C:{data.capacity.competition_pct}%</span>
+                                <span className="font-mono text-[10px]">K:{data.capacity.contract_pct}%</span>
+                              </div>
+                            ) : <p className="font-mono text-[10px]">100% Purpose</p>}
+                          </div>
+                        </div>
+                        {(comps.length > 0 || contracts.length > 0) && (
+                          <div className="flex gap-2 mt-2 flex-wrap">
+                            {comps.map((e: any) => <Badge key={e.id} variant="outline" className="text-[9px] font-mono gap-1"><Trophy className="h-2.5 w-2.5" />{e.title}</Badge>)}
+                            {contracts.map((e: any) => <Badge key={e.id} variant="outline" className="text-[9px] font-mono gap-1"><Briefcase className="h-2.5 w-2.5" />{e.title}</Badge>)}
+                          </div>
+                        )}
+                      </div>
+                      <Button variant="ghost" size="sm" className="text-[10px] font-mono h-7 shrink-0" onClick={() => navigate("/app/cohort")}>
                         View <ChevronRight className="ml-1 h-3 w-3" />
                       </Button>
                     </div>
-                    {stats && (
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[11px]">
-                        <div>
-                          <p className="text-muted-foreground font-mono text-[9px] uppercase tracking-wider">PM</p>
-                          <p className="font-medium">{(stats.pm?.profiles as any)?.full_name || "Unassigned"}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground font-mono text-[9px] uppercase tracking-wider">Tech Lead</p>
-                          <p className="font-medium">{(stats.lead?.profiles as any)?.full_name || "Unassigned"}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground font-mono text-[9px] uppercase tracking-wider">Members</p>
-                          <p className="font-medium">{stats.members.length}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground font-mono text-[9px] uppercase tracking-wider">Project</p>
-                          <p className="font-medium">{stats.project?.title || "None"}</p>
-                        </div>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               </motion.div>
@@ -177,11 +222,44 @@ export default function CommandCenter() {
           })}
         </TabsContent>
 
+        {/* Opportunities */}
+        <TabsContent value="opportunities" className="mt-4 space-y-3">
+          {opportunities.length === 0 ? (
+            <Card className="flex flex-col items-center py-12">
+              <Rocket className="h-10 w-10 text-muted-foreground/20 mb-3" />
+              <p className="text-sm text-muted-foreground">No open opportunities.</p>
+            </Card>
+          ) : opportunities.map(opp => (
+            <Card key={opp.id} className="hover:border-accent/30 transition-all">
+              <CardContent className="flex items-center gap-4 p-4">
+                <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${opp.type === "competition" ? "bg-warning/10" : "bg-primary/10"}`}>
+                  {opp.type === "competition" ? <Trophy className="h-4 w-4 text-warning" /> : <Briefcase className="h-4 w-4 text-primary" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-sm">{opp.title}</p>
+                    <Badge variant="outline" className="text-[9px] font-mono">{opp.status}</Badge>
+                  </div>
+                  <div className="flex gap-3 text-[10px] text-muted-foreground mt-0.5">
+                    <span>Value: {opp.strategic_value}/10</span>
+                    <span>Effort: {opp.effort_estimate}</span>
+                    {(opp.cohorts as any)?.name && <span>→ {(opp.cohorts as any).name}</span>}
+                  </div>
+                </div>
+                <Button variant="ghost" size="sm" className="text-[10px] h-7" onClick={() => navigate("/app/opportunities")}>
+                  Review <ChevronRight className="ml-1 h-3 w-3" />
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </TabsContent>
+
+        {/* Overdue */}
         <TabsContent value="overdue" className="mt-4 space-y-2">
           {overdue.length === 0 ? (
             <Card className="flex flex-col items-center py-12">
               <CheckCircle2 className="h-10 w-10 text-success/30 mb-3" />
-              <p className="text-sm text-muted-foreground">Nothing overdue across the org.</p>
+              <p className="text-sm text-muted-foreground">Nothing overdue.</p>
             </Card>
           ) : overdue.map(d => (
             <Card key={d.id}>
@@ -199,6 +277,7 @@ export default function CommandCenter() {
           ))}
         </TabsContent>
 
+        {/* Help */}
         <TabsContent value="help" className="mt-4 space-y-2">
           {openHelp.length === 0 ? (
             <Card className="flex flex-col items-center py-12">
@@ -218,28 +297,7 @@ export default function CommandCenter() {
           ))}
         </TabsContent>
 
-        <TabsContent value="invites" className="mt-4 space-y-2">
-          {pendingInvites.length === 0 ? (
-            <Card className="flex flex-col items-center py-12">
-              <Mail className="h-10 w-10 text-muted-foreground/30 mb-3" />
-              <p className="text-sm text-muted-foreground">No pending invites.</p>
-            </Card>
-          ) : pendingInvites.map(inv => (
-            <Card key={inv.id}>
-              <CardContent className="flex items-center gap-4 p-4">
-                <Mail className="h-4 w-4 text-accent-foreground shrink-0" />
-                <div className="flex-1">
-                  <p className="font-medium text-sm">{inv.email}</p>
-                  <p className="text-[10px] text-muted-foreground font-mono">Expires {new Date(inv.expires_at).toLocaleDateString()}</p>
-                </div>
-                <Button size="sm" variant="outline" className="text-[10px] h-7" onClick={() => resendInvite(inv)}>
-                  <Send className="h-3 w-3 mr-1" />Check
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </TabsContent>
-
+        {/* Audit */}
         <TabsContent value="audit" className="mt-4 space-y-2">
           {recentAudit.map(log => (
             <Card key={log.id}>
@@ -262,11 +320,12 @@ export default function CommandCenter() {
           <CardHeader className="py-3 px-5">
             <CardTitle className="text-sm font-sans font-semibold">Quick Actions</CardTitle>
           </CardHeader>
-          <CardContent className="pt-0 px-5 pb-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <CardContent className="pt-0 px-5 pb-3 grid grid-cols-2 sm:grid-cols-5 gap-2">
             {[
+              { label: "Opportunities", path: "/app/opportunities", icon: Rocket },
               { label: "Admin Console", path: "/app/admin", icon: Shield },
+              { label: "Invites", path: "/app/invites", icon: Mail },
               { label: "Permissions", path: "/app/permissions", icon: Eye },
-              { label: "CRM / Pipeline", path: "/app/crm", icon: FolderKanban },
               { label: "Members", path: "/app/members", icon: Users },
             ].map(a => (
               <Button key={a.path} variant="outline" className="h-auto flex-col py-3 text-[10px] gap-1.5 card-hover" onClick={() => navigate(a.path)}>
