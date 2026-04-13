@@ -15,48 +15,60 @@ Deno.serve(async (req) => {
 
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    if (!LOVABLE_API_KEY) {
+      return new Response(
+        JSON.stringify({ error: "LOVABLE_API_KEY not configured", code: "CONFIG_ERROR" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY not configured");
+    if (!RESEND_API_KEY) {
+      return new Response(
+        JSON.stringify({ error: "RESEND_API_KEY not configured", code: "CONFIG_ERROR" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
+    // Auth check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      return new Response(JSON.stringify({ error: "Unauthorized", code: "AUTH_ERROR" }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const supabase = createClient(
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    const supabaseUser = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: { user }, error: userErr } = await supabase.auth.getUser();
+    const { data: { user }, error: userErr } = await supabaseUser.auth.getUser();
     if (userErr || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      return new Response(JSON.stringify({ error: "Unauthorized", code: "AUTH_ERROR" }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { data: isAdmin } = await supabase.rpc("is_admin", { _user_id: user.id });
+    const { data: isAdmin } = await supabaseUser.rpc("is_admin", { _user_id: user.id });
     if (!isAdmin) {
-      return new Response(JSON.stringify({ error: "Admin access required" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      return new Response(JSON.stringify({ error: "Admin access required", code: "AUTH_ERROR" }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const body = await req.json();
-    const { email, token, fullName } = body;
+    const { email, token, fullName, tokenId } = body;
 
     if (!email || !token) {
-      return new Response(JSON.stringify({ error: "email and token required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      return new Response(JSON.stringify({ error: "email and token required", code: "VALIDATION_ERROR" }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -94,40 +106,95 @@ Deno.serve(async (req) => {
       </div>
     `;
 
-    const response = await fetch(`${GATEWAY_URL}/emails`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "X-Connection-Api-Key": RESEND_API_KEY,
-      },
-      body: JSON.stringify({
-        from: "PEC Nexus <invites@blinn.pro>",
-        to: [email],
-        subject: "You're invited to PEC Nexus",
-        html: emailHtml,
-      }),
-    });
+    console.log(`[send-invite-email] Attempting send to: ${email}, token: ${token.substring(0, 8)}...`);
 
-    const result = await response.json();
+    let providerStatus: number | null = null;
+    let providerMessageId: string | null = null;
+    let providerError: string | null = null;
 
-    if (!response.ok) {
-      console.error("Resend API error:", JSON.stringify(result));
+    try {
+      const response = await fetch(`${GATEWAY_URL}/emails`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "X-Connection-Api-Key": RESEND_API_KEY,
+        },
+        body: JSON.stringify({
+          from: "PEC Nexus <invites@blinn.pro>",
+          to: [email],
+          subject: "You're invited to PEC Nexus",
+          html: emailHtml,
+        }),
+      });
+
+      providerStatus = response.status;
+      const result = await response.json();
+
+      if (!response.ok) {
+        providerError = JSON.stringify(result);
+        console.error(`[send-invite-email] Resend API error: ${providerStatus}`, providerError);
+
+        // Update invite token status to failed
+        if (tokenId) {
+          await supabaseAdmin.from("invite_tokens").update({
+            email_status: "failed",
+            email_error: providerError,
+            email_sent_at: new Date().toISOString(),
+          }).eq("id", tokenId);
+        }
+
+        return new Response(
+          JSON.stringify({
+            error: "Email delivery failed",
+            code: "PROVIDER_ERROR",
+            providerStatus,
+            providerError: result,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      providerMessageId = result.id || null;
+      console.log(`[send-invite-email] Success: ${email}, messageId: ${providerMessageId}`);
+
+      // Update invite token status to sent
+      if (tokenId) {
+        await supabaseAdmin.from("invite_tokens").update({
+          email_status: "sent",
+          email_provider_id: providerMessageId,
+          email_sent_at: new Date().toISOString(),
+          email_error: null,
+        }).eq("id", tokenId);
+      }
+
       return new Response(
-        JSON.stringify({ error: "Email delivery failed", details: result }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: true, messageId: providerMessageId }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+
+    } catch (fetchErr) {
+      providerError = fetchErr instanceof Error ? fetchErr.message : "Network error";
+      console.error(`[send-invite-email] Fetch error:`, providerError);
+
+      if (tokenId) {
+        await supabaseAdmin.from("invite_tokens").update({
+          email_status: "failed",
+          email_error: providerError,
+          email_sent_at: new Date().toISOString(),
+        }).eq("id", tokenId);
+      }
+
+      return new Response(
+        JSON.stringify({ error: providerError, code: "NETWORK_ERROR" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    return new Response(JSON.stringify({ success: true, messageId: result.id }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
   } catch (err) {
-    console.error("send-invite-email error:", err);
+    console.error("[send-invite-email] Unhandled error:", err);
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error", code: "INTERNAL_ERROR" }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
