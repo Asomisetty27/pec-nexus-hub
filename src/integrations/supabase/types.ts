@@ -1066,6 +1066,10 @@ export type Database = {
           created_at: string
           created_by: string | null
           email: string
+          email_error: string | null
+          email_provider_id: string | null
+          email_sent_at: string | null
+          email_status: string
           expires_at: string
           id: string
           token: string
@@ -1075,6 +1079,10 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           email: string
+          email_error?: string | null
+          email_provider_id?: string | null
+          email_sent_at?: string | null
+          email_status?: string
           expires_at?: string
           id?: string
           token?: string
@@ -1084,6 +1092,10 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           email?: string
+          email_error?: string | null
+          email_provider_id?: string | null
+          email_sent_at?: string | null
+          email_status?: string
           expires_at?: string
           id?: string
           token?: string
