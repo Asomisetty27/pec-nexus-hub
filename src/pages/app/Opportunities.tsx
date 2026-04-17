@@ -79,7 +79,8 @@ export default function Opportunities() {
   };
 
   const updateStatus = async (id: string, status: string) => {
-    await supabase.from("opportunities").update({ status } as any).eq("id", id);
+    const { error } = await supabase.from("opportunities").update({ status } as any).eq("id", id);
+    if (error) { toast.error(`Update failed: ${error.message}`); return; }
     setOpportunities(prev => prev.map(o => o.id === id ? { ...o, status } : o));
     toast.success(`Status updated to ${status}`);
   };

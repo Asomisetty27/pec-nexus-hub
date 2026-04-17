@@ -67,21 +67,24 @@ export default function LeadWorkspace() {
   const cohortName = (cohort?.cohorts as any)?.name || "Your Cohort";
 
   const approveDeliverable = async (id: string) => {
-    await supabase.from("deliverables").update({ approval_status: "approved" as any, approved: true, approved_by: user!.id, approved_at: new Date().toISOString() }).eq("id", id);
+    const { error } = await supabase.from("deliverables").update({ approval_status: "approved" as any, approved: true, approved_by: user!.id, approved_at: new Date().toISOString() }).eq("id", id);
+    if (error) { toast.error(`Approval failed: ${error.message}`); return; }
     await logAuditAction("deliverable_approved", "deliverables", id);
     toast.success("Deliverable approved");
     setDeliverables(prev => prev.map(d => d.id === id ? { ...d, approval_status: "approved", approved: true } : d));
   };
 
   const requestChanges = async (id: string) => {
-    await supabase.from("deliverables").update({ approval_status: "revision_requested" as any }).eq("id", id);
+    const { error } = await supabase.from("deliverables").update({ approval_status: "revision_requested" as any }).eq("id", id);
+    if (error) { toast.error(`Request failed: ${error.message}`); return; }
     toast.info("Revision requested");
     setDeliverables(prev => prev.map(d => d.id === id ? { ...d, approval_status: "changes_requested" } : d));
   };
 
   const postAnnouncement = async () => {
     if (!announceTitle.trim() || !announceText.trim()) return;
-    await supabase.from("announcements").insert({ title: announceTitle, body: announceText, author_id: user!.id });
+    const { error } = await supabase.from("announcements").insert({ title: announceTitle, body: announceText, author_id: user!.id });
+    if (error) { toast.error(`Post failed: ${error.message}`); return; }
     toast.success("Announcement posted");
     setAnnounceTitle("");
     setAnnounceText("");

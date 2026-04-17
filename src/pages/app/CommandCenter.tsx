@@ -95,7 +95,8 @@ export default function CommandCenter() {
   }, [isAdmin]);
 
   const resolveConflict = async (id: string, action: "matched" | "rejected") => {
-    await supabase.from("cohort_roster").update({ identity_status: action } as any).eq("id", id);
+    const { error } = await supabase.from("cohort_roster").update({ identity_status: action } as any).eq("id", id);
+    if (error) { toast.error(`Failed: ${error.message}`); return; }
     await logAuditAction(`identity_${action}`, "cohort_roster", id);
     setConflicts(prev => prev.filter(c => c.id !== id));
     toast.success(`Identity ${action}`);

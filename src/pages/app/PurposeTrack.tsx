@@ -121,7 +121,8 @@ export default function PurposeTrack() {
   };
 
   const completeMilestone = async (id: string) => {
-    await supabase.from("purpose_milestones").update({ status: "completed", completed_at: new Date().toISOString() }).eq("id", id);
+    const { error } = await supabase.from("purpose_milestones").update({ status: "completed", completed_at: new Date().toISOString() }).eq("id", id);
+    if (error) { toast.error(`Failed: ${error.message}`); return; }
     setMilestones(prev => prev.map(m => m.id === id ? { ...m, status: "completed", completed_at: new Date().toISOString() } : m));
     toast.success("Milestone completed");
   };
@@ -130,7 +131,8 @@ export default function PurposeTrack() {
     const idx = PHASES.indexOf(track.current_phase);
     if (idx < PHASES.length - 1) {
       const next = PHASES[idx + 1];
-      await supabase.from("purpose_tracks").update({ current_phase: next }).eq("id", track.id);
+      const { error } = await supabase.from("purpose_tracks").update({ current_phase: next }).eq("id", track.id);
+      if (error) { toast.error(`Failed: ${error.message}`); return; }
       setTrack({ ...track, current_phase: next });
       toast.success(`Advanced to ${PHASE_LABELS[next]}`);
     }
