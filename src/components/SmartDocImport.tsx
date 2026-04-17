@@ -87,7 +87,7 @@ export default function SmartDocImport({ projectId, projectTitle, stages, folder
   const handleSave = async () => {
     if (!title.trim()) { toast.error("Title required"); return; }
     setSaving(true);
-    const { error } = await supabase.from("documents").insert({
+    const { data, error } = await supabase.from("documents").insert({
       title: title.trim(),
       author_id: user!.id,
       mock_project_id: projectId,
@@ -95,9 +95,9 @@ export default function SmartDocImport({ projectId, projectTitle, stages, folder
       folder_id: folderId || inferred.folder?.id || null,
       content: linkUrl ? `[External Link](${linkUrl})` : "",
       visibility: "internal",
-    });
-    if (error) { toast.error("Failed to save"); setSaving(false); return; }
-    toast.success("Document imported!");
+    }).select("id").single();
+    if (error || !data) { toast.error(`Save failed: ${error?.message ?? "Unknown error"}`); setSaving(false); return; }
+    toast.success("Document imported");
     setSaving(false);
     onComplete();
   };
