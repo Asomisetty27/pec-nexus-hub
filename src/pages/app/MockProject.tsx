@@ -179,23 +179,28 @@ export default function MockProject() {
 
   useEffect(() => { load(); }, [load]);
 
-  const advanceStage = async (stageId: string, nextStageId: string) => {
-    await supabase.from("project_stages").update({ status: "completed", completed_at: new Date().toISOString() }).eq("id", stageId);
-    await supabase.from("project_stages").update({ status: "active", unlocked_at: new Date().toISOString() }).eq("id", nextStageId);
-    toast.success("Stage advanced!");
+  const advanceStage = async (stageId: string, nextStageId: string, silent = false) => {
+    const { error: e1 } = await supabase.from("project_stages").update({ status: "completed", completed_at: new Date().toISOString() }).eq("id", stageId);
+    if (e1) { toast.error(`Stage advance failed: ${e1.message}`); return false; }
+    const { error: e2 } = await supabase.from("project_stages").update({ status: "active", unlocked_at: new Date().toISOString() }).eq("id", nextStageId);
+    if (e2) { toast.error(`Stage advance failed: ${e2.message}`); return false; }
+    if (!silent) toast.success("Stage advanced");
     load();
+    return true;
   };
 
   const overrideStage = async (stageId: string, nextStageId: string) => {
     if (!overrideReason.trim()) { toast.error("Override reason required"); return; }
-    await supabase.from("audit_logs").insert({
+    const { error: logErr } = await supabase.from("audit_logs").insert({
       user_id: user?.id, action: "stage_override", target_type: "project_stage", target_id: stageId,
       metadata: { reason: overrideReason, project_id: id } as any,
     });
-    await advanceStage(stageId, nextStageId);
+    if (logErr) { toast.error(`Audit log failed: ${logErr.message}`); return; }
+    const ok = await advanceStage(stageId, nextStageId, true);
+    if (!ok) return;
     setOverrideDialog(null);
     setOverrideReason("");
-    toast.success("Stage overridden with logged justification");
+    toast.success("Stage overridden (justification logged)");
   };
 
   const assignLane = async (member: any, lane: string) => {

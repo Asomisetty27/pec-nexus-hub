@@ -44,9 +44,11 @@ export default function Admin() {
   useEffect(() => { if (isAdmin) fetchAll(); }, [isAdmin]);
 
   const handleRoleRequest = async (id: string, status: "approved" | "rejected", userId: string, role: string) => {
-    await supabase.from("role_requests").update({ status, reviewer_id: user!.id, reviewed_at: new Date().toISOString() }).eq("id", id);
+    const { error: updErr } = await supabase.from("role_requests").update({ status, reviewer_id: user!.id, reviewed_at: new Date().toISOString() }).eq("id", id);
+    if (updErr) { toast.error(`Failed to update request: ${updErr.message}`); return; }
     if (status === "approved") {
-      await supabase.from("user_roles").insert([{ user_id: userId, role: role as any }]);
+      const { error: insErr } = await supabase.from("user_roles").insert([{ user_id: userId, role: role as any }]);
+      if (insErr) { toast.error(`Role grant failed: ${insErr.message}`); return; }
     }
     await logAuditAction(`role_request_${status}`, "role_requests", id, { userId, role });
     toast.success(`Request ${status}`);
