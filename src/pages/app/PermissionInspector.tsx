@@ -151,7 +151,8 @@ export default function PermissionInspector() {
   };
 
   const resolveConflict = async (rosterId: string, action: "matched" | "rejected") => {
-    await supabase.from("cohort_roster").update({ identity_status: action } as any).eq("id", rosterId);
+    const { error } = await supabase.from("cohort_roster").update({ identity_status: action } as any).eq("id", rosterId);
+    if (error) { toast.error(`Failed: ${error.message}`); return; }
     setRosterConflicts(prev => prev.filter(r => r.id !== rosterId));
     toast.success(`Identity ${action}`);
     await supabase.from("audit_logs").insert({
