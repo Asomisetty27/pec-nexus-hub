@@ -96,24 +96,65 @@ export default function Projects() {
               <Button size="sm" className="gap-2"><Plus className="h-3.5 w-3.5" /> New Project</Button>
             </DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>Create Project</DialogTitle></DialogHeader>
+              <DialogHeader>
+                <DialogTitle>Create Project</DialogTitle>
+              </DialogHeader>
+              <div className="flex gap-1 p-1 rounded-lg bg-muted/40 mb-1">
+                <button type="button" onClick={() => setUseTemplate(true)} className={`flex-1 text-xs py-1.5 rounded ${useTemplate ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}>From template</button>
+                <button type="button" onClick={() => setUseTemplate(false)} className={`flex-1 text-xs py-1.5 rounded ${!useTemplate ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}>Blank</button>
+              </div>
               <form onSubmit={handleCreate} className="space-y-4">
-                <div className="space-y-2"><Label>Project Name</Label><Input name="name" required placeholder="Website Redesign" /></div>
-                <div className="space-y-2"><Label>Description</Label><Textarea name="description" placeholder="Project scope and objectives..." /></div>
-                <div className="space-y-2">
-                  <Label>Project Mode</Label>
-                  <Select name="project_mode" defaultValue="training_mock">
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="training_mock">Training / Mock</SelectItem>
-                      <SelectItem value="internal_initiative">Internal Initiative</SelectItem>
-                      <SelectItem value="competition">Competition</SelectItem>
-                      <SelectItem value="client_engagement">Client Engagement</SelectItem>
-                      <SelectItem value="sponsor_deliverable">Sponsor Deliverable</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button type="submit" className="w-full">Create Project</Button>
+                {useTemplate ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Template</Label>
+                      <Select name="template_id" required>
+                        <SelectTrigger><SelectValue placeholder="Pick a template" /></SelectTrigger>
+                        <SelectContent>
+                          {templates.map(t => (
+                            <SelectItem key={t.id} value={t.id}>
+                              {t.name} <span className="text-muted-foreground ml-1">· {t.engagement_type}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[10px] text-muted-foreground">Stages and deliverables are auto-generated. You can edit them after.</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Cohort (optional)</Label>
+                      <Select name="cohort_id">
+                        <SelectTrigger><SelectValue placeholder="No cohort — solo project" /></SelectTrigger>
+                        <SelectContent>
+                          {cohorts.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[10px] text-muted-foreground">All cohort members will be auto-added.</p>
+                    </div>
+                    <div className="space-y-2"><Label>Project Name</Label><Input name="name" required placeholder="Q4 Battery Pack Redesign" /></div>
+                    <div className="space-y-2"><Label>Description</Label><Textarea name="description" rows={2} placeholder="Optional context..." /></div>
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-2"><Label>Project Name</Label><Input name="name" required placeholder="Website Redesign" /></div>
+                    <div className="space-y-2"><Label>Description</Label><Textarea name="description" placeholder="Project scope and objectives..." /></div>
+                    <div className="space-y-2">
+                      <Label>Project Mode</Label>
+                      <Select name="project_mode" defaultValue="training_mock">
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="training_mock">Training / Mock</SelectItem>
+                          <SelectItem value="internal_initiative">Internal Initiative</SelectItem>
+                          <SelectItem value="competition">Competition</SelectItem>
+                          <SelectItem value="client_engagement">Client Engagement</SelectItem>
+                          <SelectItem value="sponsor_deliverable">Sponsor Deliverable</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
+                <Button type="submit" className="w-full" disabled={creating}>
+                  {creating ? "Creating..." : useTemplate ? "Create from Template" : "Create Project"}
+                </Button>
               </form>
             </DialogContent>
           </Dialog>
