@@ -362,6 +362,15 @@ export default function ProjectDetail() {
           )}
         </TabsContent>
       </Tabs>
+
+      <InlineDeliverableSubmit
+        open={!!submitTarget}
+        onOpenChange={(v) => !v && setSubmitTarget(null)}
+        deliverable={submitTarget}
+        projectName={project?.name || ""}
+        milestoneName={milestones.find((m: any) => m.id === submitTarget?.milestone_id)?.title}
+        onSubmitted={fetchAll}
+      />
     </div>
   );
 }
