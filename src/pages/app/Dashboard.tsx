@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { SectionExplainer, InfoDot } from "@/components/ui/SectionExplainer";
+import DeliverableStatusBadge from "@/components/DeliverableStatusBadge";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
 const item = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: 0.22 } } };
@@ -132,59 +133,92 @@ export default function Dashboard() {
   if (contracts.length > 0) modes.push("Contract");
   const currentMode = modes.length === 0 ? "Purpose" : modes.join(" + ");
 
+  // Strict ranking: blocking > overdue > awaiting your review > due soon > high-impact
+  // Role-aware: members get only their work; PMs/leads also see review queue + open help.
+  const isLead = highestRole === "project_lead" || isBoardOrAdmin;
   const computeNextMoves = (): NextMove[] => {
     const moves: NextMove[] = [];
-    const overdue = deliverables.filter(d => d.due_date && new Date(d.due_date) < new Date());
-    overdue.forEach(d => moves.push({
-      label: d.title, sublabel: (d.projects as any)?.name || "Project",
-      reason: "Overdue — immediate action required",
-      action: () => navigate("/app/projects"), icon: AlertTriangle, urgent: true,
-      engagement: d.engagement_type || "purpose",
-    }));
+    const now = Date.now();
+    const dayMs = 24 * 60 * 60 * 1000;
 
-    const changesRequested = deliverables.filter(d => d.approval_status === "revision_requested");
-    changesRequested.forEach(d => moves.push({
-      label: d.title, sublabel: (d.projects as any)?.name || "Project",
-      reason: "Review feedback waiting — revision needed",
-      action: () => navigate("/app/projects"), icon: Zap, urgent: true,
-      engagement: d.engagement_type || "purpose",
-    }));
+    // 1. BLOCKING: revision requested on your deliverables (team is blocked on you)
+    deliverables
+      .filter(d => d.approval_status === "revision_requested")
+      .forEach(d => moves.push({
+        label: `Revise: ${d.title}`,
+        sublabel: (d.projects as any)?.name || "Project",
+        reason: "Reviewer requested changes — team is waiting",
+        action: () => navigate(`/app/projects/${d.project_id}`),
+        icon: Zap, urgent: true,
+        engagement: d.engagement_type || "purpose",
+      }));
 
-    reviews.forEach(r => moves.push({
-      label: `Review: ${(r.submissions as any)?.title || "Submission"}`, sublabel: "Pending your review",
-      reason: "Assigned to you for review",
-      action: () => navigate("/app/projects"), icon: CheckCircle2, urgent: false,
-    }));
+    // 2. OVERDUE: your deliverables past due, not yet submitted/approved
+    deliverables
+      .filter(d => d.due_date && new Date(d.due_date).getTime() < now && d.approval_status !== "approved" && d.approval_status !== "revision_requested")
+      .forEach(d => moves.push({
+        label: `Submit: ${d.title}`,
+        sublabel: (d.projects as any)?.name || "Project",
+        reason: `Overdue — was due ${new Date(d.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
+        action: () => navigate(`/app/projects/${d.project_id}`),
+        icon: AlertTriangle, urgent: true,
+        engagement: d.engagement_type || "purpose",
+      }));
 
-    helpRequests.forEach(h => moves.push({
-      label: h.subject, sublabel: "Open help request",
-      reason: "Unresolved — blocking progress",
-      action: () => navigate("/app/messages"), icon: MessageSquare, urgent: false,
-    }));
+    // 3. AWAITING YOUR REVIEW (leads/PMs only)
+    if (isLead) {
+      reviews.forEach(r => moves.push({
+        label: `Review: ${(r.submissions as any)?.title || "Submission"}`,
+        sublabel: "Pending your review",
+        reason: "Team is blocked until you review",
+        action: () => navigate("/app/lead"),
+        icon: CheckCircle2, urgent: true,
+      }));
+    }
 
-    const upcoming = deliverables.filter(d => d.due_date && !overdue.includes(d));
-    upcoming.slice(0, 2).forEach(d => moves.push({
-      label: d.title, sublabel: (d.projects as any)?.name || "Project",
-      reason: `Due ${new Date(d.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
-      action: () => navigate("/app/projects"), icon: Target, urgent: false,
-      engagement: d.engagement_type || "purpose",
-    }));
+    // 4. DUE SOON (within 3 days, not yet submitted)
+    deliverables
+      .filter(d => {
+        if (!d.due_date) return false;
+        const t = new Date(d.due_date).getTime();
+        return t >= now && t - now <= 3 * dayMs && d.approval_status === "pending" && !d.file_url;
+      })
+      .forEach(d => {
+        const days = Math.ceil((new Date(d.due_date).getTime() - now) / dayMs);
+        moves.push({
+          label: `Submit: ${d.title}`,
+          sublabel: (d.projects as any)?.name || "Project",
+          reason: days <= 1 ? "Due tomorrow" : `Due in ${days} days`,
+          action: () => navigate(`/app/projects/${d.project_id}`),
+          icon: Target, urgent: days <= 1,
+          engagement: d.engagement_type || "purpose",
+        });
+      });
 
-    if (labManual && moves.length < 3) moves.push({
-      label: "Continue Playbook", sublabel: labManual.title,
-      reason: "Training progress — resume where you left off",
-      action: () => navigate(`/app/lab/${labManual.id}`), icon: BookOpen, urgent: false,
-      engagement: "purpose",
-    });
+    // 5. HIGH-IMPACT contribution (only if no urgent items above)
+    if (moves.length === 0 && labManual) {
+      moves.push({
+        label: "Continue training playbook",
+        sublabel: labManual.title,
+        reason: "Advance your cohort readiness",
+        action: () => navigate(`/app/lab/${labManual.id}`),
+        icon: BookOpen, urgent: false,
+        engagement: "purpose",
+      });
+    }
+    if (moves.length === 0 && purposeTrack) {
+      moves.push({
+        label: "Advance Purpose Track",
+        sublabel: purposeTrack.title,
+        reason: "No urgent items — push the long-term mission",
+        action: () => navigate("/app/purpose"),
+        icon: Compass, urgent: false,
+        engagement: "purpose",
+      });
+    }
 
-    if (moves.length === 0) moves.push({
-      label: "Explore Purpose Track", sublabel: purposeTrack?.title || "Define your mission",
-      reason: "Advance your cohort's long-term purpose",
-      action: () => navigate("/app/purpose"), icon: Compass, urgent: false,
-      engagement: "purpose",
-    });
-
-    return moves.slice(0, 4);
+    // Cap at 3 — strict
+    return moves.slice(0, 3);
   };
   const nextMoves = computeNextMoves();
 
@@ -350,16 +384,16 @@ export default function Dashboard() {
                     {deliverables.slice(0, 6).map((d: any) => {
                       const eng = ENGAGEMENT_LABELS[d.engagement_type || "purpose"];
                       return (
-                        <motion.div key={d.id} whileHover={{ x: 2 }} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-muted/40 transition-all cursor-pointer group" onClick={() => navigate("/app/projects")}>
-                          <div className={`h-2 w-2 rounded-full shrink-0 ${d.due_date && new Date(d.due_date) < new Date() ? "bg-destructive animate-pulse" : "bg-muted-foreground/30"}`} />
+                        <motion.div key={d.id} whileHover={{ x: 2 }} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-muted/40 transition-all cursor-pointer group" onClick={() => navigate(`/app/projects/${d.project_id}`)}>
+                          <div className={`h-2 w-2 rounded-full shrink-0 ${d.due_date && new Date(d.due_date) < new Date() && d.approval_status !== "approved" ? "bg-destructive animate-pulse" : "bg-muted-foreground/30"}`} />
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate leading-tight">{d.title}</p>
                             <p className="text-[10px] text-muted-foreground font-mono">{(d.projects as any)?.name}</p>
                           </div>
                           {eng && <Badge variant="outline" className="text-[8px] font-mono gap-0.5 py-0 shrink-0"><eng.icon className={`h-2 w-2 ${eng.color}`} />{eng.label}</Badge>}
-                          <Badge variant="outline" className="text-[9px] font-mono shrink-0">{d.approval_status}</Badge>
+                          <DeliverableStatusBadge status={d.approval_status} fileUrl={d.file_url} dueDate={d.due_date} approvalRequired={d.approval_required} />
                           {d.due_date && (
-                            <span className={`text-[10px] font-mono ${new Date(d.due_date) < new Date() ? "text-destructive font-semibold" : "text-muted-foreground"}`}>
+                            <span className={`text-[10px] font-mono ${new Date(d.due_date) < new Date() && d.approval_status !== "approved" ? "text-destructive font-semibold" : "text-muted-foreground"}`}>
                               {new Date(d.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                             </span>
                           )}

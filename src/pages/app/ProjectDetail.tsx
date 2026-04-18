@@ -11,8 +11,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, ArrowLeft, Users, Target, FileOutput, AlertTriangle, BookOpen, Clock } from "lucide-react";
+import { Plus, ArrowLeft, Users, Target, FileOutput, AlertTriangle, BookOpen, Clock, Upload, ExternalLink, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import InlineDeliverableSubmit from "@/components/InlineDeliverableSubmit";
+import DeliverableStatusBadge from "@/components/DeliverableStatusBadge";
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -28,6 +30,10 @@ export default function ProjectDetail() {
   const [updates, setUpdates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [taskDialog, setTaskDialog] = useState(false);
+  const [submitTarget, setSubmitTarget] = useState<any>(null);
+  const [approving, setApproving] = useState<string | null>(null);
+
+  const isProjectLead = members.some((m: any) => m.user_id === user?.id && m.role_on_project === "lead") || isAdmin;
 
   const fetchAll = async () => {
     if (!id) return;
@@ -222,21 +228,83 @@ export default function ProjectDetail() {
         <TabsContent value="deliverables">
           {deliverables.length === 0 ? <p className="text-sm text-muted-foreground text-center py-8">No deliverables yet.</p> : (
             <div className="space-y-2">
-              {deliverables.map(d => (
-                <Card key={d.id}>
-                  <CardContent className="flex items-center gap-4 p-4">
-                    <FileOutput className="h-5 w-5 text-primary shrink-0" />
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{d.title}</p>
-                      <p className="text-xs text-muted-foreground">v{d.version}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {d.client_visible && <Badge variant="outline" className="text-[10px]">Client visible</Badge>}
-                      {d.approved && <Badge className="text-[10px] bg-success">Approved</Badge>}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              {deliverables.map(d => {
+                const milestone = milestones.find((m: any) => m.id === d.milestone_id);
+                const isOwnerOrLead = d.owner_id === user?.id || !d.owner_id || isProjectLead;
+                const canApprove = isProjectLead && d.file_url && d.approval_status === "pending" && d.approval_required;
+                return (
+                  <Card key={d.id}>
+                    <CardContent className="flex items-center gap-4 p-4">
+                      <FileOutput className="h-5 w-5 text-primary shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-medium text-sm truncate">{d.title}</p>
+                          <span className="text-[10px] text-muted-foreground font-mono">v{d.version}</span>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap mt-1">
+                          <DeliverableStatusBadge
+                            status={d.approval_status}
+                            fileUrl={d.file_url}
+                            dueDate={d.due_date}
+                            approvalRequired={d.approval_required}
+                          />
+                          {milestone && <span className="text-[10px] text-muted-foreground">· Stage: {milestone.title}</span>}
+                          {d.due_date && <span className="text-[10px] text-muted-foreground">· Due {new Date(d.due_date).toLocaleDateString()}</span>}
+                          {d.client_visible && <Badge variant="outline" className="text-[10px]">Client visible</Badge>}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {d.file_url && (
+                          <Button asChild variant="ghost" size="sm" className="h-8 gap-1">
+                            <a href={d.file_url} target="_blank" rel="noreferrer"><ExternalLink className="h-3 w-3" /> Open</a>
+                          </Button>
+                        )}
+                        {isOwnerOrLead && d.approval_status !== "approved" && (
+                          <Button size="sm" variant={d.file_url ? "outline" : "default"} className="h-8 gap-1" onClick={() => setSubmitTarget(d)}>
+                            <Upload className="h-3 w-3" />
+                            {d.file_url ? (d.approval_status === "revision_requested" ? "Resubmit" : "Replace") : "Submit"}
+                          </Button>
+                        )}
+                        {canApprove && (
+                          <>
+                            <Button size="sm" variant="default" className="h-8 gap-1" disabled={approving === d.id}
+                              onClick={async () => {
+                                setApproving(d.id);
+                                const { error } = await supabase.from("deliverables").update({
+                                  approval_status: "approved", approved: true, approved_by: user!.id, approved_at: new Date().toISOString(),
+                                }).eq("id", d.id);
+                                setApproving(null);
+                                if (error) { toast.error(`Approve failed: ${error.message}`); return; }
+                                toast.success("Approved"); fetchAll();
+                              }}>
+                              <CheckCircle2 className="h-3 w-3" /> Approve
+                            </Button>
+                            <Button size="sm" variant="outline" className="h-8" disabled={approving === d.id}
+                              onClick={async () => {
+                                const reason = window.prompt("What needs to change? (will be visible to owner)");
+                                if (!reason) return;
+                                setApproving(d.id);
+                                const { error } = await supabase.from("deliverables").update({ approval_status: "revision_requested" }).eq("id", d.id);
+                                if (!error && user) {
+                                  await supabase.from("project_updates").insert({
+                                    project_id: id!, author_id: user.id,
+                                    summary: `Revision requested on ${d.title} (v${d.version}): ${reason}`,
+                                    health: "yellow",
+                                  });
+                                }
+                                setApproving(null);
+                                if (error) { toast.error(`Action failed: ${error.message}`); return; }
+                                toast.success("Revision requested"); fetchAll();
+                              }}>
+                              Request changes
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </TabsContent>
@@ -294,6 +362,15 @@ export default function ProjectDetail() {
           )}
         </TabsContent>
       </Tabs>
+
+      <InlineDeliverableSubmit
+        open={!!submitTarget}
+        onOpenChange={(v) => !v && setSubmitTarget(null)}
+        deliverable={submitTarget}
+        projectName={project?.name || ""}
+        milestoneName={milestones.find((m: any) => m.id === submitTarget?.milestone_id)?.title}
+        onSubmitted={fetchAll}
+      />
     </div>
   );
 }
