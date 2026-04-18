@@ -11,8 +11,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, ArrowLeft, Users, Target, FileOutput, AlertTriangle, BookOpen, Clock } from "lucide-react";
+import { Plus, ArrowLeft, Users, Target, FileOutput, AlertTriangle, BookOpen, Clock, Upload, ExternalLink, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import InlineDeliverableSubmit from "@/components/InlineDeliverableSubmit";
+import DeliverableStatusBadge from "@/components/DeliverableStatusBadge";
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -28,6 +30,10 @@ export default function ProjectDetail() {
   const [updates, setUpdates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [taskDialog, setTaskDialog] = useState(false);
+  const [submitTarget, setSubmitTarget] = useState<any>(null);
+  const [approving, setApproving] = useState<string | null>(null);
+
+  const isProjectLead = members.some((m: any) => m.user_id === user?.id && m.role_on_project === "lead") || isAdmin;
 
   const fetchAll = async () => {
     if (!id) return;
