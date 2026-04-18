@@ -21,9 +21,13 @@ const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transitio
 export default function Projects() {
   const { user, isAdmin } = useAuth();
   const [projects, setProjects] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [cohorts, setCohorts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [useTemplate, setUseTemplate] = useState(true);
   const navigate = useNavigate();
 
   const fetchProjects = async () => {
@@ -33,20 +37,46 @@ export default function Projects() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchProjects(); }, []);
+  useEffect(() => {
+    fetchProjects();
+    supabase.from("project_templates").select("*").eq("is_active", true).order("name").then(({ data }) => setTemplates(data || []));
+    supabase.from("cohorts").select("*").order("name").then(({ data }) => setCohorts(data || []));
+  }, []);
 
   const filtered = projects.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (creating) return;
+    setCreating(true);
     const form = new FormData(e.currentTarget);
+    const name = form.get("name") as string;
+    const description = (form.get("description") as string) || "";
+
+    if (useTemplate) {
+      const templateId = form.get("template_id") as string;
+      const cohortId = (form.get("cohort_id") as string) || null;
+      if (!templateId) { toast.error("Pick a template"); setCreating(false); return; }
+      const { data, error } = await supabase.rpc("create_project_from_template" as any, {
+        p_template_id: templateId,
+        p_name: name,
+        p_cohort_id: cohortId,
+        p_description: description,
+      });
+      setCreating(false);
+      if (error) { toast.error(error.message); return; }
+      toast.success("Project created from template — stages and deliverables auto-generated.");
+      setDialogOpen(false);
+      fetchProjects();
+      if (data) navigate(`/app/projects/${data}`);
+      return;
+    }
+
     const { error } = await supabase.from("projects").insert({
-      name: form.get("name") as string,
-      description: form.get("description") as string,
-      status: "draft",
-      created_by: user!.id,
+      name, description, status: "draft", created_by: user!.id,
       project_mode: (form.get("project_mode") as any) || "training_mock",
     });
+    setCreating(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Project created");
     setDialogOpen(false);
