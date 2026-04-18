@@ -2053,6 +2053,42 @@ export type Database = {
           },
         ]
       }
+      project_templates: {
+        Row: {
+          cohort_scope: string
+          created_at: string
+          description: string | null
+          engagement_type: string
+          id: string
+          is_active: boolean
+          name: string
+          project_mode: Database["public"]["Enums"]["project_mode"]
+          updated_at: string
+        }
+        Insert: {
+          cohort_scope?: string
+          created_at?: string
+          description?: string | null
+          engagement_type?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          project_mode?: Database["public"]["Enums"]["project_mode"]
+          updated_at?: string
+        }
+        Update: {
+          cohort_scope?: string
+          created_at?: string
+          description?: string | null
+          engagement_type?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          project_mode?: Database["public"]["Enums"]["project_mode"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       project_updates: {
         Row: {
           author_id: string
@@ -2723,6 +2759,88 @@ export type Database = {
           },
         ]
       }
+      template_deliverables: {
+        Row: {
+          approval_required: boolean
+          created_at: string
+          default_owner_role: string | null
+          description: string | null
+          id: string
+          required: boolean
+          stage_order_index: number
+          template_id: string
+          title: string
+        }
+        Insert: {
+          approval_required?: boolean
+          created_at?: string
+          default_owner_role?: string | null
+          description?: string | null
+          id?: string
+          required?: boolean
+          stage_order_index?: number
+          template_id: string
+          title: string
+        }
+        Update: {
+          approval_required?: boolean
+          created_at?: string
+          default_owner_role?: string | null
+          description?: string | null
+          id?: string
+          required?: boolean
+          stage_order_index?: number
+          template_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_deliverables_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "project_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_stages: {
+        Row: {
+          created_at: string
+          default_duration_days: number
+          description: string | null
+          id: string
+          name: string
+          order_index: number
+          template_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_duration_days?: number
+          description?: string | null
+          id?: string
+          name: string
+          order_index?: number
+          template_id: string
+        }
+        Update: {
+          created_at?: string
+          default_duration_days?: number
+          description?: string | null
+          id?: string
+          name?: string
+          order_index?: number
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_stages_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "project_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       track_assignments: {
         Row: {
           assigned_at: string
@@ -2836,6 +2954,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_project_from_template: {
+        Args: {
+          p_cohort_id?: string
+          p_description?: string
+          p_name: string
+          p_template_id: string
+        }
+        Returns: string
+      }
       get_user_cohort_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
@@ -2853,6 +2980,10 @@ export type Database = {
       is_project_member: {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean
+      }
+      seed_project_memberships_from_cohort: {
+        Args: { p_cohort_id: string; p_project_id: string }
+        Returns: number
       }
     }
     Enums: {
