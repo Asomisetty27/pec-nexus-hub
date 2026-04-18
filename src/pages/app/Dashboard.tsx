@@ -384,16 +384,16 @@ export default function Dashboard() {
                     {deliverables.slice(0, 6).map((d: any) => {
                       const eng = ENGAGEMENT_LABELS[d.engagement_type || "purpose"];
                       return (
-                        <motion.div key={d.id} whileHover={{ x: 2 }} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-muted/40 transition-all cursor-pointer group" onClick={() => navigate("/app/projects")}>
-                          <div className={`h-2 w-2 rounded-full shrink-0 ${d.due_date && new Date(d.due_date) < new Date() ? "bg-destructive animate-pulse" : "bg-muted-foreground/30"}`} />
+                        <motion.div key={d.id} whileHover={{ x: 2 }} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-muted/40 transition-all cursor-pointer group" onClick={() => navigate(`/app/projects/${d.project_id}`)}>
+                          <div className={`h-2 w-2 rounded-full shrink-0 ${d.due_date && new Date(d.due_date) < new Date() && d.approval_status !== "approved" ? "bg-destructive animate-pulse" : "bg-muted-foreground/30"}`} />
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate leading-tight">{d.title}</p>
                             <p className="text-[10px] text-muted-foreground font-mono">{(d.projects as any)?.name}</p>
                           </div>
                           {eng && <Badge variant="outline" className="text-[8px] font-mono gap-0.5 py-0 shrink-0"><eng.icon className={`h-2 w-2 ${eng.color}`} />{eng.label}</Badge>}
-                          <Badge variant="outline" className="text-[9px] font-mono shrink-0">{d.approval_status}</Badge>
+                          <DeliverableStatusBadge status={d.approval_status} fileUrl={d.file_url} dueDate={d.due_date} approvalRequired={d.approval_required} />
                           {d.due_date && (
-                            <span className={`text-[10px] font-mono ${new Date(d.due_date) < new Date() ? "text-destructive font-semibold" : "text-muted-foreground"}`}>
+                            <span className={`text-[10px] font-mono ${new Date(d.due_date) < new Date() && d.approval_status !== "approved" ? "text-destructive font-semibold" : "text-muted-foreground"}`}>
                               {new Date(d.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                             </span>
                           )}
