@@ -580,6 +580,48 @@ export type Database = {
           },
         ]
       }
+      deliverable_review_events: {
+        Row: {
+          actor_id: string
+          created_at: string
+          deliverable_id: string
+          event_type: string
+          file_url: string | null
+          from_status: string | null
+          id: string
+          project_id: string
+          reason: string | null
+          to_status: string | null
+          version: number | null
+        }
+        Insert: {
+          actor_id: string
+          created_at?: string
+          deliverable_id: string
+          event_type: string
+          file_url?: string | null
+          from_status?: string | null
+          id?: string
+          project_id: string
+          reason?: string | null
+          to_status?: string | null
+          version?: number | null
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string
+          deliverable_id?: string
+          event_type?: string
+          file_url?: string | null
+          from_status?: string | null
+          id?: string
+          project_id?: string
+          reason?: string | null
+          to_status?: string | null
+          version?: number | null
+        }
+        Relationships: []
+      }
       deliverables: {
         Row: {
           approval_required: boolean
@@ -2954,6 +2996,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_deliverable: {
+        Args: { p_deliverable_id: string }
+        Returns: undefined
+      }
       create_project_from_template: {
         Args: {
           p_cohort_id?: string
@@ -2962,6 +3008,19 @@ export type Database = {
           p_template_id: string
         }
         Returns: string
+      }
+      get_milestone_blockers: {
+        Args: { p_milestone_id: string }
+        Returns: {
+          approval_required: boolean
+          approval_status: string
+          due_date: string
+          file_url: string
+          id: string
+          owner_id: string
+          title: string
+          version: number
+        }[]
       }
       get_user_cohort_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
@@ -2977,9 +3036,21 @@ export type Database = {
         Args: { _channel_id: string; _user_id: string }
         Returns: boolean
       }
+      is_project_lead: {
+        Args: { _project_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_project_member: {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean
+      }
+      reject_deliverable: {
+        Args: { p_deliverable_id: string; p_reason: string }
+        Returns: undefined
+      }
+      request_deliverable_changes: {
+        Args: { p_deliverable_id: string; p_reason: string }
+        Returns: undefined
       }
       seed_project_memberships_from_cohort: {
         Args: { p_cohort_id: string; p_project_id: string }

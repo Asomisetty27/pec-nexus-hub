@@ -100,7 +100,24 @@ export default function Dashboard() {
         }
       }
 
-      const { data: revData } = await supabase.from("reviews").select("*, submissions(title)").eq("reviewer_id", user.id).eq("status", "pending").limit(5);
+      // Real deliverable review queue: deliverables I lead, awaiting my review.
+      // (Falls back to admin: every awaiting_review row capped at 5 for the dashboard preview.)
+      const { data: leadProjs } = await supabase
+        .from("project_memberships")
+        .select("project_id")
+        .eq("user_id", user.id)
+        .eq("role_on_project", "lead");
+      const leadIds = (leadProjs || []).map((m: any) => m.project_id);
+      let revQ = supabase
+        .from("deliverables")
+        .select("id, title, project_id, due_date, version, projects(name)")
+        .not("file_url", "is", null)
+        .in("approval_status", ["pending"])
+        .eq("approval_required", true)
+        .order("due_date", { ascending: true, nullsFirst: false })
+        .limit(5);
+      if (!isBoardOrAdmin && leadIds.length > 0) revQ = revQ.in("project_id", leadIds);
+      const { data: revData } = (isBoardOrAdmin || leadIds.length > 0) ? await revQ : { data: [] as any[] };
       setReviews(revData || []);
 
       const [projRes, eventRes, memberRes] = await Promise.all([
@@ -165,13 +182,13 @@ export default function Dashboard() {
         engagement: d.engagement_type || "purpose",
       }));
 
-    // 3. AWAITING YOUR REVIEW (leads/PMs only)
+    // 3. AWAITING YOUR REVIEW (leads/PMs only) — real deliverable queue
     if (isLead) {
-      reviews.forEach(r => moves.push({
-        label: `Review: ${(r.submissions as any)?.title || "Submission"}`,
-        sublabel: "Pending your review",
-        reason: "Team is blocked until you review",
-        action: () => navigate("/app/lead"),
+      reviews.forEach((r: any) => moves.push({
+        label: `Review: ${r.title}`,
+        sublabel: (r.projects as any)?.name || "Project",
+        reason: r.due_date ? `v${r.version} · due ${new Date(r.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : `v${r.version} · awaiting your decision`,
+        action: () => navigate(`/app/review/${r.id}`),
         icon: CheckCircle2, urgent: true,
       }));
     }
