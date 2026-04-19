@@ -270,9 +270,7 @@ export default function ProjectDetail() {
                             <Button size="sm" variant="default" className="h-8 gap-1" disabled={approving === d.id}
                               onClick={async () => {
                                 setApproving(d.id);
-                                const { error } = await supabase.from("deliverables").update({
-                                  approval_status: "approved", approved: true, approved_by: user!.id, approved_at: new Date().toISOString(),
-                                }).eq("id", d.id);
+                                const { error } = await supabase.rpc("approve_deliverable", { p_deliverable_id: d.id });
                                 setApproving(null);
                                 if (error) { toast.error(`Approve failed: ${error.message}`); return; }
                                 toast.success("Approved"); fetchAll();
@@ -282,16 +280,9 @@ export default function ProjectDetail() {
                             <Button size="sm" variant="outline" className="h-8" disabled={approving === d.id}
                               onClick={async () => {
                                 const reason = window.prompt("What needs to change? (will be visible to owner)");
-                                if (!reason) return;
+                                if (!reason || reason.trim().length < 3) { if (reason !== null) toast.error("Add a reason (3+ chars)."); return; }
                                 setApproving(d.id);
-                                const { error } = await supabase.from("deliverables").update({ approval_status: "revision_requested" }).eq("id", d.id);
-                                if (!error && user) {
-                                  await supabase.from("project_updates").insert({
-                                    project_id: id!, author_id: user.id,
-                                    summary: `Revision requested on ${d.title} (v${d.version}): ${reason}`,
-                                    health: "yellow",
-                                  });
-                                }
+                                const { error } = await supabase.rpc("request_deliverable_changes", { p_deliverable_id: d.id, p_reason: reason.trim() });
                                 setApproving(null);
                                 if (error) { toast.error(`Action failed: ${error.message}`); return; }
                                 toast.success("Revision requested"); fetchAll();
