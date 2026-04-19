@@ -85,6 +85,21 @@ export default function InlineDeliverableSubmit({ open, onOpenChange, deliverabl
 
       if (updErr) throw new Error(`Save failed: ${updErr.message}`);
 
+      // Record real review-history event (truthful submission log).
+      // Failure here is non-fatal but surfaced quietly.
+      const { error: evErr } = await supabase.from("deliverable_review_events").insert({
+        deliverable_id: deliverable.id,
+        project_id: deliverable.project_id,
+        actor_id: user!.id,
+        event_type: isRevision ? "revised" : "submitted",
+        from_status: deliverable.approval_status,
+        to_status: deliverable.approval_required ? "pending" : "approved",
+        version: nextVersion,
+        reason: notes.trim() || null,
+        file_url: fileUrl,
+      });
+      if (evErr) console.warn("review event log failed", evErr.message);
+
       // Audit (non-blocking)
       logAuditAction(
         isRevision ? "deliverable.revised" : "deliverable.submitted",
