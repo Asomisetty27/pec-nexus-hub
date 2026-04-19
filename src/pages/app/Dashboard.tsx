@@ -305,7 +305,35 @@ export default function Dashboard() {
                   <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-muted-foreground">Your Next Moves</span>
                   <InfoDot tip="Ranked by urgency. Each shows what it advances — Purpose, Competition, or Contract." />
                 </div>
-                {nextMoves.map((move, i) => {
+                {nextMoves.length === 0 ? (
+                  <div className="glass rounded-xl p-4">
+                    <p className="text-sm font-semibold leading-tight">
+                      {isLead ? "Inbox is clear." : "Nothing urgent right now."}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      {isLead
+                        ? "No deliverables waiting on your review. When team members submit work, it'll appear here."
+                        : labManual
+                          ? "Continue your training playbook to stay ready for live engagements."
+                          : "Open Cohort Hub or Projects to see what's in flight."}
+                    </p>
+                    <div className="flex gap-2 mt-3">
+                      {labManual && (
+                        <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => navigate(`/app/lab/${labManual.id}`)}>
+                          <BookOpen className="h-3 w-3 mr-1" /> Open playbook
+                        </Button>
+                      )}
+                      <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => navigate("/app/projects")}>
+                        <FolderKanban className="h-3 w-3 mr-1" /> View projects
+                      </Button>
+                      {isLead && (
+                        <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => navigate("/app/review")}>
+                          <CheckCircle2 className="h-3 w-3 mr-1" /> Review queue
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ) : nextMoves.map((move, i) => {
                   const eng = move.engagement ? ENGAGEMENT_LABELS[move.engagement] : null;
                   return (
                     <div key={i} className={`glass-strong rounded-xl p-4 cursor-pointer hover:border-accent/30 transition-all ${move.urgent ? "border-destructive/30" : ""}`} onClick={move.action}>
