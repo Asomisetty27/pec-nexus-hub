@@ -205,23 +205,43 @@ export default function ProjectDetail() {
 
         <TabsContent value="milestones">
           <div className="space-y-3">
-            {milestones.length === 0 ? <p className="text-sm text-muted-foreground text-center py-8">No milestones yet.</p> : milestones.map(m => (
-              <Card key={m.id}>
-                <CardContent className="flex items-center gap-4 p-4">
-                  <Target className="h-5 w-5 text-primary shrink-0" />
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{m.title}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="outline" className="text-[10px]">{m.status}</Badge>
-                      {m.due_date && <span className="text-xs text-muted-foreground">{new Date(m.due_date).toLocaleDateString()}</span>}
+            {milestones.length === 0 ? <p className="text-sm text-muted-foreground text-center py-8">No milestones yet.</p> : milestones.map(m => {
+              const blockers = deliverables.filter((d: any) => d.milestone_id === m.id && d.required && (
+                (d.approval_required && d.approval_status !== "approved") ||
+                (!d.approval_required && !d.file_url)
+              ));
+              return (
+                <Card key={m.id}>
+                  <CardContent className="flex items-start gap-4 p-4">
+                    <Target className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium text-sm">{m.title}</p>
+                        <Badge variant="outline" className="text-[10px]">{m.status}</Badge>
+                        {blockers.length > 0
+                          ? <Badge variant="destructive" className="text-[10px] gap-1"><AlertTriangle className="h-2.5 w-2.5" /> Stage blocked · {blockers.length}</Badge>
+                          : <Badge className="text-[10px] gap-1 bg-success text-success-foreground border-transparent"><CheckCircle2 className="h-2.5 w-2.5" /> Ready</Badge>}
+                        {m.due_date && <span className="text-xs text-muted-foreground">{new Date(m.due_date).toLocaleDateString()}</span>}
+                      </div>
+                      <div className="mt-2 h-2 w-full rounded-full bg-muted">
+                        <div className="h-2 rounded-full bg-primary transition-all" style={{ width: `${m.progress}%` }} />
+                      </div>
+                      {blockers.length > 0 && (
+                        <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/5 p-2 space-y-1">
+                          <p className="text-[10px] font-medium text-destructive uppercase tracking-wide">Blocking deliverables</p>
+                          {blockers.map((b: any) => (
+                            <div key={b.id} className="flex items-center justify-between gap-2 text-xs">
+                              <span className="truncate">{b.title}</span>
+                              <DeliverableStatusBadge status={b.approval_status} fileUrl={b.file_url} dueDate={b.due_date} approvalRequired={b.approval_required} />
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <div className="mt-2 h-2 w-full rounded-full bg-muted">
-                      <div className="h-2 rounded-full bg-primary transition-all" style={{ width: `${m.progress}%` }} />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </TabsContent>
 
