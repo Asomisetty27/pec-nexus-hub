@@ -127,7 +127,10 @@ export default function Messages() {
         {renderChannelGroup("Cohorts", cohortChannels, Hash)}
         {renderChannelGroup("Projects", projectChannels, MessageSquare)}
         {channels.length === 0 && (
-          <p className="text-xs text-muted-foreground p-2">No channels yet.</p>
+          <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground space-y-1">
+            <p className="font-medium text-foreground">No channels yet</p>
+            <p>You'll be auto-joined to your cohort and announcement channels once an admin matches your account to the roster. Ping <span className="font-mono">somisett@calpoly.edu</span> if this is unexpected.</p>
+          </div>
         )}
       </div>
 

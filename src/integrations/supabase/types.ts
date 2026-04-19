@@ -3044,6 +3044,10 @@ export type Database = {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean
       }
+      join_user_to_default_channels: {
+        Args: { p_cohort_name: string; p_role: string; p_user_id: string }
+        Returns: undefined
+      }
       reject_deliverable: {
         Args: { p_deliverable_id: string; p_reason: string }
         Returns: undefined
