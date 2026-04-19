@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Clock, AlertTriangle, RefreshCw, Eye, Circle, Ban } from "lucide-react";
+import { getUnifiedStatus, STATUS_LABELS, type UnifiedStatus } from "@/lib/deliverableStatus";
 
 interface Props {
   status: string;          // approval_status: pending | approved | rejected | revision_requested
@@ -10,19 +11,30 @@ interface Props {
   className?: string;
 }
 
+const ICON: Record<UnifiedStatus, any> = {
+  approved: CheckCircle2,
+  rejected: Ban,
+  revision_requested: RefreshCw,
+  overdue: AlertTriangle,
+  awaiting_review: Eye,
+  submitted: Clock,
+  not_started: Circle,
+};
+
 export default function DeliverableStatusBadge({ status, fileUrl, dueDate, approvalRequired, blockingStage, className }: Props) {
-  const isOverdue = dueDate && new Date(dueDate) < new Date() && status !== "approved";
-  const notStarted = !fileUrl && status === "pending";
-
-  let label: string, Icon = Circle, variant: "default" | "secondary" | "destructive" | "outline" = "outline", extra = "";
-
-  if (status === "approved") { label = "Approved"; Icon = CheckCircle2; variant = "default"; extra = "bg-success text-success-foreground border-transparent"; }
-  else if (status === "rejected") { label = "Rejected"; Icon = Ban; variant = "destructive"; }
-  else if (status === "revision_requested") { label = "Revision needed"; Icon = RefreshCw; variant = "destructive"; }
-  else if (notStarted && isOverdue) { label = "Overdue"; Icon = AlertTriangle; variant = "destructive"; }
-  else if (notStarted) { label = "Not started"; Icon = Circle; variant = "outline"; }
-  else if (approvalRequired) { label = "Awaiting review"; Icon = Eye; variant = "secondary"; }
-  else { label = "Submitted"; Icon = Clock; variant = "secondary"; }
+  const unified = getUnifiedStatus({
+    approval_status: status,
+    approval_required: approvalRequired ?? true,
+    file_url: fileUrl ?? null,
+    due_date: dueDate ?? null,
+  });
+  const Icon = ICON[unified];
+  const label = STATUS_LABELS[unified];
+  let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
+  let extra = "";
+  if (unified === "approved") { variant = "default"; extra = "bg-success text-success-foreground border-transparent"; }
+  else if (unified === "rejected" || unified === "revision_requested" || unified === "overdue") variant = "destructive";
+  else if (unified === "awaiting_review" || unified === "submitted") variant = "secondary";
 
   return (
     <div className={`inline-flex items-center gap-1.5 ${className || ""}`}>

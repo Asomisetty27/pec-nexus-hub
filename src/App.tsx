@@ -37,6 +37,7 @@ import CommandCenter from "./pages/app/CommandCenter";
 import InviteManagement from "./pages/app/InviteManagement";
 import PurposeTrack from "./pages/app/PurposeTrack";
 import Opportunities from "./pages/app/Opportunities";
+import ReviewQueue from "./pages/app/ReviewQueue";
 
 const queryClient = new QueryClient();
 
@@ -80,6 +81,8 @@ const App = () => (
               <Route path="ops" element={<OpsDashboard />} />
               <Route path="permissions" element={<PermissionInspector />} />
               <Route path="lead" element={<LeadWorkspace />} />
+              <Route path="review" element={<ReviewQueue />} />
+              <Route path="review/:id" element={<ReviewQueue />} />
               <Route path="command" element={<CommandCenter />} />
               <Route path="invites" element={<InviteManagement />} />
             </Route>
