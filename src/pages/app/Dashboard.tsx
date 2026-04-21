@@ -240,6 +240,9 @@ export default function Dashboard() {
   };
   const nextMoves = computeNextMoves();
 
+  // Advisors land on the dedicated portal. Admins keep the normal dashboard so they can access both.
+  if (isAdvisor && !isAdmin) return <Navigate to="/app/advisor" replace />;
+
   if (isApplicant) return <ApplicantDashboard />;
 
   const CohortIcon = cohortIcons[(cohort as any)?.cohorts?.icon] || Cpu;
