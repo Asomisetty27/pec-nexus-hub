@@ -18,6 +18,10 @@ const stageColors: Record<string, string> = {
   signed: "default", active: "default", completed: "default", lost: "destructive",
 };
 
+const engagementBadge: Record<string, string> = {
+  contract: "Contract", sponsorship: "Sponsorship", competition: "Competition", exploratory: "Exploratory",
+};
+
 export default function CRM() {
   const { isAdmin } = useAuth();
   const [leads, setLeads] = useState<any[]>([]);
@@ -66,11 +70,18 @@ export default function CRM() {
                 <Card key={l.id}>
                   <CardContent className="flex items-center gap-4 p-4">
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm">{l.contact_name}</p>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium text-sm">{l.contact_name}</p>
+                        {l.engagement_type && <Badge variant="outline" className="text-[9px]">{engagementBadge[l.engagement_type] || l.engagement_type}</Badge>}
+                        {l.timeline === "urgent" && <Badge variant="destructive" className="text-[9px]">Urgent</Badge>}
+                      </div>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
                         {l.contact_email && <span><Mail className="inline h-3 w-3 mr-1" />{l.contact_email}</span>}
                         {l.organizations?.name && <span><Building2 className="inline h-3 w-3 mr-1" />{l.organizations.name}</span>}
+                        {l.contact_role && <span>· {l.contact_role}</span>}
+                        {l.budget_range && <span>· {l.budget_range}</span>}
                       </div>
+                      {l.notes && <p className="mt-2 text-[11px] text-muted-foreground line-clamp-2 whitespace-pre-line">{l.notes}</p>}
                     </div>
                     <Select value={l.stage} onValueChange={(v) => updateLeadStage(l.id, v)}>
                       <SelectTrigger className="w-32 h-8"><SelectValue /></SelectTrigger>

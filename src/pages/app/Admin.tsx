@@ -263,6 +263,10 @@ export default function Admin() {
             </motion.div>
           ))}
         </TabsContent>
+
+        <TabsContent value="metrics" className="mt-4">
+          <PublicMetricsEditor />
+        </TabsContent>
       </Tabs>
     </motion.div>
   );
