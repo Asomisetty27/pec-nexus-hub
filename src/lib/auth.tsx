@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
-type AppRole = "applicant" | "member" | "project_consultant" | "project_lead" | "board_member" | "admin" | "superadmin";
+type AppRole = "applicant" | "member" | "project_consultant" | "project_lead" | "board_member" | "advisor" | "admin" | "superadmin";
 
 interface Profile {
   id: string;
@@ -33,6 +33,7 @@ interface AuthContextType {
   hasRole: (role: AppRole) => boolean;
   isAdmin: boolean;
   isBoardOrAdmin: boolean;
+  isAdvisor: boolean;
   highestRole: AppRole;
   refreshProfile: () => Promise<void>;
 }
@@ -119,8 +120,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasRole = (role: AppRole) => roles.includes(role);
   const isAdmin = roles.some(r => r === "admin" || r === "superadmin");
   const isBoardOrAdmin = roles.some(r => ["board_member", "admin", "superadmin"].includes(r));
+  const isAdvisor = roles.includes("advisor");
 
-  const roleHierarchy: AppRole[] = ["applicant", "member", "project_consultant", "project_lead", "board_member", "admin", "superadmin"];
+  const roleHierarchy: AppRole[] = ["applicant", "member", "project_consultant", "project_lead", "board_member", "advisor", "admin", "superadmin"];
   const highestRole = roles.reduce((highest, role) => {
     const idx = roleHierarchy.indexOf(role);
     const highIdx = roleHierarchy.indexOf(highest);
@@ -130,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={{
       user, session, profile, roles, loading,
-      signUp, signIn, signOut, hasRole, isAdmin, isBoardOrAdmin, highestRole, refreshProfile,
+      signUp, signIn, signOut, hasRole, isAdmin, isBoardOrAdmin, isAdvisor, highestRole, refreshProfile,
     }}>
       {children}
     </AuthContext.Provider>

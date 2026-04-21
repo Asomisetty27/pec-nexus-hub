@@ -1,4 +1,5 @@
 import { useAuth } from "@/lib/auth";
+import { Navigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,7 +52,7 @@ const PHASE_LABELS: Record<string, string> = {
 };
 
 export default function Dashboard() {
-  const { user, profile, highestRole, isAdmin, isBoardOrAdmin } = useAuth();
+  const { user, profile, highestRole, isAdmin, isBoardOrAdmin, isAdvisor } = useAuth();
   const navigate = useNavigate();
   const [deliverables, setDeliverables] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
@@ -238,6 +239,9 @@ export default function Dashboard() {
     return moves.slice(0, 3);
   };
   const nextMoves = computeNextMoves();
+
+  // Advisors land on the dedicated portal. Admins keep the normal dashboard so they can access both.
+  if (isAdvisor && !isAdmin) return <Navigate to="/app/advisor" replace />;
 
   if (isApplicant) return <ApplicantDashboard />;
 

@@ -18,6 +18,7 @@ import {
   Rocket,
   Settings,
   Shield,
+  ShieldCheck,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -50,6 +51,7 @@ interface NavItem {
   requiresAdmin?: boolean;
   requiresBoardOrAdmin?: boolean;
   requiresLeadAccess?: boolean;
+  requiresAdvisorAccess?: boolean;
   hideForApplicants?: boolean;
 }
 
@@ -57,6 +59,7 @@ const GROUP_LABEL_CLASS = "font-mono text-[9px] uppercase tracking-[0.15em] text
 
 const mainNav: NavItem[] = [
   { title: "Mission Control", url: "/app", icon: LayoutDashboard },
+  { title: "Advisor Portal", url: "/app/advisor", icon: ShieldCheck, requiresAdvisorAccess: true },
   { title: "Purpose Track", url: "/app/purpose", icon: Compass, hideForApplicants: true },
   { title: "Cohort Hub", url: "/app/cohort", icon: Cpu, hideForApplicants: true },
   { title: "Opportunities", url: "/app/opportunities", icon: Rocket, hideForApplicants: true },
@@ -120,10 +123,12 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, highestRole, signOut, isAdmin, isBoardOrAdmin } = useAuth();
+  const { hasRole } = useAuth();
 
   const initials = getInitials(profile?.full_name);
 
   const hasLeadAccess = isAdmin || isBoardOrAdmin || highestRole === "project_lead";
+  const hasAdvisorAccess = isAdmin || hasRole("advisor");
 
   const isApplicant = highestRole === "applicant";
 
@@ -136,6 +141,7 @@ export function AppSidebar() {
     if (item.requiresAdmin && !isAdmin) return false;
     if (item.requiresBoardOrAdmin && !isBoardOrAdmin && !isAdmin) return false;
     if (item.requiresLeadAccess && !hasLeadAccess) return false;
+    if (item.requiresAdvisorAccess && !hasAdvisorAccess) return false;
     if (item.hideForApplicants && isApplicant) return false;
     return true;
   };
