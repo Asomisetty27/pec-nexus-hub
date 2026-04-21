@@ -3070,6 +3070,7 @@ export type Database = {
         | "board_member"
         | "admin"
         | "superadmin"
+        | "advisor"
       approval_status:
         | "pending"
         | "approved"
@@ -3266,6 +3267,7 @@ export const Constants = {
         "board_member",
         "admin",
         "superadmin",
+        "advisor",
       ],
       approval_status: [
         "pending",
