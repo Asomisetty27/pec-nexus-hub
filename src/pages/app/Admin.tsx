@@ -8,12 +8,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   Shield, Users, ScrollText, Check, X, Search, ChevronRight,
-  Mail, Send, Clock, UserPlus, AlertCircle, CheckCircle2,
+  Mail, Send, Clock, UserPlus, AlertCircle, CheckCircle2, BarChart3,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { logAuditAction } from "@/lib/audit";
+import PublicMetricsEditor from "@/components/admin/PublicMetricsEditor";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } };
@@ -137,6 +138,7 @@ export default function Admin() {
           </TabsTrigger>
           <TabsTrigger value="users">Users ({allProfiles.length})</TabsTrigger>
           <TabsTrigger value="audit">Audit Log</TabsTrigger>
+          <TabsTrigger value="metrics" className="gap-1.5"><BarChart3 className="h-3 w-3" /> Public Metrics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="roster" className="mt-4 space-y-4">
