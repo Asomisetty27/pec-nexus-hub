@@ -1,4 +1,5 @@
 import { useAuth } from "@/lib/auth";
+import { Navigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,8 +52,13 @@ const PHASE_LABELS: Record<string, string> = {
 };
 
 export default function Dashboard() {
-  const { user, profile, highestRole, isAdmin, isBoardOrAdmin } = useAuth();
+  const { user, profile, highestRole, isAdmin, isBoardOrAdmin, isAdvisor } = useAuth();
   const navigate = useNavigate();
+  // Advisors land on the dedicated portal, not student-facing Mission Control.
+  // Admins keep their normal dashboard so they can still access both surfaces.
+  if (isAdvisor && !isAdmin) {
+    return <Navigate to="/app/advisor" replace />;
+  }
   const [deliverables, setDeliverables] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [cohort, setCohort] = useState<any>(null);

@@ -86,13 +86,13 @@ export default function AdvisorPortal() {
       setLoading(true);
       const todayIso = new Date().toISOString();
       const [
-        finRes, evRes, delRes, evtRes, rosterRes, cohRes, capRes,
+        finRes, evRes, delRes, evtFix, rosterRes, cohRes, capRes,
         decRes, annRes, notesRes, resRes, memRes, projRes,
       ] = await Promise.all([
         supabase.from("finance_requests").select("*").order("created_at", { ascending: false }).limit(50),
         supabase.from("event_requests").select("*").order("event_date", { ascending: true }).limit(50),
         supabase.from("deliverables").select("id, title, project_id, due_date, approval_status, projects(name)").eq("advisor_review_required", true).limit(20),
-        supabase.from("events").select("id, title, start_time, location, event_type").gte("start_time", todayIso).order("start_time", { ascending: true }).limit: undefined as any, // sentinel; replaced below
+        supabase.from("events").select("id, title, start_time, location, event_type").gte("start_time", todayIso).order("start_time", { ascending: true }).limit(8),
         supabase.from("cohort_roster").select("id, full_name, cohort_name, role, title, email").in("role", ["pm", "lead", "integration_lead"]).order("cohort_name", { ascending: true }),
         supabase.from("cohorts").select("id, name, description, color, icon"),
         supabase.from("capacity_allocations").select("cohort_id, purpose_pct, competition_pct, contract_pct, effective_date").order("effective_date", { ascending: false }),
@@ -106,8 +106,6 @@ export default function AdvisorPortal() {
       setFinanceReqs(finRes.data || []);
       setEventReqs(evRes.data || []);
       setAdvisorDeliverables(delRes.data || []);
-      // Fix events query that was sentinel'd above
-      const evtFix = await supabase.from("events").select("id, title, start_time, location, event_type").gte("start_time", todayIso).order("start_time", { ascending: true }).limit(8);
       setUpcomingEvents(evtFix.data || []);
       setOfficers(rosterRes.data || []);
       setCohorts(cohRes.data || []);
