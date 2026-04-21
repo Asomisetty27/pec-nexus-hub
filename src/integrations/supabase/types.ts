@@ -14,6 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
+      advisor_notes: {
+        Row: {
+          author_id: string
+          body: string | null
+          created_at: string
+          id: string
+          pinned: boolean
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          body?: string | null
+          created_at?: string
+          id?: string
+          pinned?: boolean
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          body?: string | null
+          created_at?: string
+          id?: string
+          pinned?: boolean
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      advisor_resources: {
+        Row: {
+          category: string
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          title: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          category: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          title: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          category?: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          title?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
       announcements: {
         Row: {
           author_id: string
@@ -624,6 +693,7 @@ export type Database = {
       }
       deliverables: {
         Row: {
+          advisor_review_required: boolean
           approval_required: boolean
           approval_status: Database["public"]["Enums"]["approval_status"]
           approved: boolean
@@ -647,6 +717,7 @@ export type Database = {
           version: number
         }
         Insert: {
+          advisor_review_required?: boolean
           approval_required?: boolean
           approval_status?: Database["public"]["Enums"]["approval_status"]
           approved?: boolean
@@ -670,6 +741,7 @@ export type Database = {
           version?: number
         }
         Update: {
+          advisor_review_required?: boolean
           approval_required?: boolean
           approval_status?: Database["public"]["Enums"]["approval_status"]
           approved?: boolean
@@ -792,6 +864,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      event_requests: {
+        Row: {
+          advisor_note: string | null
+          created_at: string
+          description: string | null
+          event_date: string | null
+          expected_attendance: number | null
+          external_link: string | null
+          id: string
+          involves_food: boolean
+          involves_minors: boolean
+          involves_travel: boolean
+          linked_event_id: string | null
+          location: string | null
+          requester_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          risk_notes: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          advisor_note?: string | null
+          created_at?: string
+          description?: string | null
+          event_date?: string | null
+          expected_attendance?: number | null
+          external_link?: string | null
+          id?: string
+          involves_food?: boolean
+          involves_minors?: boolean
+          involves_travel?: boolean
+          linked_event_id?: string | null
+          location?: string | null
+          requester_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          risk_notes?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          advisor_note?: string | null
+          created_at?: string
+          description?: string | null
+          event_date?: string | null
+          expected_attendance?: number | null
+          external_link?: string | null
+          id?: string
+          involves_food?: boolean
+          involves_minors?: boolean
+          involves_travel?: boolean
+          linked_event_id?: string | null
+          location?: string | null
+          requester_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          risk_notes?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       event_rsvps: {
         Row: {
@@ -944,6 +1082,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      finance_requests: {
+        Row: {
+          advisor_note: string | null
+          amount_cents: number | null
+          cohort_id: string | null
+          created_at: string
+          description: string | null
+          external_link: string | null
+          id: string
+          needed_by: string | null
+          project_id: string | null
+          request_type: string
+          requester_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          title: string
+          updated_at: string
+          vendor: string | null
+        }
+        Insert: {
+          advisor_note?: string | null
+          amount_cents?: number | null
+          cohort_id?: string | null
+          created_at?: string
+          description?: string | null
+          external_link?: string | null
+          id?: string
+          needed_by?: string | null
+          project_id?: string | null
+          request_type?: string
+          requester_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          vendor?: string | null
+        }
+        Update: {
+          advisor_note?: string | null
+          amount_cents?: number | null
+          cohort_id?: string | null
+          created_at?: string
+          description?: string | null
+          external_link?: string | null
+          id?: string
+          needed_by?: string | null
+          project_id?: string | null
+          request_type?: string
+          requester_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          vendor?: string | null
+        }
+        Relationships: []
       }
       folders: {
         Row: {
@@ -3031,6 +3229,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_advisor: { Args: { _user_id: string }; Returns: boolean }
       is_board_or_admin: { Args: { _user_id: string }; Returns: boolean }
       is_channel_member: {
         Args: { _channel_id: string; _user_id: string }
