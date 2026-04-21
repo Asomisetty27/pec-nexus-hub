@@ -1531,45 +1531,66 @@ export type Database = {
       leads: {
         Row: {
           assigned_to: string | null
+          budget_range: string | null
           contact_email: string | null
           contact_name: string
           contact_phone: string | null
+          contact_role: string | null
           created_at: string
+          engagement_type: string | null
           id: string
           notes: string | null
           org_id: string | null
+          recommended_cohort_id: string | null
           source: string | null
           stage: Database["public"]["Enums"]["lead_stage"]
+          timeline: string | null
           updated_at: string
+          urgency: string | null
           value: number | null
+          website: string | null
         }
         Insert: {
           assigned_to?: string | null
+          budget_range?: string | null
           contact_email?: string | null
           contact_name: string
           contact_phone?: string | null
+          contact_role?: string | null
           created_at?: string
+          engagement_type?: string | null
           id?: string
           notes?: string | null
           org_id?: string | null
+          recommended_cohort_id?: string | null
           source?: string | null
           stage?: Database["public"]["Enums"]["lead_stage"]
+          timeline?: string | null
           updated_at?: string
+          urgency?: string | null
           value?: number | null
+          website?: string | null
         }
         Update: {
           assigned_to?: string | null
+          budget_range?: string | null
           contact_email?: string | null
           contact_name?: string
           contact_phone?: string | null
+          contact_role?: string | null
           created_at?: string
+          engagement_type?: string | null
           id?: string
           notes?: string | null
           org_id?: string | null
+          recommended_cohort_id?: string | null
           source?: string | null
           stage?: Database["public"]["Enums"]["lead_stage"]
+          timeline?: string | null
           updated_at?: string
+          urgency?: string | null
           value?: number | null
+          website?: string | null
         }
         Relationships: [
           {
@@ -2428,6 +2449,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      public_metrics: {
+        Row: {
+          display_order: number
+          id: string
+          label: string
+          metric_key: string
+          source: string
+          subtitle: string | null
+          updated_at: string
+          updated_by: string | null
+          value: string
+          visible: boolean
+        }
+        Insert: {
+          display_order?: number
+          id?: string
+          label: string
+          metric_key: string
+          source?: string
+          subtitle?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          value: string
+          visible?: boolean
+        }
+        Update: {
+          display_order?: number
+          id?: string
+          label?: string
+          metric_key?: string
+          source?: string
+          subtitle?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          value?: string
+          visible?: boolean
+        }
+        Relationships: []
       }
       purpose_artifacts: {
         Row: {

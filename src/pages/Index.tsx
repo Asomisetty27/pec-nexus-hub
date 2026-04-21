@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, Cog, Users, BarChart3, Lightbulb, Shield, Rocket } from "lucide-react";
 import { motion } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
 
 const services = [
   { icon: Cog, title: "Mechanical Design", desc: "CAD modeling, FEA analysis, and prototype development." },
@@ -13,13 +15,6 @@ const services = [
   { icon: Rocket, title: "Software Solutions", desc: "Web apps, automation tools, and integrations." },
 ];
 
-const stats = [
-  { value: "50+", label: "Projects Completed" },
-  { value: "120+", label: "Active Members" },
-  { value: "30+", label: "Industry Partners" },
-  { value: "4.9", label: "Client Satisfaction" },
-];
-
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
   visible: (i: number) => ({
@@ -28,7 +23,20 @@ const fadeUp = {
   }),
 };
 
+interface Metric { id: string; label: string; value: string; subtitle: string | null; display_order: number; }
+
 export default function Index() {
+  const [stats, setStats] = useState<Metric[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("public_metrics")
+      .select("id, label, value, subtitle, display_order")
+      .eq("visible", true)
+      .order("display_order")
+      .then(({ data }) => setStats((data as Metric[]) || []));
+  }, []);
+
   return (
     <>
       {/* Hero */}
@@ -71,12 +79,13 @@ export default function Index() {
       </section>
 
       {/* Stats */}
+      {stats.length > 0 && (
       <section className="border-y bg-card py-12">
         <div className="container">
-          <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
+          <div className={`grid gap-8 ${stats.length >= 4 ? "grid-cols-2 md:grid-cols-4" : stats.length === 3 ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-1 sm:grid-cols-2"}`}>
             {stats.map((stat, i) => (
               <motion.div
-                key={stat.label}
+                key={stat.id}
                 custom={i}
                 initial="hidden"
                 whileInView="visible"
@@ -86,11 +95,13 @@ export default function Index() {
               >
                 <div className="font-display text-4xl font-bold text-accent">{stat.value}</div>
                 <div className="mt-1 text-sm text-muted-foreground">{stat.label}</div>
+                {stat.subtitle && <div className="mt-1 text-xs text-muted-foreground/70">{stat.subtitle}</div>}
               </motion.div>
             ))}
           </div>
         </div>
       </section>
+      )}
 
       {/* Services */}
       <section className="py-20 md:py-28">
