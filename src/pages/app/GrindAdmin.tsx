@@ -523,6 +523,18 @@ export default function GrindAdmin() {
                   <Input type="number" value={editing.xp_reward} onChange={(e) => setEditing({ ...editing, xp_reward: Number(e.target.value) })} />
                 </div>
               </div>
+              {WRITTEN_TYPES.includes(editing.drill_type as DrillType) && (
+                <div className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2">
+                  <div>
+                    <Label className="text-sm">AI feedback on written answers</Label>
+                    <p className="text-xs text-muted-foreground">Toggle off to keep this drill rubric-only.</p>
+                  </div>
+                  <Switch
+                    checked={!!editing.ai_feedback_enabled}
+                    onCheckedChange={(on) => setEditing({ ...editing, ai_feedback_enabled: on })}
+                  />
+                </div>
+              )}
             </div>
           )}
           <DialogFooter>
