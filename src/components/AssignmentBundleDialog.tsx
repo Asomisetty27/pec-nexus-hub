@@ -85,7 +85,7 @@ export function AssignmentBundleDialog({ projectId, members, milestones = [], on
                 <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select owner" /></SelectTrigger>
                 <SelectContent>
                   {members.map(m => (
-                    <SelectItem key={m.user_id} value={m.user_id}>{m.full_name || "Member"}</SelectItem>
+                    <SelectItem key={m.user_id} value={m.user_id}>{displayName(m)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -96,7 +96,7 @@ export function AssignmentBundleDialog({ projectId, members, milestones = [], on
                 <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Optional" /></SelectTrigger>
                 <SelectContent>
                   {members.map(m => (
-                    <SelectItem key={m.user_id} value={m.user_id}>{m.full_name || "Member"}</SelectItem>
+                    <SelectItem key={m.user_id} value={m.user_id}>{displayName(m)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
