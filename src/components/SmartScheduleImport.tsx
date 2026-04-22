@@ -49,11 +49,13 @@ export default function SmartScheduleImport({ onSaved }: { onSaved?: () => void 
       // hitting the function. The function does not need the user's identity
       // (it's a stateless image-to-JSON helper) and verify_jwt is false.
       const fnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-schedule-image`;
+      const anon = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       const resp = await fetch(fnUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          "apikey": anon,
+          "Authorization": `Bearer ${anon}`, // anon (HS256), not user JWT (ES256) — gateway workaround
         },
         body: JSON.stringify({ image: dataUrl }),
       });
