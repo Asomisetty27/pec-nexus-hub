@@ -94,6 +94,8 @@ export default function Scheduling() {
   const [smartRecs, setSmartRecs] = useState<any[]>([]);
   const [memberNames, setMemberNames] = useState<Record<string, string>>({});
   const [loadingRecs, setLoadingRecs] = useState(false);
+  // Passive vs Active mode: when planMode is on, show recommendations side panel
+  const [planMode, setPlanMode] = useState(false);
 
   const loadRecommendations = async (cohortId: string, durationMin: number) => {
     setLoadingRecs(true);
