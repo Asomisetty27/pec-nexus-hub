@@ -12,6 +12,7 @@ import Sponsors from "./pages/Sponsors";
 import Intake from "./pages/Intake";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
+import Unsubscribe from "./pages/Unsubscribe";
 import Dashboard from "./pages/app/Dashboard";
 import Projects from "./pages/app/Projects";
 import ProjectDetail from "./pages/app/ProjectDetail";
@@ -57,6 +58,7 @@ const App = () => (
               <Route path="/intake" element={<Intake />} />
               <Route path="/login" element={<Login />} />
               <Route path="/invite/:token" element={<Login />} />
+              <Route path="/unsubscribe" element={<Unsubscribe />} />
             </Route>
             <Route path="/app" element={<AppLayout />}>
               <Route index element={<Dashboard />} />
