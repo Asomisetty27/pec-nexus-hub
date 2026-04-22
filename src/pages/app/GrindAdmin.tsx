@@ -354,6 +354,27 @@ export default function GrindAdmin() {
                       <p className="text-muted-foreground">{d.why_it_matters}</p>
                     </div>
                   )}
+                  {WRITTEN_TYPES.includes(d.drill_type as DrillType) && (
+                    <div className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2">
+                      <div>
+                        <p className="text-sm font-medium">AI feedback</p>
+                        <p className="text-xs text-muted-foreground">
+                          {d.ai_feedback_enabled
+                            ? "Users get AI-scored feedback on written answers (counts toward AI cap)."
+                            : "Rubric + model answer only. No AI calls for this drill."}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={!!d.ai_feedback_enabled}
+                          onCheckedChange={(on) => toggleAiFeedback(d.id, on)}
+                        />
+                        <span className="text-xs text-muted-foreground w-14">
+                          {d.ai_feedback_enabled ? "Enabled" : "Disabled"}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))
