@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Shield, Users, AlertTriangle, Clock, CheckCircle2, FolderKanban,
   HelpCircle, Mail, ChevronRight, Activity, Eye, Compass, Trophy,
-  Briefcase, Rocket, Target, Cpu, Wrench, Code,
+  Briefcase, Rocket, Target, Cpu, Wrench, Code, Building2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -38,6 +38,9 @@ export default function CommandCenter() {
   const [recentAudit, setRecentAudit] = useState<any[]>([]);
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const [globalStats, setGlobalStats] = useState({ members: 0, projects: 0, blockedStages: 0, pendingReviews: 0 });
+  const [opsTasks, setOpsTasks] = useState<any[]>([]);
+  const [opsLeads, setOpsLeads] = useState<any[]>([]);
+  const [opsSponsors, setOpsSponsors] = useState<any[]>([]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -68,6 +71,16 @@ export default function CommandCenter() {
         blockedStages: stageRes.count || 0,
         pendingReviews: revDelRes.count || 0,
       });
+
+      // Operations consolidated from former Ops Dashboard
+      const [opsTaskRes, opsLeadRes, opsSpRes] = await Promise.all([
+        supabase.from("ops_tasks").select("*, profiles:assignee_id(full_name)").order("created_at", { ascending: false }).limit(30),
+        supabase.from("leads").select("*, organizations(name)").order("updated_at", { ascending: false }).limit(15),
+        supabase.from("sponsorship_packages").select("*, organizations(name)").order("created_at", { ascending: false }).limit(15),
+      ]);
+      setOpsTasks((opsTaskRes.data as any[]) || []);
+      setOpsLeads(opsLeadRes.data || []);
+      setOpsSponsors(opsSpRes.data || []);
 
       // Per-cohort enrichment
       for (const c of cohortRes.data || []) {
@@ -153,6 +166,7 @@ export default function CommandCenter() {
           <TabsTrigger value="opportunities" className="gap-1.5"><Rocket className="h-3 w-3" />Opportunities ({opportunities.length})</TabsTrigger>
           <TabsTrigger value="overdue" className="gap-1.5"><AlertTriangle className="h-3 w-3" />Overdue ({overdue.length})</TabsTrigger>
           <TabsTrigger value="help" className="gap-1.5"><HelpCircle className="h-3 w-3" />Help ({openHelp.length})</TabsTrigger>
+          <TabsTrigger value="ops" className="gap-1.5"><Briefcase className="h-3 w-3" />Operations</TabsTrigger>
           <TabsTrigger value="audit"><Activity className="h-3 w-3" /> Activity</TabsTrigger>
         </TabsList>
 
