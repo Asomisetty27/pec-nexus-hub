@@ -18,6 +18,7 @@ import DeliverableStatusBadge from "@/components/DeliverableStatusBadge";
 import { AssignmentBundleDialog } from "@/components/AssignmentBundleDialog";
 import { useRecentItems } from "@/hooks/useRecentItems";
 import { DecisionMemoryWidget } from "@/components/decision/DecisionMemoryWidget";
+import { approveDeliverable, requestDeliverableChanges } from "@/lib/reviewActions";
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -311,9 +312,9 @@ export default function ProjectDetail() {
                             <Button size="sm" variant="default" className="h-8 gap-1" disabled={approving === d.id}
                               onClick={async () => {
                                 setApproving(d.id);
-                                const { error } = await supabase.rpc("approve_deliverable", { p_deliverable_id: d.id });
+                                const res = await approveDeliverable(d.id);
                                 setApproving(null);
-                                if (error) { toast.error(`Approve failed: ${error.message}`); return; }
+                                if (res.ok === false) { toast.error(`Approve failed: ${res.error}`); return; }
                                 toast.success("Approved"); fetchAll();
                               }}>
                               <CheckCircle2 className="h-3 w-3" /> Approve
@@ -321,11 +322,11 @@ export default function ProjectDetail() {
                             <Button size="sm" variant="outline" className="h-8" disabled={approving === d.id}
                               onClick={async () => {
                                 const reason = window.prompt("What needs to change? (will be visible to owner)");
-                                if (!reason || reason.trim().length < 3) { if (reason !== null) toast.error("Add a reason (3+ chars)."); return; }
+                                if (reason === null) return;
                                 setApproving(d.id);
-                                const { error } = await supabase.rpc("request_deliverable_changes", { p_deliverable_id: d.id, p_reason: reason.trim() });
+                                const res = await requestDeliverableChanges(d.id, reason);
                                 setApproving(null);
-                                if (error) { toast.error(`Action failed: ${error.message}`); return; }
+                                if (res.ok === false) { toast.error(res.error); return; }
                                 toast.success("Revision requested"); fetchAll();
                               }}>
                               Request changes
