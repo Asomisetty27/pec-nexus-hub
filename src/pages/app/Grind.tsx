@@ -417,11 +417,70 @@ function DrillPlayer({ drill, onClose, onSubmitted }: { drill: Drill; onClose: (
                   <div className="text-sm font-bold text-center">{selfScore}</div>
                 </div>
               )}
+              {/* AI feedback panel — written drills only, after attempt logged */}
+              {isWritten && lastAttemptId && (
+                <div className="rounded-md border bg-card p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">
+                      <Sparkles className="h-3.5 w-3.5 text-primary" />
+                      AI feedback
+                    </div>
+                    {!aiFeedback && (
+                      <Button size="sm" variant="outline" onClick={handleAIFeedback} disabled={aiLoading}>
+                        {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                        <span className="ml-1.5">{aiLoading ? "Scoring…" : "Score my answer"}</span>
+                      </Button>
+                    )}
+                  </div>
+                  {aiFeedback ? (
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs uppercase tracking-wide text-muted-foreground">Score band</span>
+                        <Badge variant="outline" className={
+                          aiFeedback.score_band === "strong" ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20" :
+                          aiFeedback.score_band === "okay" ? "bg-amber-500/10 text-amber-700 border-amber-500/20" :
+                          "bg-rose-500/10 text-rose-700 border-rose-500/20"
+                        }>{aiFeedback.score_band}</Badge>
+                        {aiFallback && <span className="text-[10px] font-mono text-muted-foreground">fallback · {aiFallback}</span>}
+                      </div>
+                      {aiFeedback.strengths?.length > 0 && (
+                        <div>
+                          <div className="text-xs font-medium text-emerald-600">Strengths</div>
+                          <ul className="mt-0.5 list-disc pl-5 text-sm text-muted-foreground">
+                            {aiFeedback.strengths.map((s: string, i: number) => <li key={i}>{s}</li>)}
+                          </ul>
+                        </div>
+                      )}
+                      {aiFeedback.improvements?.length > 0 && (
+                        <div>
+                          <div className="text-xs font-medium text-amber-600">Improvements</div>
+                          <ul className="mt-0.5 list-disc pl-5 text-sm text-muted-foreground">
+                            {aiFeedback.improvements.map((s: string, i: number) => <li key={i}>{s}</li>)}
+                          </ul>
+                        </div>
+                      )}
+                      {aiFeedback.next_skill && (
+                        <div className="text-xs"><span className="font-medium">Next skill: </span><span className="text-muted-foreground">{aiFeedback.next_skill}</span></div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Optional. Use the rubric and model answer above for self-review, or get a quick AI score band + 2-3 specific notes.
+                    </p>
+                  )}
+                </div>
+              )}
               <div className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={onClose}>Close</Button>
-                <Button onClick={handleSubmit} disabled={submitting}>
-                  {submitting ? "Saving..." : "Log attempt"}
-                </Button>
+                {lastAttemptId ? (
+                  <Button onClick={onSubmitted}>Next drill →</Button>
+                ) : (
+                  <>
+                    <Button variant="ghost" onClick={onClose}>Close</Button>
+                    <Button onClick={handleSubmit} disabled={submitting}>
+                      {submitting ? "Saving..." : "Log attempt"}
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           )}
