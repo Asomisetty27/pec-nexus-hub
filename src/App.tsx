@@ -93,10 +93,13 @@ const App = () => (
               {/* Review queue is now part of Lead Workspace. Keep deep links working. */}
               <Route path="review" element={<Navigate to="/app/lead" replace />} />
               <Route path="review/:id" element={<ReviewQueue />} />
-              {/* Ops Dashboard consolidated into Command Center. */}
+              {/* Canonical: Ops Dashboard is folded into Command Center. */}
               <Route path="ops" element={<Navigate to="/app/command" replace />} />
+              {/* Canonical: Permissions / Invites / Analytics live in Admin tabs now. */}
+              <Route path="permissions" element={<Navigate to="/app/admin?tab=identity" replace />} />
+              <Route path="invites" element={<Navigate to="/app/admin?tab=invites" replace />} />
+              <Route path="analytics" element={<Navigate to="/app/admin?tab=analytics" replace />} />
               <Route path="command" element={<CommandCenter />} />
-              <Route path="invites" element={<InviteManagement />} />
               <Route path="advisor" element={<AdvisorPortal />} />
               <Route path="ask" element={<AskNexus />} />
               <Route path="grind" element={<Grind />} />
