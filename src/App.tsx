@@ -40,6 +40,7 @@ import PurposeTrack from "./pages/app/PurposeTrack";
 import Opportunities from "./pages/app/Opportunities";
 import ReviewQueue from "./pages/app/ReviewQueue";
 import AdvisorPortal from "./pages/app/AdvisorPortal";
+import AskNexus from "./pages/app/AskNexus";
 
 const queryClient = new QueryClient();
 
@@ -89,6 +90,7 @@ const App = () => (
               <Route path="command" element={<CommandCenter />} />
               <Route path="invites" element={<InviteManagement />} />
               <Route path="advisor" element={<AdvisorPortal />} />
+              <Route path="ask" element={<AskNexus />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
