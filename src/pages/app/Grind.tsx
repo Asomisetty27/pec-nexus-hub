@@ -11,6 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Flame, Trophy, Zap, Target, Clock, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import { Sparkles, Loader2 } from "lucide-react";
 
 type Cohort = "software" | "hardware" | "mechanical" | "ops";
 
@@ -263,10 +264,15 @@ function DrillPlayer({ drill, onClose, onSubmitted }: { drill: Drill; onClose: (
   const [selfScore, setSelfScore] = useState<number>(70);
   const [startedAt] = useState(Date.now());
   const [submitting, setSubmitting] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiFeedback, setAiFeedback] = useState<any | null>(null);
+  const [aiFallback, setAiFallback] = useState<string | null>(null);
+  const [lastAttemptId, setLastAttemptId] = useState<string | null>(null);
 
   const isMC = drill.drill_type === "multiple_choice";
   const isPrioritization = drill.drill_type === "prioritization";
   const options: any[] = Array.isArray(drill.options) ? drill.options : [];
+  const isWritten = !isMC && !isPrioritization;
 
   function checkCorrect(): boolean | null {
     if (isMC) return response === drill.correct_answer;
@@ -295,8 +301,34 @@ function DrillPlayer({ drill, onClose, onSubmitted }: { drill: Drill; onClose: (
     setSubmitting(false);
     if (error) return toast.error(error.message);
     const result = data as any;
+    if (result?.attempt_id) setLastAttemptId(result.attempt_id);
     toast.success(`+${result.xp_earned} XP · Streak ${result.current_streak} 🔥`);
-    onSubmitted();
+    // For written drills, keep the dialog open so the user can request AI feedback;
+    // otherwise, close immediately and reload.
+    if (!isWritten) onSubmitted();
+  }
+
+  async function handleAIFeedback() {
+    if (!shortText.trim()) return;
+    setAiLoading(true);
+    setAiFallback(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("score-written-drill", {
+        body: {
+          drill_id: drill.id,
+          attempt_id: lastAttemptId,
+          response: shortText,
+        },
+      });
+      if (error) throw error;
+      const payload = data as any;
+      setAiFeedback(payload?.feedback ?? null);
+      if (payload?.fallback) setAiFallback(payload?.reason || "fallback");
+    } catch (e: any) {
+      toast.error("Couldn't get AI feedback", { description: e?.message ?? "Try the rubric below." });
+    } finally {
+      setAiLoading(false);
+    }
   }
 
   return (
