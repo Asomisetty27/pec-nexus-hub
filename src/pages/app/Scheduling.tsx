@@ -303,6 +303,54 @@ export default function Scheduling() {
 
         {/* ============= CALENDAR ============= */}
         <TabsContent value="calendar" className="mt-4 space-y-4">
+          {isLeadOrPM && labeledRecs.length > 0 && (
+            <Card className="border-accent/20 bg-accent/[0.03]">
+              <CardHeader className="py-2.5 px-4 flex flex-row items-center justify-between">
+                <CardTitle className="text-xs font-sans font-semibold flex items-center gap-2">
+                  <Sparkles className="h-3.5 w-3.5 text-accent-foreground" />
+                  Smart meeting times
+                  <span className="text-[10px] font-mono text-muted-foreground font-normal">· {recDuration}min · {labeledRecs[0]?.total_count} members</span>
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <Select value={String(recDuration)} onValueChange={async (v) => {
+                    const d = parseInt(v);
+                    setRecDuration(d);
+                    if (cohort?.cohort_id) await loadRecommendations(cohort.cohort_id, d);
+                  }}>
+                    <SelectTrigger className="h-6 w-[88px] text-[10px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="30">30 min</SelectItem>
+                      <SelectItem value="60">60 min</SelectItem>
+                      <SelectItem value="90">90 min</SelectItem>
+                      <SelectItem value="120">2 hours</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardHeader>
+              <CardContent className="px-4 pb-3 pt-0 space-y-1.5">
+                {labeledRecs.slice(0, 3).map((rec, i) => (
+                  <SmartRecRow key={i} rec={rec} memberNames={memberNames} onPropose={() => createSmartProposal(rec)} />
+                ))}
+              </CardContent>
+            </Card>
+          )}
+          {isLeadOrPM && smartRecs.length === 0 && cohortWindows.length === 0 && (
+            <Card className="border-dashed">
+              <CardContent className="py-4 px-5 flex items-start gap-3">
+                <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Not enough availability data yet</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Smart recommendations need at least one member's availability. Ask your team to upload a class schedule screenshot or set chip-based availability.
+                  </p>
+                  <Button variant="outline" size="sm" className="h-7 text-[10px] mt-2 gap-1.5" onClick={() => setTab("availability")}>
+                    <ArrowRight className="h-3 w-3" /> Set availability
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader className="py-3 px-5 flex flex-row items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-2">
