@@ -865,6 +865,146 @@ export type Database = {
           },
         ]
       }
+      email_send_log: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          message_id: string | null
+          metadata: Json | null
+          recipient_email: string
+          status: string
+          template_name: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_id?: string | null
+          metadata?: Json | null
+          recipient_email: string
+          status: string
+          template_name: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_id?: string | null
+          metadata?: Json | null
+          recipient_email?: string
+          status?: string
+          template_name?: string
+        }
+        Relationships: []
+      }
+      email_send_state: {
+        Row: {
+          auth_email_ttl_minutes: number
+          batch_size: number
+          id: number
+          retry_after_until: string | null
+          send_delay_ms: number
+          transactional_email_ttl_minutes: number
+          updated_at: string
+        }
+        Insert: {
+          auth_email_ttl_minutes?: number
+          batch_size?: number
+          id?: number
+          retry_after_until?: string | null
+          send_delay_ms?: number
+          transactional_email_ttl_minutes?: number
+          updated_at?: string
+        }
+        Update: {
+          auth_email_ttl_minutes?: number
+          batch_size?: number
+          id?: number
+          retry_after_until?: string | null
+          send_delay_ms?: number
+          transactional_email_ttl_minutes?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      email_unsubscribe_tokens: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          token: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: []
+      }
+      event_notifications: {
+        Row: {
+          audience_scope: string | null
+          created_at: string
+          error_message: string | null
+          event_id: string
+          failed_count: number
+          id: string
+          kind: string
+          metadata: Json | null
+          recipient_count: number
+          status: string
+          succeeded_count: number
+          triggered_by: string | null
+        }
+        Insert: {
+          audience_scope?: string | null
+          created_at?: string
+          error_message?: string | null
+          event_id: string
+          failed_count?: number
+          id?: string
+          kind: string
+          metadata?: Json | null
+          recipient_count?: number
+          status?: string
+          succeeded_count?: number
+          triggered_by?: string | null
+        }
+        Update: {
+          audience_scope?: string | null
+          created_at?: string
+          error_message?: string | null
+          event_id?: string
+          failed_count?: number
+          id?: string
+          kind?: string
+          metadata?: Json | null
+          recipient_count?: number
+          status?: string
+          succeeded_count?: number
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_notifications_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_requests: {
         Row: {
           advisor_note: string | null
@@ -968,6 +1108,11 @@ export type Database = {
       }
       events: {
         Row: {
+          audience_scope: string
+          audience_target_id: string | null
+          cancellation_reason: string | null
+          cancelled: boolean
+          cancelled_at: string | null
           capacity: number | null
           created_at: string
           created_by: string
@@ -977,10 +1122,20 @@ export type Database = {
           id: string
           is_public: boolean
           location: string | null
+          meeting_link: string | null
+          notify_on_create: boolean
           start_time: string
+          teams_link: string | null
           title: string
+          updated_at: string
+          updated_by: string | null
         }
         Insert: {
+          audience_scope?: string
+          audience_target_id?: string | null
+          cancellation_reason?: string | null
+          cancelled?: boolean
+          cancelled_at?: string | null
           capacity?: number | null
           created_at?: string
           created_by: string
@@ -990,10 +1145,20 @@ export type Database = {
           id?: string
           is_public?: boolean
           location?: string | null
+          meeting_link?: string | null
+          notify_on_create?: boolean
           start_time: string
+          teams_link?: string | null
           title: string
+          updated_at?: string
+          updated_by?: string | null
         }
         Update: {
+          audience_scope?: string
+          audience_target_id?: string | null
+          cancellation_reason?: string | null
+          cancelled?: boolean
+          cancelled_at?: string | null
           capacity?: number | null
           created_at?: string
           created_by?: string
@@ -1003,8 +1168,13 @@ export type Database = {
           id?: string
           is_public?: boolean
           location?: string | null
+          meeting_link?: string | null
+          notify_on_create?: boolean
           start_time?: string
+          teams_link?: string | null
           title?: string
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -3006,6 +3176,30 @@ export type Database = {
           },
         ]
       }
+      suppressed_emails: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          metadata: Json | null
+          reason: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          metadata?: Json | null
+          reason: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          metadata?: Json | null
+          reason?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           assignee_id: string | null
@@ -3267,6 +3461,14 @@ export type Database = {
         }
         Returns: string
       }
+      delete_email: {
+        Args: { message_id: number; queue_name: string }
+        Returns: boolean
+      }
+      enqueue_email: {
+        Args: { payload: Json; queue_name: string }
+        Returns: number
+      }
       get_milestone_blockers: {
         Args: { p_milestone_id: string }
         Returns: {
@@ -3306,6 +3508,23 @@ export type Database = {
       join_user_to_default_channels: {
         Args: { p_cohort_name: string; p_role: string; p_user_id: string }
         Returns: undefined
+      }
+      move_to_dlq: {
+        Args: {
+          dlq_name: string
+          message_id: number
+          payload: Json
+          source_queue: string
+        }
+        Returns: number
+      }
+      read_email_batch: {
+        Args: { batch_size: number; queue_name: string; vt: number }
+        Returns: {
+          message: Json
+          msg_id: number
+          read_ct: number
+        }[]
       }
       reject_deliverable: {
         Args: { p_deliverable_id: string; p_reason: string }
