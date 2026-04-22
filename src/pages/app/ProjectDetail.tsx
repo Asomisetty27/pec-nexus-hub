@@ -109,6 +109,14 @@ export default function ProjectDetail() {
             {project.organizations?.name && <Badge variant="outline">{project.organizations.name}</Badge>}
           </div>
         </div>
+        {isProjectLead && (
+          <AssignmentBundleDialog
+            projectId={id!}
+            members={members.map((m: any) => ({ user_id: m.user_id, full_name: m.profiles?.full_name }))}
+            milestones={milestones.map((m: any) => ({ id: m.id, title: m.title }))}
+            onCreated={fetchAll}
+          />
+        )}
       </div>
 
       <Tabs defaultValue="board" className="space-y-4">
