@@ -91,12 +91,28 @@ export default function LeadWorkspace() {
   };
 
   const requestChanges = async (id: string) => {
-    const reason = window.prompt("What needs to change? (will be visible to owner)");
-    if (reason === null) return;
-    const res = await requestDeliverableChanges(id, reason);
+    setReasonFor({ id, mode: "request_changes" });
+    setReasonText("");
+  };
+
+  const rejectDelv = (id: string) => {
+    setReasonFor({ id, mode: "reject" });
+    setReasonText("");
+  };
+
+  const submitReason = async () => {
+    if (!reasonFor) return;
+    setBusy(reasonFor.id);
+    const res = reasonFor.mode === "reject"
+      ? await rejectDeliverable(reasonFor.id, reasonText)
+      : await requestDeliverableChanges(reasonFor.id, reasonText);
+    setBusy(null);
     if (res.ok === false) { toast.error(res.error); return; }
-    toast.info("Revision requested");
-    setDeliverables(prev => prev.map(d => d.id === id ? { ...d, approval_status: "revision_requested" } : d));
+    toast.success(reasonFor.mode === "reject" ? "Deliverable rejected" : "Revision requested");
+    setDeliverables(prev => prev.map(d => d.id === reasonFor.id
+      ? { ...d, approval_status: reasonFor.mode === "reject" ? "rejected" : "revision_requested" }
+      : d));
+    setReasonFor(null); setReasonText("");
   };
 
   const postAnnouncement = async () => {
@@ -162,6 +178,21 @@ export default function LeadWorkspace() {
         </TabsList>
 
         <TabsContent value="review" className="mt-4 space-y-2">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+              {pendingReview.length} item{pendingReview.length === 1 ? "" : "s"} awaiting your decision
+            </p>
+            {projects.length > 0 && members.length > 0 && cohortProjectIds[0] && (
+              <AssignmentBundleDialog
+                projectId={cohortProjectIds[0]}
+                members={members.map((m: any) => ({
+                  user_id: m.user_id,
+                  full_name: (m.profiles as any)?.full_name,
+                  cal_poly_email: (m.profiles as any)?.cal_poly_email,
+                }))}
+              />
+            )}
+          </div>
           {pendingReview.length === 0 ? (
            <Card className="flex flex-col items-center py-12">
               <CheckCircle2 className="h-10 w-10 text-success/30 mb-3" />
@@ -171,20 +202,36 @@ export default function LeadWorkspace() {
           ) : pendingReview.map(d => (
             <motion.div key={d.id} variants={item}>
               <Card className="hover:border-accent/30 transition-all">
-                <CardContent className="flex items-center gap-4 p-4">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">{d.title}</p>
-                    <p className="text-[10px] text-muted-foreground font-mono">
-                      {(d.profiles as any)?.full_name || "Unassigned"} · {(d.projects as any)?.name}
+                <CardContent className="p-4 flex items-start gap-4">
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-medium text-sm">{d.title}</p>
+                      <Badge variant="outline" className="text-[9px] font-mono h-4">v{d.version}</Badge>
+                      {d.engagement_type && <Badge variant="outline" className="text-[9px] capitalize h-4">{d.engagement_type}</Badge>}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground font-mono">
+                      {displayName((d.profiles as any) ?? null, "Unassigned")} · {(d.projects as any)?.name}
+                      {d.due_date && <> · Due {new Date(d.due_date).toLocaleDateString()}</>}
                     </p>
-                    {d.due_date && <p className="text-[10px] font-mono text-muted-foreground mt-0.5">Due: {new Date(d.due_date).toLocaleDateString()}</p>}
+                    {d.description && <p className="text-xs text-muted-foreground line-clamp-2">{d.description}</p>}
                   </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" className="gap-1 h-7 text-[10px]" onClick={() => approveDeliverable(d.id)}>
-                      <CheckCircle2 className="h-3 w-3" />Approve
+                  <div className="flex flex-col gap-1.5 shrink-0">
+                    {d.file_url && (
+                      <Button asChild size="sm" variant="ghost" className="h-7 gap-1 text-[10px]">
+                        <a href={d.file_url} target="_blank" rel="noreferrer"><ExternalLink className="h-3 w-3" /> Open</a>
+                      </Button>
+                    )}
+                    <Button size="sm" className="h-7 gap-1 text-[10px]" disabled={busy === d.id} onClick={() => approveDeliverable(d.id)}>
+                      <CheckCircle2 className="h-3 w-3" /> Approve
                     </Button>
-                    <Button size="sm" variant="outline" className="gap-1 h-7 text-[10px]" onClick={() => requestChanges(d.id)}>
-                      Request Changes
+                    <Button size="sm" variant="outline" className="h-7 gap-1 text-[10px]" disabled={busy === d.id} onClick={() => requestChanges(d.id)}>
+                      <RefreshCw className="h-3 w-3" /> Request changes
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 gap-1 text-[10px] text-destructive hover:text-destructive" disabled={busy === d.id} onClick={() => rejectDelv(d.id)}>
+                      <Ban className="h-3 w-3" /> Reject
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 gap-1 text-[10px]" onClick={() => setHistoryFor(d)}>
+                      <History className="h-3 w-3" /> History
                     </Button>
                   </div>
                 </CardContent>
