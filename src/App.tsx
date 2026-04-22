@@ -25,18 +25,14 @@ import Academy from "./pages/app/Academy";
 import Training from "./pages/app/Training";
 import Docs from "./pages/app/Docs";
 import Admin from "./pages/app/Admin";
-import Analytics from "./pages/app/Analytics";
 import Announcements from "./pages/app/Announcements";
 import Settings from "./pages/app/Settings";
 import CohortHub from "./pages/app/CohortHub";
 import LabManual from "./pages/app/LabManual";
 import MockProject from "./pages/app/MockProject";
 import Scheduling from "./pages/app/Scheduling";
-import OpsDashboard from "./pages/app/OpsDashboard";
-import PermissionInspector from "./pages/app/PermissionInspector";
 import LeadWorkspace from "./pages/app/LeadWorkspace";
 import CommandCenter from "./pages/app/CommandCenter";
-import InviteManagement from "./pages/app/InviteManagement";
 import PurposeTrack from "./pages/app/PurposeTrack";
 import Opportunities from "./pages/app/Opportunities";
 import ReviewQueue from "./pages/app/ReviewQueue";
@@ -80,23 +76,23 @@ const App = () => (
               <Route path="academy" element={<Navigate to="/app/training?tab=learn" replace />} />
               <Route path="docs" element={<Docs />} />
               <Route path="admin" element={<Admin />} />
-              <Route path="analytics" element={<Analytics />} />
               <Route path="announcements" element={<Announcements />} />
               <Route path="settings" element={<Settings />} />
               <Route path="cohort" element={<CohortHub />} />
               <Route path="lab/:id" element={<LabManual />} />
               <Route path="mock-project/:id" element={<MockProject />} />
               <Route path="scheduling" element={<Scheduling />} />
-              <Route path="ops" element={<OpsDashboard />} />
-              <Route path="permissions" element={<PermissionInspector />} />
               <Route path="lead" element={<LeadWorkspace />} />
               {/* Review queue is now part of Lead Workspace. Keep deep links working. */}
               <Route path="review" element={<Navigate to="/app/lead" replace />} />
               <Route path="review/:id" element={<ReviewQueue />} />
-              {/* Ops Dashboard consolidated into Command Center. */}
+              {/* Canonical: Ops Dashboard is folded into Command Center. */}
               <Route path="ops" element={<Navigate to="/app/command" replace />} />
+              {/* Canonical: Permissions / Invites / Analytics live in Admin tabs now. */}
+              <Route path="permissions" element={<Navigate to="/app/admin?tab=identity" replace />} />
+              <Route path="invites" element={<Navigate to="/app/admin?tab=invites" replace />} />
+              <Route path="analytics" element={<Navigate to="/app/admin?tab=analytics" replace />} />
               <Route path="command" element={<CommandCenter />} />
-              <Route path="invites" element={<InviteManagement />} />
               <Route path="advisor" element={<AdvisorPortal />} />
               <Route path="ask" element={<AskNexus />} />
               <Route path="grind" element={<Grind />} />

@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   Shield, Users, ScrollText, Check, X, Search, ChevronRight,
-  Mail, Send, Clock, UserPlus, AlertCircle, CheckCircle2, BarChart3,
+  Mail, Send, Clock, UserPlus, AlertCircle, CheckCircle2, BarChart3, Eye, Wand2, MessageSquare as MsgIcon,
 } from "lucide-react";
 import { MessageSquare } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -17,12 +18,16 @@ import { motion } from "framer-motion";
 import { logAuditAction } from "@/lib/audit";
 import PublicMetricsEditor from "@/components/admin/PublicMetricsEditor";
 import FeedbackDashboard from "@/components/admin/FeedbackDashboard";
+import PermissionInspector from "@/pages/app/PermissionInspector";
+import InviteManagement from "@/pages/app/InviteManagement";
+import Analytics from "@/pages/app/Analytics";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } };
 
 export default function Admin() {
   const { user, isAdmin } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [roleRequests, setRoleRequests] = useState<any[]>([]);
   const [allProfiles, setAllProfiles] = useState<any[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
@@ -30,6 +35,43 @@ export default function Admin() {
   const [search, setSearch] = useState("");
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [sendingInvites, setSendingInvites] = useState(false);
+  const [healing, setHealing] = useState(false);
+
+  const validTabs = ["roster", "approvals", "users", "audit", "metrics", "identity", "invites", "analytics", "feedback"];
+  const initialTab = useMemo(() => {
+    const t = searchParams.get("tab");
+    return t && validTabs.includes(t) ? t : "roster";
+  }, [searchParams]);
+  const [tab, setTab] = useState(initialTab);
+
+  useEffect(() => {
+    if (initialTab !== tab) setTab(initialTab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialTab]);
+
+  const handleTabChange = (next: string) => {
+    setTab(next);
+    const sp = new URLSearchParams(searchParams);
+    sp.set("tab", next);
+    setSearchParams(sp, { replace: true });
+  };
+
+  const runSelfHeal = async () => {
+    setHealing(true);
+    try {
+      const { data, error } = await supabase.rpc("run_nexus_self_heal");
+      if (error) throw error;
+      const r = (data || {}) as Record<string, number>;
+      toast.success(
+        `Self-heal complete · ${r.users_resynced ?? 0} users · ${r.project_memberships_added ?? 0} memberships · ${r.channels_repaired ?? 0} channels · ${r.help_requests_closed ?? 0} help · ${r.stale_reviews_flagged ?? 0} stale reviews`
+      );
+      fetchAll();
+    } catch (e: any) {
+      toast.error(e.message || "Self-heal failed");
+    } finally {
+      setHealing(false);
+    }
+  };
 
   const fetchAll = async () => {
     const [rrRes, profRes, alRes, rosterRes] = await Promise.all([
@@ -78,8 +120,12 @@ export default function Admin() {
       <motion.div variants={item} className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold">Admin Console</h1>
-          <p className="text-xs text-muted-foreground font-mono">Manage users, invites, approvals, and audit trail</p>
+          <p className="text-xs text-muted-foreground font-mono">Roster · Identity · Invites · Analytics · Audit</p>
         </div>
+        <Button size="sm" variant="outline" onClick={runSelfHeal} disabled={healing} className="gap-1.5">
+          <Wand2 className="h-3.5 w-3.5" />
+          {healing ? "Healing…" : "Run self-heal"}
+        </Button>
       </motion.div>
 
       {/* Roster status summary */}
@@ -130,8 +176,8 @@ export default function Admin() {
         </Card>
       </motion.div>
 
-      <Tabs defaultValue="roster">
-        <TabsList>
+      <Tabs value={tab} onValueChange={handleTabChange}>
+        <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="roster" className="gap-1.5">
             <UserPlus className="h-3 w-3" /> Roster ({roster.length})
           </TabsTrigger>
@@ -139,6 +185,10 @@ export default function Admin() {
             Approvals {roleRequests.length > 0 && <Badge className="h-4 min-w-4 p-0 flex items-center justify-center text-[9px]">{roleRequests.length}</Badge>}
           </TabsTrigger>
           <TabsTrigger value="users">Users ({allProfiles.length})</TabsTrigger>
+          <TabsTrigger value="identity" className="gap-1.5"><Eye className="h-3 w-3" /> Identity</TabsTrigger>
+          <TabsTrigger value="invites" className="gap-1.5"><Mail className="h-3 w-3" /> Invites</TabsTrigger>
+          <TabsTrigger value="analytics" className="gap-1.5"><BarChart3 className="h-3 w-3" /> Analytics</TabsTrigger>
+          <TabsTrigger value="feedback" className="gap-1.5"><MsgIcon className="h-3 w-3" /> Feedback</TabsTrigger>
           <TabsTrigger value="audit">Audit Log</TabsTrigger>
           <TabsTrigger value="metrics" className="gap-1.5"><BarChart3 className="h-3 w-3" /> Public Metrics</TabsTrigger>
         </TabsList>
@@ -268,6 +318,22 @@ export default function Admin() {
 
         <TabsContent value="metrics" className="mt-4">
           <PublicMetricsEditor />
+        </TabsContent>
+
+        <TabsContent value="identity" className="mt-4">
+          {tab === "identity" && <PermissionInspector />}
+        </TabsContent>
+
+        <TabsContent value="invites" className="mt-4">
+          {tab === "invites" && <InviteManagement />}
+        </TabsContent>
+
+        <TabsContent value="analytics" className="mt-4">
+          {tab === "analytics" && <Analytics />}
+        </TabsContent>
+
+        <TabsContent value="feedback" className="mt-4">
+          {tab === "feedback" && <FeedbackDashboard />}
         </TabsContent>
       </Tabs>
     </motion.div>
