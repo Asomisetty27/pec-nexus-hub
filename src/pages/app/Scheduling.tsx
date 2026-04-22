@@ -300,10 +300,31 @@ export default function Scheduling() {
 
         {/* ============= AVAILABILITY ============= */}
         <TabsContent value="availability" className="mt-4 space-y-5">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">Set when you're free so leads can find optimal cohort meeting times.</p>
+          <div className="rounded-lg border border-accent/30 bg-accent/5 p-4 space-y-1">
+            <p className="text-sm font-medium">Fast path: upload your class schedule</p>
+            <p className="text-xs text-muted-foreground">
+              Drop a screenshot of your weekly calendar or class schedule. Nexus extracts recurring busy times — you review every block before anything saves. Manual edits below remain available as fallback.
+            </p>
+          </div>
+
+          <SmartScheduleImport onSaved={async () => {
+            const { data } = await supabase.from("availability_windows").select("*").eq("user_id", user!.id).order("day_of_week");
+            setWindows((data as any[]) || []);
+            if (cohort?.cohort_id) {
+              const memRes = await supabase.from("cohort_memberships").select("user_id").eq("cohort_id", cohort.cohort_id);
+              const userIds = memRes.data?.map((m: any) => m.user_id) || [];
+              const cwRes = await supabase.from("availability_windows").select("*, profiles:user_id(full_name)").in("user_id", userIds);
+              setCohortWindows((cwRes.data as any[]) || []);
+            }
+          }} />
+
+          <div className="flex items-center justify-between pt-2 border-t border-border/40">
+            <div>
+              <p className="text-sm font-medium">Manual refinement</p>
+              <p className="text-xs text-muted-foreground">Add or tweak individual windows. Use the chips below for quick weekly preferences.</p>
+            </div>
             <Dialog open={addDialog} onOpenChange={setAddDialog}>
-              <DialogTrigger asChild><Button size="sm" className="gap-2"><Plus className="h-3.5 w-3.5" />Add Window</Button></DialogTrigger>
+              <DialogTrigger asChild><Button size="sm" variant="outline" className="gap-2"><Plus className="h-3.5 w-3.5" />Add Window</Button></DialogTrigger>
               <DialogContent>
                 <DialogHeader><DialogTitle>Add Availability Window</DialogTitle></DialogHeader>
                 <div className="space-y-4">
