@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScanLine, Upload, Loader2, AlertTriangle, Sparkles, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { FeedbackPrompt } from "@/components/FeedbackPrompt";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -27,18 +28,24 @@ export default function SmartScheduleImport({ onSaved }: { onSaved?: () => void 
   const [notes, setNotes] = useState<string | null>(null);
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [justSaved, setJustSaved] = useState(false);
+  const [importFailed, setImportFailed] = useState(false);
 
   const onFile = async (file: File) => {
     setError(null);
     setBlocks([]);
     setConfidence(null);
     setNotes(null);
+    setImportFailed(false);
+    setJustSaved(false);
     if (!/^image\/(png|jpe?g|webp|heic)$/i.test(file.type) && !file.type.startsWith("image/")) {
       setError("Unsupported file type. Upload a PNG, JPG, or WEBP screenshot.");
+      setImportFailed(true);
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
       setError("Image too large (max 5 MB). Try compressing or screenshotting just the schedule grid.");
+      setImportFailed(true);
       return;
     }
     setParsing(true);
@@ -77,11 +84,13 @@ export default function SmartScheduleImport({ onSaved }: { onSaved?: () => void 
           }
         } catch { /* ignore */ }
         setError(msg);
+        setImportFailed(true);
         return;
       }
       const d = data as any;
       if (d?.error) {
         setError(d.message || d.error);
+        setImportFailed(true);
         if (Array.isArray(d.blocks) && d.blocks.length > 0) {
           setBlocks(d.blocks.map((b: any) => ({ ...b, keep: true })));
           setConfidence(d.confidence || "low");
@@ -94,6 +103,7 @@ export default function SmartScheduleImport({ onSaved }: { onSaved?: () => void 
       }
     } catch (e: any) {
       setError(e?.message || "Failed to parse image. Try a different screenshot or add busy times manually.");
+      setImportFailed(true);
     } finally {
       setParsing(false);
     }
@@ -124,6 +134,8 @@ export default function SmartScheduleImport({ onSaved }: { onSaved?: () => void 
       setBlocks([]);
       setConfidence(null);
       setNotes(null);
+      setJustSaved(true);
+      setImportFailed(false);
       onSaved?.();
     } catch (e: any) {
       toast.error(e.message || "Failed to save");
@@ -200,6 +212,31 @@ export default function SmartScheduleImport({ onSaved }: { onSaved?: () => void 
         <p className="text-[10px] text-muted-foreground">
           Image parsing is best-effort. You always confirm before anything is saved. Manual chips and existing availability remain untouched.
         </p>
+
+        {justSaved && (
+          <FeedbackPrompt
+            feature="schedule_import"
+            prompt="Did this save you time?"
+            options={[
+              { label: "Yes", rating: "positive" },
+              { label: "Kind of", rating: "neutral" },
+              { label: "No", rating: "negative" },
+            ]}
+            onClose={() => setJustSaved(false)}
+          />
+        )}
+        {importFailed && (
+          <FeedbackPrompt
+            feature="schedule_import_failure"
+            prompt="The parser had trouble. What got in the way?"
+            options={[
+              { label: "Wrong times", rating: "negative" },
+              { label: "Missed rows", rating: "negative" },
+              { label: "Crashed", rating: "negative" },
+            ]}
+            onClose={() => setImportFailed(false)}
+          />
+        )}
       </CardContent>
     </Card>
   );

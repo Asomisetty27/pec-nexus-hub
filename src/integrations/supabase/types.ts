@@ -1520,6 +1520,42 @@ export type Database = {
         }
         Relationships: []
       }
+      feedback_events: {
+        Row: {
+          comment: string | null
+          context_id: string | null
+          context_type: string | null
+          created_at: string
+          feature: string
+          id: string
+          rating: string
+          tag: string | null
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          context_id?: string | null
+          context_type?: string | null
+          created_at?: string
+          feature: string
+          id?: string
+          rating: string
+          tag?: string | null
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          context_id?: string | null
+          context_type?: string | null
+          created_at?: string
+          feature?: string
+          id?: string
+          rating?: string
+          tag?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       feedback_tickets: {
         Row: {
           author_id: string
@@ -4205,6 +4241,17 @@ export type Database = {
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      feedback_summary: {
+        Args: { p_days?: number }
+        Returns: {
+          feature: string
+          negative: number
+          neutral: number
+          positive: number
+          positive_pct: number
+          total: number
+        }[]
       }
       find_related_decisions: {
         Args: {

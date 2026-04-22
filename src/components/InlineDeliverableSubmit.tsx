@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Upload, Link as LinkIcon, CheckCircle2, AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { logAuditAction } from "@/lib/audit";
+import { FeedbackPrompt } from "@/components/FeedbackPrompt";
 
 interface Deliverable {
   id: string;
@@ -41,6 +42,7 @@ export default function InlineDeliverableSubmit({ open, onOpenChange, deliverabl
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [justSubmitted, setJustSubmitted] = useState(false);
 
   if (!deliverable) return null;
 
@@ -48,7 +50,7 @@ export default function InlineDeliverableSubmit({ open, onOpenChange, deliverabl
   const nextVersion = isRevision ? deliverable.version + 1 : 1;
 
   const reset = () => {
-    setFile(null); setLinkUrl(""); setNotes(""); setError(null); setMode("link");
+    setFile(null); setLinkUrl(""); setNotes(""); setError(null); setMode("link"); setJustSubmitted(false);
   };
 
   const handleSubmit = async () => {
@@ -121,8 +123,7 @@ export default function InlineDeliverableSubmit({ open, onOpenChange, deliverabl
       toast.success(deliverable.approval_required
         ? `${isRevision ? "Revision" : "Submission"} sent for review (v${nextVersion})`
         : `${deliverable.title} marked complete`);
-      reset();
-      onOpenChange(false);
+      setJustSubmitted(true);
       onSubmitted();
     } catch (e: any) {
       const msg = e?.message || "Submission failed — please retry.";
@@ -153,6 +154,33 @@ export default function InlineDeliverableSubmit({ open, onOpenChange, deliverabl
         </DrawerHeader>
 
         <div className="px-4 pb-2 space-y-4">
+          {justSubmitted ? (
+            <div className="rounded-md border border-success/40 bg-success/5 p-4 text-sm space-y-3">
+              <div className="flex items-center gap-2 text-success">
+                <CheckCircle2 className="h-4 w-4" />
+                <span className="font-medium">
+                  {deliverable.approval_required ? "Sent for review" : "Marked complete"}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {deliverable.approval_required
+                  ? "Reviewers have been notified. You can close this drawer."
+                  : "This deliverable is now marked complete."}
+              </p>
+              <FeedbackPrompt
+                feature="deliverable_submit"
+                prompt="Was submitting this easy?"
+                contextType="deliverable"
+                contextId={deliverable.id}
+                options={[
+                  { label: "Easy", rating: "positive" },
+                  { label: "Okay", rating: "neutral" },
+                  { label: "Confusing", rating: "negative" },
+                ]}
+              />
+            </div>
+          ) : (
+          <>
           <Tabs value={mode} onValueChange={(v) => setMode(v as any)}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="link"><LinkIcon className="h-3 w-3 mr-1" /> Link</TabsTrigger>
@@ -200,13 +228,21 @@ export default function InlineDeliverableSubmit({ open, onOpenChange, deliverabl
                 : `Marked Complete immediately (no approval required).`}
             </p>
           </div>
+          </>
+          )}
         </div>
 
         <DrawerFooter className="flex-row gap-2">
-          <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)} disabled={submitting}>Cancel</Button>
-          <Button className="flex-1" onClick={handleSubmit} disabled={submitting}>
-            {submitting ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Submitting…</> : <><CheckCircle2 className="h-3 w-3 mr-1" /> Confirm & Submit</>}
-          </Button>
+          {justSubmitted ? (
+            <Button className="flex-1" onClick={() => { reset(); onOpenChange(false); }}>Done</Button>
+          ) : (
+            <>
+              <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)} disabled={submitting}>Cancel</Button>
+              <Button className="flex-1" onClick={handleSubmit} disabled={submitting}>
+                {submitting ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Submitting…</> : <><CheckCircle2 className="h-3 w-3 mr-1" /> Confirm & Submit</>}
+              </Button>
+            </>
+          )}
         </DrawerFooter>
       </DrawerContent>
     </Drawer>

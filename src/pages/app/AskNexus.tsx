@@ -13,6 +13,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { SectionExplainer } from "@/components/ui/SectionExplainer";
+import { FeedbackPrompt } from "@/components/FeedbackPrompt";
 
 type AnswerRow = {
   primary: string;
@@ -409,6 +410,19 @@ export default function AskNexus() {
                     ))}
                   </div>
                 )}
+                <div className="mt-3">
+                  <FeedbackPrompt
+                    feature="ask_nexus"
+                    prompt="Was this answer useful?"
+                    contextType="query"
+                    contextId={active.key}
+                    options={[
+                      { label: "Yes", rating: "positive" },
+                      { label: "Not really", rating: "neutral" },
+                      { label: "Wrong", rating: "negative" },
+                    ]}
+                  />
+                </div>
               </>
             ) : null}
           </CardContent>
