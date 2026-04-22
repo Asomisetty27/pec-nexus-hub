@@ -9,6 +9,7 @@ import {
   AlertTriangle, Zap, BookOpen, MessageSquare, Cpu, ChevronRight,
   Target, Sparkles, Play, GraduationCap, Shield, Users, BarChart3,
   Clock, Wrench, Code, Briefcase, FileText, Compass, Trophy, Rocket,
+  Activity, Bell, GitCommit,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -67,10 +68,19 @@ export default function Dashboard() {
   const [helpRequests, setHelpRequests] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
   const [stats, setStats] = useState({ activeProjects: 0, overdueDeliverables: 0, upcomingEvents: 0, totalMembers: 0 });
+  const [changes, setChanges] = useState<any | null>(null);
+  const [lastVisit, setLastVisit] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
     const load = async () => {
+      // Read prior visit timestamp first, then compute "what changed since".
+      // touch_dashboard_visit returns the previous value and stamps a new one atomically.
+      const { data: prev } = await supabase.rpc("touch_dashboard_visit");
+      setLastVisit(prev as any);
+      const sinceIso = (prev as any) || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      supabase.rpc("dashboard_changes_since", { p_since: sinceIso }).then(({ data }) => setChanges(data));
+
       const [delRes, annRes, cohortRes, helpRes] = await Promise.all([
         supabase.from("deliverables").select("*, projects(name)").eq("owner_id", user.id).in("approval_status", ["pending", "revision_requested"]).order("due_date", { ascending: true }).limit(10),
         supabase.from("announcements").select("*").order("created_at", { ascending: false }).limit(3),
