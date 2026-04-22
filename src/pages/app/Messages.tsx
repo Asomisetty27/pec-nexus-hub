@@ -62,8 +62,14 @@ export default function Messages() {
       .on("postgres_changes", {
         event: "INSERT", schema: "public", table: "messages",
         filter: `channel_id=eq.${selectedChannel}`,
-      }, (payload) => {
-        setMessages(prev => [...prev, payload.new]);
+      }, async (payload) => {
+        // Resolve author profile so realtime messages don't render as "Unknown".
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("user_id", (payload.new as any).author_id)
+          .maybeSingle();
+        setMessages(prev => [...prev, { ...payload.new, profiles: prof }]);
         setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
       })
       .subscribe();
