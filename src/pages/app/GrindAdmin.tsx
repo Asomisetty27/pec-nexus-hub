@@ -12,7 +12,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Sparkles, Check, X, Pencil, Loader2, Shield, ListChecks } from "lucide-react";
+import { Sparkles, Check, X, Pencil, Loader2, Shield, ListChecks, DollarSign } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
 type Cohort = "software" | "hardware" | "mechanical" | "ops";
@@ -61,6 +62,33 @@ export default function GrindAdmin() {
   const [pending, setPending] = useState<any[]>([]);
   const [editing, setEditing] = useState<any | null>(null);
   const [loadingQueue, setLoadingQueue] = useState(false);
+
+  // Training cost dashboard state
+  const [usage, setUsage] = useState<any | null>(null);
+  const [settings, setSettings] = useState<any | null>(null);
+  const [savingSettings, setSavingSettings] = useState(false);
+
+  const fetchUsage = async () => {
+    const [usageRes, setRes] = await Promise.all([
+      supabase.rpc("training_ai_usage_summary"),
+      supabase.from("training_ai_settings").select("*").eq("id", 1).maybeSingle(),
+    ]);
+    if (usageRes.data) setUsage(usageRes.data);
+    if (setRes.data) setSettings(setRes.data);
+  };
+
+  useEffect(() => {
+    if (isAdmin) fetchUsage();
+  }, [isAdmin]);
+
+  const saveSettings = async (patch: Partial<{ monthly_call_cap: number; per_user_daily_cap: number; enabled_drill_types: string[] }>) => {
+    setSavingSettings(true);
+    const { error } = await supabase.from("training_ai_settings").update(patch).eq("id", 1);
+    setSavingSettings(false);
+    if (error) return toast.error(error.message);
+    toast.success("Settings saved");
+    fetchUsage();
+  };
 
   const fetchPending = async () => {
     setLoadingQueue(true);

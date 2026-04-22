@@ -22,6 +22,7 @@ import Members from "./pages/app/Members";
 import CRM from "./pages/app/CRM";
 import Competitions from "./pages/app/Competitions";
 import Academy from "./pages/app/Academy";
+import Training from "./pages/app/Training";
 import Docs from "./pages/app/Docs";
 import Admin from "./pages/app/Admin";
 import Analytics from "./pages/app/Analytics";
@@ -75,7 +76,8 @@ const App = () => (
               <Route path="members" element={<Members />} />
               <Route path="crm" element={<CRM />} />
               <Route path="competitions" element={<Competitions />} />
-              <Route path="academy" element={<Academy />} />
+              <Route path="training" element={<Training />} />
+              <Route path="academy" element={<Navigate to="/app/training?tab=learn" replace />} />
               <Route path="docs" element={<Docs />} />
               <Route path="admin" element={<Admin />} />
               <Route path="analytics" element={<Analytics />} />
