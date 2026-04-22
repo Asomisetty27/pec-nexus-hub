@@ -14,6 +14,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { FeedbackPrompt } from "@/components/FeedbackPrompt";
 
 interface Brief {
   id: string;
@@ -33,6 +34,7 @@ export function MeetingBriefDialog({ open, onOpenChange, eventId, eventTitle }: 
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [justGenerated, setJustGenerated] = useState(false);
 
   useEffect(() => {
     if (!open || !eventId) return;
@@ -64,6 +66,7 @@ export function MeetingBriefDialog({ open, onOpenChange, eventId, eventTitle }: 
       });
       if (error) throw error;
       setBrief((data as any).brief);
+      setJustGenerated(true);
       toast.success("Brief generated");
     } catch (e: any) {
       toast.error("Could not generate brief", { description: e.message });
@@ -118,6 +121,22 @@ export function MeetingBriefDialog({ open, onOpenChange, eventId, eventTitle }: 
             </div>
           )}
         </ScrollArea>
+
+        {justGenerated && brief && (
+          <FeedbackPrompt
+            feature="meeting_brief"
+            prompt="Was this brief useful?"
+            contextType="event"
+            contextId={eventId}
+            options={[
+              { label: "Yes", rating: "positive" },
+              { label: "Partly", rating: "neutral" },
+              { label: "No", rating: "negative" },
+            ]}
+            className="mt-2"
+            onClose={() => setJustGenerated(false)}
+          />
+        )}
 
         <div className="flex items-center justify-end gap-2 pt-2 border-t">
           {brief && (
