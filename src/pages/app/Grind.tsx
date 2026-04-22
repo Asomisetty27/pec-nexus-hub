@@ -9,9 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Flame, Trophy, Zap, Target, Clock, ChevronRight } from "lucide-react";
+import { Flame, Trophy, Zap, Target, Clock, ChevronRight, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 type Cohort = "software" | "hardware" | "mechanical" | "ops";
 
@@ -193,7 +193,7 @@ export default function Grind() {
           {weakSkills.length > 0 && (
             <section>
               <div className="mb-3 flex items-center gap-2">
-                <Target className="h-4 w-4 text-amber-600" />
+                <Target className="h-4 w-4 text-warning" />
                 <h2 className="font-display text-lg font-semibold">Weak skills</h2>
                 <span className="text-xs text-muted-foreground">Targets categories where you've slipped</span>
               </div>
