@@ -16,7 +16,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import {
   CalendarDays, Clock, Plus, Trash2, Users, Zap, ChevronLeft, ChevronRight,
   CalendarRange, List, MapPin, Flag, Target, AlertCircle, Pencil, Link2,
-  Sparkles, ArrowRight, UserCheck, UserX, Crown,
+  Sparkles, ArrowRight, UserCheck, UserX, Crown, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
