@@ -69,6 +69,11 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 export default function Grind() {
   const { user } = useAuth();
   const [recommended, setRecommended] = useState<any[]>([]);
+  const [weakSkills, setWeakSkills] = useState<any[]>([]);
+  const [themeDrills, setThemeDrills] = useState<any[]>([]);
+  const [themeName, setThemeName] = useState<string | null>(null);
+  const [challengeDrills, setChallengeDrills] = useState<any[]>([]);
+  const [challengeMeta, setChallengeMeta] = useState<{ name: string; ends_at: string; bonus: number } | null>(null);
   const [allDrills, setAllDrills] = useState<Drill[]>([]);
   const [progress, setProgress] = useState<Progress | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardRow[]>([]);
@@ -82,13 +87,36 @@ export default function Grind() {
 
   async function loadAll() {
     const cohortArg = cohortFilter === "all" ? null : cohortFilter;
-    const [recRes, drillsRes, progRes, lbRes] = await Promise.all([
+    const [recRes, weakRes, themeRes, chalRes, drillsRes, progRes, lbRes] = await Promise.all([
       supabase.rpc("recommend_drills", { p_cohort: cohortArg as any, p_limit: 6 }),
+      supabase.rpc("recommend_weak_skill_drills", { p_cohort: cohortArg as any, p_limit: 4 }),
+      supabase.rpc("recommend_theme_drills", { p_cohort: cohortArg as any, p_limit: 4 }),
+      supabase.rpc("recommend_challenge_drills", { p_cohort: cohortArg as any, p_limit: 4 }),
       supabase.from("drills").select("*").eq("status", "published").order("created_at", { ascending: false }),
       supabase.from("grind_progress").select("*").eq("user_id", user!.id).maybeSingle(),
       supabase.rpc("grind_leaderboard", { p_cohort: cohortArg as any, p_limit: 10 }),
     ]);
     if (recRes.data) setRecommended(recRes.data);
+    if (weakRes.data) setWeakSkills(weakRes.data as any[]);
+    if (themeRes.data && (themeRes.data as any[]).length > 0) {
+      setThemeDrills(themeRes.data as any[]);
+      setThemeName((themeRes.data as any[])[0]?.theme_name ?? null);
+    } else {
+      setThemeDrills([]);
+      setThemeName(null);
+    }
+    if (chalRes.data && (chalRes.data as any[]).length > 0) {
+      setChallengeDrills(chalRes.data as any[]);
+      const first = (chalRes.data as any[])[0];
+      setChallengeMeta({
+        name: first?.challenge_name ?? "Challenge",
+        ends_at: first?.ends_at,
+        bonus: Number(first?.bonus_xp_multiplier ?? 1),
+      });
+    } else {
+      setChallengeDrills([]);
+      setChallengeMeta(null);
+    }
     if (drillsRes.data) setAllDrills(drillsRes.data as Drill[]);
     if (progRes.data) setProgress(progRes.data as Progress);
     if (lbRes.data) setLeaderboard(lbRes.data as LeaderboardRow[]);
