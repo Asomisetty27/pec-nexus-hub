@@ -983,6 +983,60 @@ export type Database = {
           },
         ]
       }
+      drill_ai_feedback: {
+        Row: {
+          attempt_id: string
+          created_at: string
+          drill_id: string
+          id: string
+          improvements: string[]
+          next_skill: string | null
+          raw_response: Json | null
+          score_band: string
+          strengths: string[]
+          user_id: string
+        }
+        Insert: {
+          attempt_id: string
+          created_at?: string
+          drill_id: string
+          id?: string
+          improvements?: string[]
+          next_skill?: string | null
+          raw_response?: Json | null
+          score_band: string
+          strengths?: string[]
+          user_id: string
+        }
+        Update: {
+          attempt_id?: string
+          created_at?: string
+          drill_id?: string
+          id?: string
+          improvements?: string[]
+          next_skill?: string | null
+          raw_response?: Json | null
+          score_band?: string
+          strengths?: string[]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drill_ai_feedback_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "drill_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drill_ai_feedback_drill_id_fkey"
+            columns: ["drill_id"]
+            isOneToOne: false
+            referencedRelation: "drills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       drill_attempts: {
         Row: {
           attempted_at: string
@@ -1074,6 +1128,7 @@ export type Database = {
       }
       drills: {
         Row: {
+          ai_feedback_enabled: boolean
           category: string
           cohort: Database["public"]["Enums"]["drill_cohort"]
           correct_answer: Json | null
@@ -1099,6 +1154,7 @@ export type Database = {
           xp_reward: number
         }
         Insert: {
+          ai_feedback_enabled?: boolean
           category: string
           cohort: Database["public"]["Enums"]["drill_cohort"]
           correct_answer?: Json | null
@@ -1124,6 +1180,7 @@ export type Database = {
           xp_reward?: number
         }
         Update: {
+          ai_feedback_enabled?: boolean
           category?: string
           cohort?: Database["public"]["Enums"]["drill_cohort"]
           correct_answer?: Json | null
@@ -4128,6 +4185,90 @@ export type Database = {
           },
         ]
       }
+      training_ai_settings: {
+        Row: {
+          current_month: string
+          current_month_calls: number
+          enabled_drill_types: string[]
+          id: number
+          monthly_call_cap: number
+          per_user_daily_cap: number
+          updated_at: string
+        }
+        Insert: {
+          current_month?: string
+          current_month_calls?: number
+          enabled_drill_types?: string[]
+          id?: number
+          monthly_call_cap?: number
+          per_user_daily_cap?: number
+          updated_at?: string
+        }
+        Update: {
+          current_month?: string
+          current_month_calls?: number
+          enabled_drill_types?: string[]
+          id?: number
+          monthly_call_cap?: number
+          per_user_daily_cap?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      training_ai_usage: {
+        Row: {
+          attempt_id: string | null
+          cohort: Database["public"]["Enums"]["drill_cohort"] | null
+          created_at: string
+          drill_id: string | null
+          drill_type: Database["public"]["Enums"]["drill_type"] | null
+          estimated_tokens: number | null
+          fallback_used: boolean
+          id: string
+          month: string
+          user_id: string
+        }
+        Insert: {
+          attempt_id?: string | null
+          cohort?: Database["public"]["Enums"]["drill_cohort"] | null
+          created_at?: string
+          drill_id?: string | null
+          drill_type?: Database["public"]["Enums"]["drill_type"] | null
+          estimated_tokens?: number | null
+          fallback_used?: boolean
+          id?: string
+          month?: string
+          user_id: string
+        }
+        Update: {
+          attempt_id?: string | null
+          cohort?: Database["public"]["Enums"]["drill_cohort"] | null
+          created_at?: string
+          drill_id?: string | null
+          drill_type?: Database["public"]["Enums"]["drill_type"] | null
+          estimated_tokens?: number | null
+          fallback_used?: boolean
+          id?: string
+          month?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_ai_usage_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "drill_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_ai_usage_drill_id_fkey"
+            columns: ["drill_id"]
+            isOneToOne: false
+            referencedRelation: "drills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_badges: {
         Row: {
           awarded_at: string
@@ -4396,6 +4537,11 @@ export type Database = {
           p_metadata?: Json
         }
         Returns: undefined
+      }
+      training_ai_usage_summary: { Args: never; Returns: Json }
+      training_ai_user_today_count: {
+        Args: { p_user: string }
+        Returns: number
       }
     }
     Enums: {

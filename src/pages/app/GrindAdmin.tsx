@@ -12,7 +12,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Sparkles, Check, X, Pencil, Loader2, Shield, ListChecks } from "lucide-react";
+import { Sparkles, Check, X, Pencil, Loader2, Shield, ListChecks, DollarSign } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
 type Cohort = "software" | "hardware" | "mechanical" | "ops";
@@ -61,6 +62,33 @@ export default function GrindAdmin() {
   const [pending, setPending] = useState<any[]>([]);
   const [editing, setEditing] = useState<any | null>(null);
   const [loadingQueue, setLoadingQueue] = useState(false);
+
+  // Training cost dashboard state
+  const [usage, setUsage] = useState<any | null>(null);
+  const [settings, setSettings] = useState<any | null>(null);
+  const [savingSettings, setSavingSettings] = useState(false);
+
+  const fetchUsage = async () => {
+    const [usageRes, setRes] = await Promise.all([
+      supabase.rpc("training_ai_usage_summary"),
+      supabase.from("training_ai_settings").select("*").eq("id", 1).maybeSingle(),
+    ]);
+    if (usageRes.data) setUsage(usageRes.data);
+    if (setRes.data) setSettings(setRes.data);
+  };
+
+  useEffect(() => {
+    if (isAdmin) fetchUsage();
+  }, [isAdmin]);
+
+  const saveSettings = async (patch: Partial<{ monthly_call_cap: number; per_user_daily_cap: number; enabled_drill_types: string[] }>) => {
+    setSavingSettings(true);
+    const { error } = await supabase.from("training_ai_settings").update(patch).eq("id", 1);
+    setSavingSettings(false);
+    if (error) return toast.error(error.message);
+    toast.success("Settings saved");
+    fetchUsage();
+  };
 
   const fetchPending = async () => {
     setLoadingQueue(true);
@@ -162,6 +190,9 @@ export default function GrindAdmin() {
           <TabsTrigger value="review" className="gap-2">
             <ListChecks className="h-4 w-4" />
             Review Queue {pending.length > 0 && <Badge variant="secondary" className="ml-1">{pending.length}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="cost" className="gap-2">
+            <DollarSign className="h-4 w-4" /> AI Cost
           </TabsTrigger>
         </TabsList>
 
@@ -312,6 +343,107 @@ export default function GrindAdmin() {
                 </CardContent>
               </Card>
             ))
+          )}
+        </TabsContent>
+
+        <TabsContent value="cost" className="mt-6 space-y-4">
+          {!usage || !settings ? (
+            <div className="text-sm text-muted-foreground">Loading…</div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <Card><CardContent className="p-4">
+                  <div className="text-xs text-muted-foreground">Month</div>
+                  <div className="font-display text-lg font-bold">{usage.month}</div>
+                </CardContent></Card>
+                <Card><CardContent className="p-4">
+                  <div className="text-xs text-muted-foreground">AI calls this month</div>
+                  <div className="font-display text-2xl font-bold">{usage.month_calls}<span className="text-sm text-muted-foreground"> / {usage.monthly_cap}</span></div>
+                </CardContent></Card>
+                <Card><CardContent className="p-4">
+                  <div className="text-xs text-muted-foreground">Today</div>
+                  <div className="font-display text-2xl font-bold">{usage.today_calls}</div>
+                </CardContent></Card>
+                <Card><CardContent className="p-4">
+                  <div className="text-xs text-muted-foreground">Status</div>
+                  <div className={`font-display text-lg font-bold ${usage.cap_reached ? "text-rose-600" : "text-emerald-600"}`}>
+                    {usage.cap_reached ? "Cap reached · fallback active" : `${usage.cap_remaining} left`}
+                  </div>
+                </CardContent></Card>
+              </div>
+
+              <Card>
+                <CardHeader><CardTitle className="text-base">Caps & enabled types</CardTitle></CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <Label>Monthly call cap</Label>
+                      <Input type="number" min={0} defaultValue={settings.monthly_call_cap}
+                        onBlur={(e) => {
+                          const v = Math.max(0, Number(e.target.value) || 0);
+                          if (v !== settings.monthly_call_cap) saveSettings({ monthly_call_cap: v });
+                        }} />
+                    </div>
+                    <div>
+                      <Label>Per-user daily cap</Label>
+                      <Input type="number" min={0} defaultValue={settings.per_user_daily_cap}
+                        onBlur={(e) => {
+                          const v = Math.max(0, Number(e.target.value) || 0);
+                          if (v !== settings.per_user_daily_cap) saveSettings({ per_user_daily_cap: v });
+                        }} />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="mb-2 block">AI-enabled drill types</Label>
+                    <div className="flex flex-wrap gap-3">
+                      {(["short_answer","scenario_analysis","debugging_diagnosis","design_critique","mini_case"] as const).map((t) => {
+                        const enabled = (settings.enabled_drill_types || []).includes(t);
+                        return (
+                          <label key={t} className="flex items-center gap-2 text-sm">
+                            <Switch checked={enabled} disabled={savingSettings} onCheckedChange={(on) => {
+                              const cur: string[] = settings.enabled_drill_types || [];
+                              const next = on ? Array.from(new Set([...cur, t])) : cur.filter((x) => x !== t);
+                              saveSettings({ enabled_drill_types: next });
+                            }} />
+                            {TYPE_LABELS[t]}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Card>
+                  <CardHeader><CardTitle className="text-base">By cohort (this month)</CardTitle></CardHeader>
+                  <CardContent className="space-y-1 text-sm">
+                    {Object.keys(usage.by_cohort || {}).length === 0 ? (
+                      <p className="text-muted-foreground">No usage yet.</p>
+                    ) : Object.entries(usage.by_cohort as Record<string, number>).map(([k, v]) => (
+                      <div key={k} className="flex justify-between"><span>{k}</span><span className="font-mono">{v}</span></div>
+                    ))}
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader><CardTitle className="text-base">By drill type (this month)</CardTitle></CardHeader>
+                  <CardContent className="space-y-1 text-sm">
+                    {Object.keys(usage.by_type || {}).length === 0 ? (
+                      <p className="text-muted-foreground">No usage yet.</p>
+                    ) : Object.entries(usage.by_type as Record<string, number>).map(([k, v]) => (
+                      <div key={k} className="flex justify-between"><span>{k.replace(/_/g, " ")}</span><span className="font-mono">{v}</span></div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardContent className="p-4 text-sm flex flex-wrap gap-x-6 gap-y-1">
+                  <span><span className="text-muted-foreground">Drill bank: </span><span className="font-medium">{usage.drills_published} published</span></span>
+                  <span><span className="text-muted-foreground">Pending review: </span><span className="font-medium">{usage.drills_pending_review}</span></span>
+                </CardContent>
+              </Card>
+            </>
           )}
         </TabsContent>
       </Tabs>

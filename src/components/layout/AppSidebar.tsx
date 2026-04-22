@@ -69,8 +69,7 @@ const mainNav: NavItem[] = [
   { title: "Messages", url: "/app/messages", icon: MessageSquare, hideForApplicants: true },
   { title: "Scheduling", url: "/app/scheduling", icon: Clock, hideForApplicants: true },
   { title: "Events", url: "/app/events", icon: CalendarDays },
-  { title: "Academy", url: "/app/academy", icon: GraduationCap },
-  { title: "Grind", url: "/app/grind", icon: Swords, hideForApplicants: true },
+  { title: "Training", url: "/app/training", icon: GraduationCap, hideForApplicants: true },
   { title: "Skill Dashboard", url: "/app/skills", icon: BarChart3, requiresLeadAccess: true },
   { title: "Ask Nexus", url: "/app/ask", icon: Sparkles, hideForApplicants: true },
   {
