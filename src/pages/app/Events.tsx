@@ -16,6 +16,7 @@ import { motion } from "framer-motion";
 import { logAuditAction } from "@/lib/audit";
 import { Sparkles } from "lucide-react";
 import { MeetingBriefDialog } from "@/components/MeetingBriefDialog";
+import { FeedbackPrompt } from "@/components/FeedbackPrompt";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } };
@@ -48,6 +49,7 @@ export default function Events() {
   const [cohorts, setCohorts] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [audience, setAudience] = useState<string>("all_members");
+  const [eventCreatedFlag, setEventCreatedFlag] = useState(false);
   const [audienceTarget, setAudienceTarget] = useState<string>("");
   const [notifyOnCreate, setNotifyOnCreate] = useState(true);
   const [briefEvent, setBriefEvent] = useState<any | null>(null);
@@ -150,6 +152,7 @@ export default function Events() {
         await sendNotification(created.id, "created");
       }
       fetchEvents();
+      setEventCreatedFlag(true);
     }
   };
 

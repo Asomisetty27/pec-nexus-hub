@@ -17,6 +17,7 @@ import DeliverableStatusBadge from "@/components/DeliverableStatusBadge";
 import DeliverableReviewHistory from "@/components/DeliverableReviewHistory";
 import { getUnifiedStatus, isBlockingStage } from "@/lib/deliverableStatus";
 import { approveDeliverable, requestDeliverableChanges, rejectDeliverable } from "@/lib/reviewActions";
+import { FeedbackPrompt } from "@/components/FeedbackPrompt";
 
 interface Row {
   id: string;
@@ -51,6 +52,7 @@ export default function ReviewQueue() {
   const [reasonFor, setReasonFor] = useState<{ id: string; mode: "request_changes" | "reject" } | null>(null);
   const [reasonText, setReasonText] = useState("");
   const [historyFor, setHistoryFor] = useState<Row | null>(null);
+  const [reviewedOnce, setReviewedOnce] = useState(false);
 
   const load = async () => {
     if (!user) return;
@@ -142,6 +144,7 @@ export default function ReviewQueue() {
     if (res.ok === false) { toast.error(`Approve failed: ${res.error}`); return; }
     toast.success(`Approved · ${r.title}`);
     setRows(prev => prev.filter(x => x.id !== r.id));
+    setReviewedOnce(true);
   };
 
   const submitReason = async () => {
@@ -155,6 +158,7 @@ export default function ReviewQueue() {
     toast.success(reasonFor.mode === "reject" ? "Deliverable rejected" : "Revision requested");
     setRows(prev => prev.filter(x => x.id !== reasonFor.id));
     setReasonFor(null); setReasonText("");
+    setReviewedOnce(true);
   };
 
   return (
