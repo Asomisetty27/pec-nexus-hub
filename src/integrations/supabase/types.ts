@@ -4335,6 +4335,11 @@ export type Database = {
         Args: { a: string[]; b: string[] }
         Returns: number
       }
+      auto_backfill_project_memberships: { Args: never; Returns: number }
+      auto_close_stale_help_requests: { Args: never; Returns: number }
+      auto_flag_stale_reviews: { Args: never; Returns: number }
+      auto_join_missing_channels: { Args: never; Returns: number }
+      auto_resync_unmatched_users: { Args: never; Returns: number }
       compute_momentum_risk: { Args: { _project_id: string }; Returns: Json }
       create_assignment_bundle: {
         Args: {
@@ -4514,6 +4519,7 @@ export type Database = {
       resync_user_from_roster: { Args: { p_user_id: string }; Returns: Json }
       run_escalation_scan: { Args: never; Returns: Json }
       run_momentum_scan: { Args: never; Returns: Json }
+      run_nexus_self_heal: { Args: never; Returns: Json }
       seed_project_memberships_from_cohort: {
         Args: { p_cohort_id: string; p_project_id: string }
         Returns: number
