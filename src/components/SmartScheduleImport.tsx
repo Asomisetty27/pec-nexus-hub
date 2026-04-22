@@ -127,6 +127,8 @@ export default function SmartScheduleImport({ onSaved }: { onSaved?: () => void 
       setBlocks([]);
       setConfidence(null);
       setNotes(null);
+      setJustSaved(true);
+      setImportFailed(false);
       onSaved?.();
     } catch (e: any) {
       toast.error(e.message || "Failed to save");
