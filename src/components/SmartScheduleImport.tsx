@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScanLine, Upload, Loader2, AlertTriangle, Sparkles, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { FeedbackPrompt } from "@/components/FeedbackPrompt";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -27,6 +28,8 @@ export default function SmartScheduleImport({ onSaved }: { onSaved?: () => void 
   const [notes, setNotes] = useState<string | null>(null);
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [justSaved, setJustSaved] = useState(false);
+  const [importFailed, setImportFailed] = useState(false);
 
   const onFile = async (file: File) => {
     setError(null);
