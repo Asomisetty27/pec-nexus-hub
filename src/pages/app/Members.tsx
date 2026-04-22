@@ -89,7 +89,9 @@ export default function Members() {
                         {m.full_name?.charAt(0) || "?"}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{m.full_name || "Unknown"}</p>
+                        <p className="font-medium text-sm truncate">
+                          {m.full_name || m.cal_poly_email?.split("@")[0] || "Former member"}
+                        </p>
                         {m.cal_poly_email && (
                           <p className="text-[10px] text-muted-foreground font-mono flex items-center gap-1">
                             <Mail className="h-2.5 w-2.5" />{m.cal_poly_email}

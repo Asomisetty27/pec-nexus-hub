@@ -178,7 +178,11 @@ export default function Messages() {
                     className={`rounded-lg p-3 border-l-2 ${config.bg} ${config.border} ${isOwn ? "ml-12" : "mr-12"}`}
                   >
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-semibold">{(msg.profiles as any)?.full_name || "Unknown"}</span>
+                      <span className="text-xs font-semibold">
+                        {(msg.profiles as any)?.full_name
+                          || (msg.profiles as any)?.cal_poly_email?.split("@")[0]
+                          || "Former member"}
+                      </span>
                       {msg.message_type !== "message" && (
                         <Badge variant="outline" className="text-[9px] font-mono gap-1 py-0">
                           <TypeIcon className="h-2.5 w-2.5" />
