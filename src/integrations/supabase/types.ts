@@ -4269,6 +4269,81 @@ export type Database = {
           },
         ]
       }
+      training_challenges: {
+        Row: {
+          bonus_xp_multiplier: number
+          category_filter: string[]
+          cohort: Database["public"]["Enums"]["drill_cohort"]
+          created_at: string
+          created_by: string | null
+          description: string | null
+          ends_at: string
+          id: string
+          name: string
+          starts_at: string
+        }
+        Insert: {
+          bonus_xp_multiplier?: number
+          category_filter?: string[]
+          cohort: Database["public"]["Enums"]["drill_cohort"]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_at: string
+          id?: string
+          name: string
+          starts_at?: string
+        }
+        Update: {
+          bonus_xp_multiplier?: number
+          category_filter?: string[]
+          cohort?: Database["public"]["Enums"]["drill_cohort"]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_at?: string
+          id?: string
+          name?: string
+          starts_at?: string
+        }
+        Relationships: []
+      }
+      training_themes: {
+        Row: {
+          category_filter: string[]
+          cohort: Database["public"]["Enums"]["drill_cohort"]
+          created_at: string
+          created_by: string | null
+          description: string | null
+          ends_on: string
+          id: string
+          name: string
+          starts_on: string
+        }
+        Insert: {
+          category_filter?: string[]
+          cohort: Database["public"]["Enums"]["drill_cohort"]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_on: string
+          id?: string
+          name: string
+          starts_on?: string
+        }
+        Update: {
+          category_filter?: string[]
+          cohort?: Database["public"]["Enums"]["drill_cohort"]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_on?: string
+          id?: string
+          name?: string
+          starts_on?: string
+        }
+        Relationships: []
+      }
       user_badges: {
         Row: {
           awarded_at: string
@@ -4491,7 +4566,62 @@ export type Database = {
           read_ct: number
         }[]
       }
+      recommend_challenge_drills: {
+        Args: {
+          p_cohort?: Database["public"]["Enums"]["drill_cohort"]
+          p_limit?: number
+        }
+        Returns: {
+          bonus_xp_multiplier: number
+          category: string
+          challenge_name: string
+          cohort: Database["public"]["Enums"]["drill_cohort"]
+          difficulty: Database["public"]["Enums"]["drill_difficulty"]
+          drill_type: Database["public"]["Enums"]["drill_type"]
+          ends_at: string
+          estimated_minutes: number
+          id: string
+          reason: string
+          title: string
+          xp_reward: number
+        }[]
+      }
       recommend_drills: {
+        Args: {
+          p_cohort?: Database["public"]["Enums"]["drill_cohort"]
+          p_limit?: number
+        }
+        Returns: {
+          category: string
+          cohort: Database["public"]["Enums"]["drill_cohort"]
+          difficulty: Database["public"]["Enums"]["drill_difficulty"]
+          drill_type: Database["public"]["Enums"]["drill_type"]
+          estimated_minutes: number
+          id: string
+          reason: string
+          title: string
+          xp_reward: number
+        }[]
+      }
+      recommend_theme_drills: {
+        Args: {
+          p_cohort?: Database["public"]["Enums"]["drill_cohort"]
+          p_limit?: number
+        }
+        Returns: {
+          category: string
+          cohort: Database["public"]["Enums"]["drill_cohort"]
+          difficulty: Database["public"]["Enums"]["drill_difficulty"]
+          drill_type: Database["public"]["Enums"]["drill_type"]
+          estimated_minutes: number
+          id: string
+          reason: string
+          theme_name: string
+          title: string
+          xp_reward: number
+        }[]
+      }
+      recommend_weak_skill_drills: {
         Args: {
           p_cohort?: Database["public"]["Enums"]["drill_cohort"]
           p_limit?: number

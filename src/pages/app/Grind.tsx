@@ -9,9 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Flame, Trophy, Zap, Target, Clock, ChevronRight } from "lucide-react";
+import { Flame, Trophy, Zap, Target, Clock, ChevronRight, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 type Cohort = "software" | "hardware" | "mechanical" | "ops";
 
@@ -69,6 +69,11 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 export default function Grind() {
   const { user } = useAuth();
   const [recommended, setRecommended] = useState<any[]>([]);
+  const [weakSkills, setWeakSkills] = useState<any[]>([]);
+  const [themeDrills, setThemeDrills] = useState<any[]>([]);
+  const [themeName, setThemeName] = useState<string | null>(null);
+  const [challengeDrills, setChallengeDrills] = useState<any[]>([]);
+  const [challengeMeta, setChallengeMeta] = useState<{ name: string; ends_at: string; bonus: number } | null>(null);
   const [allDrills, setAllDrills] = useState<Drill[]>([]);
   const [progress, setProgress] = useState<Progress | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardRow[]>([]);
@@ -82,13 +87,36 @@ export default function Grind() {
 
   async function loadAll() {
     const cohortArg = cohortFilter === "all" ? null : cohortFilter;
-    const [recRes, drillsRes, progRes, lbRes] = await Promise.all([
+    const [recRes, weakRes, themeRes, chalRes, drillsRes, progRes, lbRes] = await Promise.all([
       supabase.rpc("recommend_drills", { p_cohort: cohortArg as any, p_limit: 6 }),
+      supabase.rpc("recommend_weak_skill_drills", { p_cohort: cohortArg as any, p_limit: 4 }),
+      supabase.rpc("recommend_theme_drills", { p_cohort: cohortArg as any, p_limit: 4 }),
+      supabase.rpc("recommend_challenge_drills", { p_cohort: cohortArg as any, p_limit: 4 }),
       supabase.from("drills").select("*").eq("status", "published").order("created_at", { ascending: false }),
       supabase.from("grind_progress").select("*").eq("user_id", user!.id).maybeSingle(),
       supabase.rpc("grind_leaderboard", { p_cohort: cohortArg as any, p_limit: 10 }),
     ]);
     if (recRes.data) setRecommended(recRes.data);
+    if (weakRes.data) setWeakSkills(weakRes.data as any[]);
+    if (themeRes.data && (themeRes.data as any[]).length > 0) {
+      setThemeDrills(themeRes.data as any[]);
+      setThemeName((themeRes.data as any[])[0]?.theme_name ?? null);
+    } else {
+      setThemeDrills([]);
+      setThemeName(null);
+    }
+    if (chalRes.data && (chalRes.data as any[]).length > 0) {
+      setChallengeDrills(chalRes.data as any[]);
+      const first = (chalRes.data as any[])[0];
+      setChallengeMeta({
+        name: first?.challenge_name ?? "Challenge",
+        ends_at: first?.ends_at,
+        bonus: Number(first?.bonus_xp_multiplier ?? 1),
+      });
+    } else {
+      setChallengeDrills([]);
+      setChallengeMeta(null);
+    }
     if (drillsRes.data) setAllDrills(drillsRes.data as Drill[]);
     if (progRes.data) setProgress(progRes.data as Progress);
     if (lbRes.data) setLeaderboard(lbRes.data as LeaderboardRow[]);
@@ -133,7 +161,72 @@ export default function Grind() {
         </TabsList>
 
         <TabsContent value={cohortFilter} className="space-y-6 mt-6">
-          {/* Recommended */}
+          {/* Active Challenge — highest priority lane when present */}
+          {challengeDrills.length > 0 && challengeMeta && (
+            <section className="rounded-xl border-2 border-primary/40 bg-primary/5 p-4">
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Trophy className="h-4 w-4 text-primary" />
+                    <h2 className="font-display text-lg font-semibold">{challengeMeta.name}</h2>
+                    {challengeMeta.bonus > 1 && (
+                      <Badge className="text-[10px] font-mono">{challengeMeta.bonus}× XP</Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Active challenge · ends {new Date(challengeMeta.ends_at).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric" })}
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                {challengeDrills.map((r) => (
+                  <RecCard key={r.id} drill={r} onStart={() => {
+                    const full = allDrills.find((d) => d.id === r.id);
+                    if (full) setActiveDrill(full);
+                  }} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Weak Skills lane — only if user has weak categories */}
+          {weakSkills.length > 0 && (
+            <section>
+              <div className="mb-3 flex items-center gap-2">
+                <Target className="h-4 w-4 text-warning" />
+                <h2 className="font-display text-lg font-semibold">Weak skills</h2>
+                <span className="text-xs text-muted-foreground">Targets categories where you've slipped</span>
+              </div>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+                {weakSkills.map((r) => (
+                  <RecCard key={r.id} drill={r} onStart={() => {
+                    const full = allDrills.find((d) => d.id === r.id);
+                    if (full) setActiveDrill(full);
+                  }} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Theme Week lane */}
+          {themeDrills.length > 0 && themeName && (
+            <section>
+              <div className="mb-3 flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-accent-foreground" />
+                <h2 className="font-display text-lg font-semibold">This week: {themeName}</h2>
+              </div>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+                {themeDrills.map((r) => (
+                  <RecCard key={r.id} drill={r} onStart={() => {
+                    const full = allDrills.find((d) => d.id === r.id);
+                    if (full) setActiveDrill(full);
+                  }} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Recommended for you (existing personalised lane) */}
           {recommended.length > 0 && (
             <section>
               <h2 className="mb-3 font-display text-lg font-semibold">Recommended for you</h2>
