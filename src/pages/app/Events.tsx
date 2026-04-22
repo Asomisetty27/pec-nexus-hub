@@ -109,6 +109,7 @@ export default function Events() {
       location: f.get("location") as string,
       start_time: f.get("start_time") as string,
       meeting_link: (f.get("meeting_link") as string) || null,
+      teams_link: (f.get("teams_link") as string) || null,
       audience_scope: audience,
       audience_target_id: (audience === "cohort" || audience === "project") ? (audienceTarget || null) : null,
       notify_on_create: notifyOnCreate,
@@ -306,6 +307,11 @@ export default function Events() {
                     {ev.meeting_link && (
                       <a href={ev.meeting_link} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-[11px] text-primary hover:underline">
                         <Link2 className="h-3 w-3" /> Join meeting
+                      </a>
+                    )}
+                    {ev.teams_link && (
+                      <a href={ev.teams_link} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-[11px] text-primary hover:underline">
+                        <MessageSquare className="h-3 w-3" /> Open in Teams
                       </a>
                     )}
                     {!isPast && !isCancelled && (

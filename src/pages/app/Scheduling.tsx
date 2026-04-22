@@ -490,6 +490,16 @@ export default function Scheduling() {
                 {selectedEvent.description && (
                   <p className="text-muted-foreground whitespace-pre-line">{selectedEvent.description}</p>
                 )}
+                {selectedEvent.meta?.meeting_link && (
+                  <Button asChild size="sm" variant="outline" className="w-full gap-2">
+                    <a href={selectedEvent.meta.meeting_link} target="_blank" rel="noreferrer"><Link2 className="h-3.5 w-3.5" /> Join meeting</a>
+                  </Button>
+                )}
+                {selectedEvent.meta?.teams_link && (
+                  <Button asChild size="sm" className="w-full gap-2">
+                    <a href={selectedEvent.meta.teams_link} target="_blank" rel="noreferrer"><Link2 className="h-3.5 w-3.5" /> Open in Teams</a>
+                  </Button>
+                )}
                 {selectedEvent.link && (
                   <Button asChild size="sm" variant="outline" className="w-full"><a href={selectedEvent.link}>Open project</a></Button>
                 )}
