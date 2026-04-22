@@ -87,8 +87,6 @@ const App = () => (
               <Route path="lab/:id" element={<LabManual />} />
               <Route path="mock-project/:id" element={<MockProject />} />
               <Route path="scheduling" element={<Scheduling />} />
-              <Route path="ops" element={<OpsDashboard />} />
-              <Route path="permissions" element={<PermissionInspector />} />
               <Route path="lead" element={<LeadWorkspace />} />
               {/* Review queue is now part of Lead Workspace. Keep deep links working. */}
               <Route path="review" element={<Navigate to="/app/lead" replace />} />
