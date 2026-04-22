@@ -3534,6 +3534,7 @@ export type Database = {
         Args: { p_deliverable_id: string; p_reason: string }
         Returns: undefined
       }
+      resync_user_from_roster: { Args: { p_user_id: string }; Returns: Json }
       seed_project_memberships_from_cohort: {
         Args: { p_cohort_id: string; p_project_id: string }
         Returns: number

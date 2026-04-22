@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { Wand2 } from "lucide-react";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } };
@@ -37,6 +38,8 @@ export default function PermissionInspector() {
   const [userMockProjects, setUserMockProjects] = useState<any[]>([]);
   const [userChannels, setUserChannels] = useState<any[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [rosterRow, setRosterRow] = useState<any>(null);
+  const [repairing, setRepairing] = useState(false);
 
   // Resource inspection
   const [projects, setProjects] = useState<any[]>([]);
@@ -71,13 +74,14 @@ export default function PermissionInspector() {
   const inspectUser = async (profile: any) => {
     setSelectedUser(profile);
     setSelectedResource(null);
-    const [rolesRes, cohortsRes, projectsRes, mockProjRes, channelsRes, logsRes] = await Promise.all([
+    const [rolesRes, cohortsRes, projectsRes, mockProjRes, channelsRes, logsRes, rosterRes] = await Promise.all([
       supabase.from("user_roles").select("*").eq("user_id", profile.user_id),
       supabase.from("cohort_memberships").select("*, cohorts(name)").eq("user_id", profile.user_id),
       supabase.from("project_memberships").select("*, projects(name, status)").eq("user_id", profile.user_id),
       supabase.from("mock_project_memberships").select("*, mock_projects(title, cohort_id)").eq("user_id", profile.user_id),
       supabase.from("channel_members").select("*, channels(name, is_org_wide)").eq("user_id", profile.user_id),
       supabase.from("audit_logs").select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }).limit(15),
+      supabase.from("cohort_roster").select("*").ilike("email", (profile.cal_poly_email || "").trim()).maybeSingle(),
     ]);
     setUserRoles(rolesRes.data || []);
     setUserCohorts(cohortsRes.data || []);
@@ -85,6 +89,25 @@ export default function PermissionInspector() {
     setUserMockProjects(mockProjRes.data || []);
     setUserChannels(channelsRes.data || []);
     setAuditLogs(logsRes.data || []);
+    setRosterRow(rosterRes.data || null);
+  };
+
+  const repairIdentity = async () => {
+    if (!selectedUser) return;
+    setRepairing(true);
+    const { data, error } = await supabase.rpc("resync_user_from_roster" as any, { p_user_id: selectedUser.user_id });
+    setRepairing(false);
+    if (error) {
+      toast.error(`Repair failed: ${error.message}`);
+      return;
+    }
+    const result: any = data;
+    if (result?.matched) {
+      toast.success(`Resynced from roster: ${result.cohort_name} · ${result.roster_role}`);
+    } else {
+      toast.warning(`No roster match (${result?.reason || "unknown"})`);
+    }
+    await inspectUser(selectedUser);
   };
 
   const inspectProject = async (project: any) => {
@@ -244,6 +267,57 @@ export default function PermissionInspector() {
                           <p className="text-xs text-muted-foreground">{selectedUser.cal_poly_email}</p>
                         </div>
                         <Badge variant="outline" className="ml-auto text-[9px] font-mono capitalize">{selectedUser.status}</Badge>
+                        <Button size="sm" variant="outline" onClick={repairIdentity} disabled={repairing} className="h-7 text-[11px] gap-1">
+                          <Wand2 className="h-3 w-3" />
+                          {repairing ? "Repairing…" : "Repair from roster"}
+                        </Button>
+                      </div>
+
+                      {/* Roster expectation vs actual */}
+                      <div className="mb-4 rounded-md border bg-muted/20 p-3">
+                        <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-2">Roster mapping</p>
+                        {rosterRow ? (
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
+                            <div className="text-muted-foreground">Roster row</div>
+                            <div className="font-mono">{rosterRow.full_name} · {rosterRow.role}</div>
+                            <div className="text-muted-foreground">Expected cohort</div>
+                            <div className="font-mono">{rosterRow.cohort_name}</div>
+                            <div className="text-muted-foreground">Identity status</div>
+                            <div className="font-mono">{rosterRow.identity_status}{rosterRow.matched_user_id === selectedUser.user_id ? " ✓" : ""}</div>
+                            <div className="text-muted-foreground">Expected app role(s)</div>
+                            <div className="font-mono">
+                              member{["pm","lead","integration_lead"].includes(rosterRow.role) ? " + project_lead" : ""}
+                            </div>
+                            {(() => {
+                              const expectedCohortMatched = userCohorts.some(c => (c.cohorts as any)?.name === rosterRow.cohort_name);
+                              const expectedRoles = ["member", ...(["pm","lead","integration_lead"].includes(rosterRow.role) ? ["project_lead"] : [])];
+                              const missingRoles = expectedRoles.filter(r => !userRoles.some(ur => ur.role === r));
+                              const issues: string[] = [];
+                              if (!expectedCohortMatched) issues.push("missing cohort membership");
+                              if (missingRoles.length) issues.push(`missing role(s): ${missingRoles.join(", ")}`);
+                              if (userProjects.length === 0) issues.push("no project memberships");
+                              if (rosterRow.matched_user_id !== selectedUser.user_id) issues.push("roster not marked matched");
+                              return issues.length > 0 ? (
+                                <>
+                                  <div className="text-muted-foreground">Mismatches</div>
+                                  <div className="text-warning font-mono">{issues.join(" · ")}</div>
+                                </>
+                              ) : (
+                                <>
+                                  <div className="text-muted-foreground">Status</div>
+                                  <div className="text-success font-mono">All expected mappings present ✓</div>
+                                </>
+                              );
+                            })()}
+                          </div>
+                        ) : (
+                          <p className="text-[11px] text-muted-foreground">
+                            No roster row matches <span className="font-mono">{selectedUser.cal_poly_email}</span>.
+                            {userRoles.some(r => r.role === "applicant") && userRoles.length === 1
+                              ? " User is an applicant fallback — this is expected if not on the roster."
+                              : ""}
+                          </p>
+                        )}
                       </div>
                       <div className="space-y-3">
                         <Section label="App Roles" items={userRoles} render={r => <Badge key={r.id} variant="outline" className="text-[9px] font-mono">{r.role}</Badge>} />
