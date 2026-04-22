@@ -36,12 +36,16 @@ export default function SmartScheduleImport({ onSaved }: { onSaved?: () => void 
     setBlocks([]);
     setConfidence(null);
     setNotes(null);
+    setImportFailed(false);
+    setJustSaved(false);
     if (!/^image\/(png|jpe?g|webp|heic)$/i.test(file.type) && !file.type.startsWith("image/")) {
       setError("Unsupported file type. Upload a PNG, JPG, or WEBP screenshot.");
+      setImportFailed(true);
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
       setError("Image too large (max 5 MB). Try compressing or screenshotting just the schedule grid.");
+      setImportFailed(true);
       return;
     }
     setParsing(true);
