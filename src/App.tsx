@@ -76,7 +76,6 @@ const App = () => (
               <Route path="academy" element={<Navigate to="/app/training?tab=learn" replace />} />
               <Route path="docs" element={<Docs />} />
               <Route path="admin" element={<Admin />} />
-              <Route path="analytics" element={<Analytics />} />
               <Route path="announcements" element={<Announcements />} />
               <Route path="settings" element={<Settings />} />
               <Route path="cohort" element={<CohortHub />} />
