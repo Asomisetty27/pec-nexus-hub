@@ -16,6 +16,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import {
   CalendarDays, Clock, Plus, Trash2, Users, Zap, ChevronLeft, ChevronRight,
   CalendarRange, List, MapPin, Flag, Target, AlertCircle, Pencil, Link2,
+  Sparkles, ArrowRight, UserCheck, UserX, Crown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -88,6 +89,24 @@ export default function Scheduling() {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalEvent | null>(null);
 
+  // v2 recommendations
+  const [recDuration, setRecDuration] = useState(60);
+  const [smartRecs, setSmartRecs] = useState<any[]>([]);
+  const [memberNames, setMemberNames] = useState<Record<string, string>>({});
+  const [loadingRecs, setLoadingRecs] = useState(false);
+
+  const loadRecommendations = async (cohortId: string, durationMin: number) => {
+    setLoadingRecs(true);
+    const { data, error } = await supabase.rpc("recommend_meeting_slots", {
+      p_cohort_id: cohortId,
+      p_duration_min: durationMin,
+      p_attendee_ids: null,
+      p_limit: 6,
+    });
+    if (!error) setSmartRecs((data as any[]) || []);
+    setLoadingRecs(false);
+  };
+
   useEffect(() => {
     if (!user) return;
     const load = async () => {
@@ -113,6 +132,16 @@ export default function Scheduling() {
         ]);
         setCohortWindows((cwRes.data as any[]) || []);
         setProposals((propRes.data as any[]) || []);
+
+        // Build a quick id->name map for "missing" attendee chips
+        if (userIds.length > 0) {
+          const { data: nameRows } = await supabase.from("profiles").select("user_id, full_name").in("user_id", userIds);
+          const m: Record<string, string> = {};
+          (nameRows || []).forEach((r: any) => { m[r.user_id] = r.full_name || "Unknown"; });
+          setMemberNames(m);
+        }
+
+        await loadRecommendations(cohortRes.data.cohort_id, recDuration);
       }
     };
     load();
