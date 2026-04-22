@@ -410,6 +410,19 @@ export default function AskNexus() {
                     ))}
                   </div>
                 )}
+                <div className="mt-3">
+                  <FeedbackPrompt
+                    feature="ask_nexus"
+                    prompt="Was this answer useful?"
+                    contextType="query"
+                    contextId={active.key}
+                    options={[
+                      { label: "Yes", rating: "positive" },
+                      { label: "Not really", rating: "neutral" },
+                      { label: "Wrong", rating: "negative" },
+                    ]}
+                  />
+                </div>
               </>
             ) : null}
           </CardContent>
