@@ -215,6 +215,19 @@ export default function Events() {
         )}
       </motion.div>
 
+      {eventCreatedFlag && (
+        <FeedbackPrompt
+          feature="event_create"
+          prompt="Was creating that event quick?"
+          options={[
+            { label: "Yes", rating: "positive" },
+            { label: "Okay", rating: "neutral" },
+            { label: "Confusing", rating: "negative" },
+          ]}
+          onClose={() => setEventCreatedFlag(false)}
+        />
+      )}
+
       <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditing(null); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{editing ? "Edit event" : "Create event"}</DialogTitle></DialogHeader>
