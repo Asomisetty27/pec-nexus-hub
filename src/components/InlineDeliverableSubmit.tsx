@@ -123,8 +123,7 @@ export default function InlineDeliverableSubmit({ open, onOpenChange, deliverabl
       toast.success(deliverable.approval_required
         ? `${isRevision ? "Revision" : "Submission"} sent for review (v${nextVersion})`
         : `${deliverable.title} marked complete`);
-      reset();
-      onOpenChange(false);
+      setJustSubmitted(true);
       onSubmitted();
     } catch (e: any) {
       const msg = e?.message || "Submission failed — please retry.";
