@@ -141,6 +141,20 @@ export default function GrindAdmin() {
     fetchPending();
   };
 
+  const WRITTEN_TYPES: DrillType[] = [
+    "short_answer", "scenario_analysis", "debugging_diagnosis", "design_critique", "mini_case",
+  ];
+
+  const toggleAiFeedback = async (id: string, on: boolean) => {
+    // Optimistic update
+    setPending((prev) => prev.map((p) => (p.id === id ? { ...p, ai_feedback_enabled: on } : p)));
+    const { error } = await supabase.from("drills").update({ ai_feedback_enabled: on }).eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      fetchPending();
+    }
+  };
+
   const handleReject = async (id: string) => {
     const { error } = await supabase.from("drills").update({ status: "archived" }).eq("id", id);
     if (error) { toast.error(error.message); return; }
