@@ -313,6 +313,46 @@ export default function LeadWorkspace() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Reason drawer */}
+      <Drawer open={!!reasonFor} onOpenChange={(v) => { if (!v) { setReasonFor(null); setReasonText(""); } }}>
+        <DrawerContent className="max-w-lg mx-auto">
+          <DrawerHeader>
+            <DrawerTitle className="text-left flex items-center gap-2">
+              {reasonFor?.mode === "reject" ? <Ban className="h-4 w-4 text-destructive" /> : <RefreshCw className="h-4 w-4" />}
+              {reasonFor?.mode === "reject" ? "Reject deliverable" : "Request changes"}
+            </DrawerTitle>
+            <DrawerDescription className="text-left text-xs">
+              The owner will see this. Be specific so they don't have to guess.
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="px-4 pb-4 space-y-3">
+            <Textarea autoFocus rows={5} value={reasonText} onChange={e => setReasonText(e.target.value)}
+              placeholder={reasonFor?.mode === "reject" ? "Why is this being rejected? What would have to change for it to be re-considered?" : "What needs to change? Reference sections / steps if helpful."} />
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => { setReasonFor(null); setReasonText(""); }} disabled={!!busy}>Cancel</Button>
+              <Button className="flex-1" onClick={submitReason} disabled={!!busy || reasonText.trim().length < 3}>
+                {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : (reasonFor?.mode === "reject" ? "Reject" : "Send request")}
+              </Button>
+            </div>
+          </div>
+        </DrawerContent>
+      </Drawer>
+
+      {/* History drawer */}
+      <Drawer open={!!historyFor} onOpenChange={(v) => { if (!v) setHistoryFor(null); }}>
+        <DrawerContent className="max-w-lg mx-auto">
+          <DrawerHeader>
+            <DrawerTitle className="text-left flex items-center gap-2"><History className="h-4 w-4" /> Review history</DrawerTitle>
+            <DrawerDescription className="text-left text-xs">
+              {historyFor?.title} · {(historyFor?.projects as any)?.name}
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="px-4 pb-4">
+            {historyFor && <DeliverableReviewHistory deliverableId={historyFor.id} />}
+          </div>
+        </DrawerContent>
+      </Drawer>
     </motion.div>
   );
 }
