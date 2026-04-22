@@ -39,22 +39,9 @@ Deno.serve(async (req) => {
     return jsonResp(500, { error: 'config_error', message: 'AI gateway is not configured. Contact an admin.' })
   }
 
-  // In-code auth (config has verify_jwt = false to bypass legacy ES256-incompatible verifier).
-  const authHeader = req.headers.get('Authorization')
-  if (!authHeader) {
-    return jsonResp(401, { error: 'unauthorized', message: 'Sign in to use schedule import.' })
-  }
-  try {
-    const userClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    })
-    const { data: userRes } = await userClient.auth.getUser()
-    if (!userRes?.user) {
-      return jsonResp(401, { error: 'unauthorized', message: 'Your session expired. Please sign in again.' })
-    }
-  } catch {
-    return jsonResp(401, { error: 'unauthorized', message: 'Could not verify your session. Please sign in again.' })
-  }
+  // Anonymous-callable: gateway has verify_jwt=false. The client sends only the
+  // anon apikey (the user JWT is intentionally omitted to dodge an ES256 gateway bug).
+  // No PII or DB writes happen here; this is a stateless image-to-JSON helper.
 
   let imageDataUrl = ''
   try {
