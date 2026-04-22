@@ -16,6 +16,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import {
   CalendarDays, Clock, Plus, Trash2, Users, Zap, ChevronLeft, ChevronRight,
   CalendarRange, List, MapPin, Flag, Target, AlertCircle, Pencil, Link2,
+  Sparkles, ArrowRight, UserCheck, UserX, Crown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -88,6 +89,24 @@ export default function Scheduling() {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalEvent | null>(null);
 
+  // v2 recommendations
+  const [recDuration, setRecDuration] = useState(60);
+  const [smartRecs, setSmartRecs] = useState<any[]>([]);
+  const [memberNames, setMemberNames] = useState<Record<string, string>>({});
+  const [loadingRecs, setLoadingRecs] = useState(false);
+
+  const loadRecommendations = async (cohortId: string, durationMin: number) => {
+    setLoadingRecs(true);
+    const { data, error } = await supabase.rpc("recommend_meeting_slots", {
+      p_cohort_id: cohortId,
+      p_duration_min: durationMin,
+      p_attendee_ids: null,
+      p_limit: 6,
+    });
+    if (!error) setSmartRecs((data as any[]) || []);
+    setLoadingRecs(false);
+  };
+
   useEffect(() => {
     if (!user) return;
     const load = async () => {
@@ -113,6 +132,16 @@ export default function Scheduling() {
         ]);
         setCohortWindows((cwRes.data as any[]) || []);
         setProposals((propRes.data as any[]) || []);
+
+        // Build a quick id->name map for "missing" attendee chips
+        if (userIds.length > 0) {
+          const { data: nameRows } = await supabase.from("profiles").select("user_id, full_name").in("user_id", userIds);
+          const m: Record<string, string> = {};
+          (nameRows || []).forEach((r: any) => { m[r.user_id] = r.full_name || "Unknown"; });
+          setMemberNames(m);
+        }
+
+        await loadRecommendations(cohortRes.data.cohort_id, recDuration);
       }
     };
     load();
@@ -227,6 +256,34 @@ export default function Scheduling() {
     toast.success("Meeting proposal created");
   };
 
+  // v2: create a proposal from a multi-factor recommendation
+  const createSmartProposal = async (rec: any) => {
+    const nextDate = getNextDate(rec.day_of_week, rec.start_hour);
+    const { error } = await supabase.from("meeting_proposals").insert({
+      proposed_by: user!.id, cohort_id: cohort!.cohort_id, candidate_time: nextDate.toISOString(),
+      duration_minutes: rec.duration_min,
+      conflict_count: rec.conflict_count, attendance_score: rec.attendance_pct,
+      explanation: `${rec.available_count}/${rec.total_count} available · ${rec.lead_count} lead${rec.lead_count === 1 ? "" : "s"} · score ${rec.score}`,
+      status: "draft",
+    } as any);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Meeting proposal created");
+    const { data } = await supabase.from("meeting_proposals").select("*").eq("cohort_id", cohort!.cohort_id).order("attendance_score", { ascending: false });
+    setProposals((data as any[]) || []);
+  };
+
+  // Compute a rank label for the top 3 recs (best overall / lowest conflict / best for leads)
+  const labeledRecs = useMemo(() => {
+    if (smartRecs.length === 0) return [];
+    const arr = smartRecs.map((r) => ({ ...r }));
+    if (arr[0]) arr[0].rank_label = "Best overall";
+    const lowest = [...arr].sort((a, b) => a.conflict_count - b.conflict_count)[0];
+    if (lowest && lowest !== arr[0]) lowest.rank_label = "Lowest conflict";
+    const bestLead = [...arr].sort((a, b) => b.lead_count - a.lead_count || b.score - a.score)[0];
+    if (bestLead && !bestLead.rank_label) bestLead.rank_label = "Best lead coverage";
+    return arr;
+  }, [smartRecs]);
+
   // -------- header --------
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-5 max-w-6xl">
@@ -246,6 +303,54 @@ export default function Scheduling() {
 
         {/* ============= CALENDAR ============= */}
         <TabsContent value="calendar" className="mt-4 space-y-4">
+          {isLeadOrPM && labeledRecs.length > 0 && (
+            <Card className="border-accent/20 bg-accent/[0.03]">
+              <CardHeader className="py-2.5 px-4 flex flex-row items-center justify-between">
+                <CardTitle className="text-xs font-sans font-semibold flex items-center gap-2">
+                  <Sparkles className="h-3.5 w-3.5 text-accent-foreground" />
+                  Smart meeting times
+                  <span className="text-[10px] font-mono text-muted-foreground font-normal">· {recDuration}min · {labeledRecs[0]?.total_count} members</span>
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <Select value={String(recDuration)} onValueChange={async (v) => {
+                    const d = parseInt(v);
+                    setRecDuration(d);
+                    if (cohort?.cohort_id) await loadRecommendations(cohort.cohort_id, d);
+                  }}>
+                    <SelectTrigger className="h-6 w-[88px] text-[10px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="30">30 min</SelectItem>
+                      <SelectItem value="60">60 min</SelectItem>
+                      <SelectItem value="90">90 min</SelectItem>
+                      <SelectItem value="120">2 hours</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardHeader>
+              <CardContent className="px-4 pb-3 pt-0 space-y-1.5">
+                {labeledRecs.slice(0, 3).map((rec, i) => (
+                  <SmartRecRow key={i} rec={rec} memberNames={memberNames} onPropose={() => createSmartProposal(rec)} />
+                ))}
+              </CardContent>
+            </Card>
+          )}
+          {isLeadOrPM && smartRecs.length === 0 && cohortWindows.length === 0 && (
+            <Card className="border-dashed">
+              <CardContent className="py-4 px-5 flex items-start gap-3">
+                <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Not enough availability data yet</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Smart recommendations need at least one member's availability. Ask your team to upload a class schedule screenshot or set chip-based availability.
+                  </p>
+                  <Button variant="outline" size="sm" className="h-7 text-[10px] mt-2 gap-1.5" onClick={() => setTab("availability")}>
+                    <ArrowRight className="h-3 w-3" /> Set availability
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader className="py-3 px-5 flex flex-row items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-2">
@@ -411,21 +516,44 @@ export default function Scheduling() {
 
         {/* ============= PROPOSALS ============= */}
         <TabsContent value="proposals" className="mt-4 space-y-4">
-          {recommendations.length > 0 && (
+          {labeledRecs.length > 0 && (
             <Card className="border-accent/20">
-              <CardHeader className="py-3 px-5"><CardTitle className="text-sm flex items-center gap-2"><Zap className="h-3.5 w-3.5 text-accent-foreground" />Recommended Times</CardTitle></CardHeader>
+              <CardHeader className="py-3 px-5 flex flex-row items-center justify-between">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Sparkles className="h-3.5 w-3.5 text-accent-foreground" />
+                  Recommended Times
+                  <span className="text-[10px] font-mono text-muted-foreground font-normal">· ranked by attendance, lead coverage, preference</span>
+                </CardTitle>
+                <Select value={String(recDuration)} onValueChange={async (v) => {
+                  const d = parseInt(v);
+                  setRecDuration(d);
+                  if (cohort?.cohort_id) await loadRecommendations(cohort.cohort_id, d);
+                }}>
+                  <SelectTrigger className="h-7 w-[100px] text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="30">30 min</SelectItem>
+                    <SelectItem value="60">60 min</SelectItem>
+                    <SelectItem value="90">90 min</SelectItem>
+                    <SelectItem value="120">2 hours</SelectItem>
+                  </SelectContent>
+                </Select>
+              </CardHeader>
               <CardContent className="pt-0 px-5 pb-4 space-y-2">
-                {recommendations.map((rec, i) => (
-                  <div key={i} className="flex items-center gap-4 p-3 rounded-lg border hover:border-accent/40 transition-colors">
-                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center text-xs font-bold ${rec.score >= 80 ? "bg-success/10 text-success" : rec.score >= 60 ? "bg-warning/10 text-warning" : "bg-muted text-muted-foreground"}`}>#{i + 1}</div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{rec.dayName} at {rec.hour}:00</p>
-                      <p className="text-[10px] text-muted-foreground font-mono">{rec.available}/{rec.totalMembers} available · {rec.conflicts} conflicts · {rec.score}% attendance</p>
-                    </div>
-                    <Badge variant={rec.score >= 80 ? "default" : "secondary"} className="text-[9px] font-mono">{rec.score}%</Badge>
-                    {isLeadOrPM && <Button size="sm" variant="outline" className="text-[10px] h-7" onClick={() => createProposal(rec)}>Propose</Button>}
-                  </div>
+                {labeledRecs.map((rec, i) => (
+                  <SmartRecRow key={i} rec={rec} memberNames={memberNames} expanded onPropose={isLeadOrPM ? () => createSmartProposal(rec) : undefined} />
                 ))}
+              </CardContent>
+            </Card>
+          )}
+          {labeledRecs.length === 0 && !loadingRecs && (
+            <Card className="border-dashed">
+              <CardContent className="py-6 px-5 text-center">
+                <Clock className="h-6 w-6 text-muted-foreground/40 mx-auto mb-2" />
+                <p className="text-sm font-medium">No recommendations yet</p>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Recommendations need cohort availability data. Have members upload schedules or set availability windows.
+                </p>
+                <Button variant="outline" size="sm" className="h-7 text-[10px] mt-3" onClick={() => setTab("availability")}>Set availability</Button>
               </CardContent>
             </Card>
           )}
@@ -662,4 +790,67 @@ function getNextDate(dayOfWeek: number, hour: number): Date {
   d.setDate(d.getDate() + daysUntil);
   d.setHours(hour, 0, 0, 0);
   return d;
+}
+
+function SmartRecRow({
+  rec, memberNames, onPropose, expanded = false,
+}: {
+  rec: any;
+  memberNames: Record<string, string>;
+  onPropose?: () => void;
+  expanded?: boolean;
+}) {
+  const dayName = DAYS[rec.day_of_week];
+  const fmtHour = (h: number) => {
+    const ampm = h >= 12 ? "pm" : "am";
+    const hh = h % 12 === 0 ? 12 : h % 12;
+    return `${hh}${ampm}`;
+  };
+  const missing: string[] = (rec.missing_user_ids || [])
+    .map((id: string) => memberNames[id])
+    .filter(Boolean);
+  const tone =
+    rec.attendance_pct >= 80 ? "bg-success/10 text-success border-success/20" :
+    rec.attendance_pct >= 60 ? "bg-warning/10 text-warning border-warning/20" :
+    "bg-muted text-muted-foreground border-border";
+
+  return (
+    <div className="rounded-lg border p-3 hover:border-accent/40 transition-colors">
+      <div className="flex items-center gap-3">
+        <div className={`h-9 w-9 rounded-lg flex flex-col items-center justify-center text-[10px] font-bold leading-none ${tone}`}>
+          <span className="text-sm">{rec.attendance_pct}</span>
+          <span className="text-[8px] font-mono opacity-70">%</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-sm font-medium">{dayName} {fmtHour(rec.start_hour)}–{fmtHour(rec.end_hour)}</p>
+            {rec.rank_label && (
+              <Badge variant="outline" className="text-[9px] font-mono py-0">{rec.rank_label}</Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-3 mt-0.5 text-[10px] font-mono text-muted-foreground">
+            <span className="inline-flex items-center gap-1"><UserCheck className="h-2.5 w-2.5 text-success" />{rec.available_count}/{rec.total_count}</span>
+            {rec.conflict_count > 0 && (
+              <span className="inline-flex items-center gap-1"><UserX className="h-2.5 w-2.5 text-destructive" />{rec.conflict_count} conflict{rec.conflict_count === 1 ? "" : "s"}</span>
+            )}
+            <span className="inline-flex items-center gap-1"><Crown className="h-2.5 w-2.5 text-warning" />{rec.lead_count} lead{rec.lead_count === 1 ? "" : "s"}</span>
+          </div>
+        </div>
+        {onPropose && (
+          <Button size="sm" variant="outline" className="text-[10px] h-7 shrink-0" onClick={onPropose}>Propose</Button>
+        )}
+      </div>
+      {expanded && missing.length > 0 && (
+        <div className="mt-2 pt-2 border-t border-border/40 flex items-start gap-2 flex-wrap">
+          <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-wider mt-0.5">Missing:</span>
+          {missing.slice(0, 8).map((n, i) => (
+            <Badge key={i} variant="secondary" className="text-[9px] font-mono py-0 px-1.5">{n}</Badge>
+          ))}
+          {missing.length > 8 && (
+            <span className="text-[9px] font-mono text-muted-foreground">+{missing.length - 8} more</span>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }

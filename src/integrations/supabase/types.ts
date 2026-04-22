@@ -3075,6 +3075,7 @@ export type Database = {
           graduation_year: number | null
           id: string
           invite_state: string
+          last_dashboard_visit_at: string | null
           linkedin_url: string | null
           major: string | null
           onboarding_completed: boolean
@@ -3094,6 +3095,7 @@ export type Database = {
           graduation_year?: number | null
           id?: string
           invite_state?: string
+          last_dashboard_visit_at?: string | null
           linkedin_url?: string | null
           major?: string | null
           onboarding_completed?: boolean
@@ -3113,6 +3115,7 @@ export type Database = {
           graduation_year?: number | null
           id?: string
           invite_state?: string
+          last_dashboard_visit_at?: string | null
           linkedin_url?: string | null
           major?: string | null
           onboarding_completed?: boolean
@@ -4455,6 +4458,7 @@ export type Database = {
         }
         Returns: string
       }
+      dashboard_changes_since: { Args: { p_since: string }; Returns: Json }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -4603,6 +4607,29 @@ export type Database = {
           xp_reward: number
         }[]
       }
+      recommend_meeting_slots: {
+        Args: {
+          p_attendee_ids?: string[]
+          p_cohort_id: string
+          p_duration_min?: number
+          p_limit?: number
+        }
+        Returns: {
+          attendance_pct: number
+          available_count: number
+          available_user_ids: string[]
+          conflict_count: number
+          day_of_week: number
+          duration_min: number
+          end_hour: number
+          lead_count: number
+          missing_user_ids: string[]
+          rank_label: string
+          score: number
+          start_hour: number
+          total_count: number
+        }[]
+      }
       recommend_theme_drills: {
         Args: {
           p_cohort?: Database["public"]["Enums"]["drill_cohort"]
@@ -4664,6 +4691,7 @@ export type Database = {
         }
         Returns: Json
       }
+      touch_dashboard_visit: { Args: never; Returns: string }
       track_recent_item: {
         Args: {
           p_item_id: string
