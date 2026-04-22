@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Upload, Link as LinkIcon, CheckCircle2, AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { logAuditAction } from "@/lib/audit";
+import { FeedbackPrompt } from "@/components/FeedbackPrompt";
 
 interface Deliverable {
   id: string;
