@@ -267,6 +267,57 @@ export default function PermissionInspector() {
                           <p className="text-xs text-muted-foreground">{selectedUser.cal_poly_email}</p>
                         </div>
                         <Badge variant="outline" className="ml-auto text-[9px] font-mono capitalize">{selectedUser.status}</Badge>
+                        <Button size="sm" variant="outline" onClick={repairIdentity} disabled={repairing} className="h-7 text-[11px] gap-1">
+                          <Wand2 className="h-3 w-3" />
+                          {repairing ? "Repairing…" : "Repair from roster"}
+                        </Button>
+                      </div>
+
+                      {/* Roster expectation vs actual */}
+                      <div className="mb-4 rounded-md border bg-muted/20 p-3">
+                        <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-2">Roster mapping</p>
+                        {rosterRow ? (
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
+                            <div className="text-muted-foreground">Roster row</div>
+                            <div className="font-mono">{rosterRow.full_name} · {rosterRow.role}</div>
+                            <div className="text-muted-foreground">Expected cohort</div>
+                            <div className="font-mono">{rosterRow.cohort_name}</div>
+                            <div className="text-muted-foreground">Identity status</div>
+                            <div className="font-mono">{rosterRow.identity_status}{rosterRow.matched_user_id === selectedUser.user_id ? " ✓" : ""}</div>
+                            <div className="text-muted-foreground">Expected app role(s)</div>
+                            <div className="font-mono">
+                              member{["pm","lead","integration_lead"].includes(rosterRow.role) ? " + project_lead" : ""}
+                            </div>
+                            {(() => {
+                              const expectedCohortMatched = userCohorts.some(c => (c.cohorts as any)?.name === rosterRow.cohort_name);
+                              const expectedRoles = ["member", ...(["pm","lead","integration_lead"].includes(rosterRow.role) ? ["project_lead"] : [])];
+                              const missingRoles = expectedRoles.filter(r => !userRoles.some(ur => ur.role === r));
+                              const issues: string[] = [];
+                              if (!expectedCohortMatched) issues.push("missing cohort membership");
+                              if (missingRoles.length) issues.push(`missing role(s): ${missingRoles.join(", ")}`);
+                              if (userProjects.length === 0) issues.push("no project memberships");
+                              if (rosterRow.matched_user_id !== selectedUser.user_id) issues.push("roster not marked matched");
+                              return issues.length > 0 ? (
+                                <>
+                                  <div className="text-muted-foreground">Mismatches</div>
+                                  <div className="text-warning font-mono">{issues.join(" · ")}</div>
+                                </>
+                              ) : (
+                                <>
+                                  <div className="text-muted-foreground">Status</div>
+                                  <div className="text-success font-mono">All expected mappings present ✓</div>
+                                </>
+                              );
+                            })()}
+                          </div>
+                        ) : (
+                          <p className="text-[11px] text-muted-foreground">
+                            No roster row matches <span className="font-mono">{selectedUser.cal_poly_email}</span>.
+                            {userRoles.some(r => r.role === "applicant") && userRoles.length === 1
+                              ? " User is an applicant fallback — this is expected if not on the roster."
+                              : ""}
+                          </p>
+                        )}
                       </div>
                       <div className="space-y-3">
                         <Section label="App Roles" items={userRoles} render={r => <Badge key={r.id} variant="outline" className="text-[9px] font-mono">{r.role}</Badge>} />
