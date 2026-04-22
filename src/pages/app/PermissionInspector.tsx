@@ -74,13 +74,14 @@ export default function PermissionInspector() {
   const inspectUser = async (profile: any) => {
     setSelectedUser(profile);
     setSelectedResource(null);
-    const [rolesRes, cohortsRes, projectsRes, mockProjRes, channelsRes, logsRes] = await Promise.all([
+    const [rolesRes, cohortsRes, projectsRes, mockProjRes, channelsRes, logsRes, rosterRes] = await Promise.all([
       supabase.from("user_roles").select("*").eq("user_id", profile.user_id),
       supabase.from("cohort_memberships").select("*, cohorts(name)").eq("user_id", profile.user_id),
       supabase.from("project_memberships").select("*, projects(name, status)").eq("user_id", profile.user_id),
       supabase.from("mock_project_memberships").select("*, mock_projects(title, cohort_id)").eq("user_id", profile.user_id),
       supabase.from("channel_members").select("*, channels(name, is_org_wide)").eq("user_id", profile.user_id),
       supabase.from("audit_logs").select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }).limit(15),
+      supabase.from("cohort_roster").select("*").ilike("email", (profile.cal_poly_email || "").trim()).maybeSingle(),
     ]);
     setUserRoles(rolesRes.data || []);
     setUserCohorts(cohortsRes.data || []);
@@ -88,6 +89,25 @@ export default function PermissionInspector() {
     setUserMockProjects(mockProjRes.data || []);
     setUserChannels(channelsRes.data || []);
     setAuditLogs(logsRes.data || []);
+    setRosterRow(rosterRes.data || null);
+  };
+
+  const repairIdentity = async () => {
+    if (!selectedUser) return;
+    setRepairing(true);
+    const { data, error } = await supabase.rpc("resync_user_from_roster" as any, { p_user_id: selectedUser.user_id });
+    setRepairing(false);
+    if (error) {
+      toast.error(`Repair failed: ${error.message}`);
+      return;
+    }
+    const result: any = data;
+    if (result?.matched) {
+      toast.success(`Resynced from roster: ${result.cohort_name} · ${result.roster_role}`);
+    } else {
+      toast.warning(`No roster match (${result?.reason || "unknown"})`);
+    }
+    await inspectUser(selectedUser);
   };
 
   const inspectProject = async (project: any) => {
