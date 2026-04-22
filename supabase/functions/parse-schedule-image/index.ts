@@ -1,98 +1,27 @@
-import { createClient } from 'npm:@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Uses Lovable AI Gateway (no extra API key needed) with a vision-capable model.
-// Returns proposed busy windows the user can review before saving.
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+const MAX_IMAGE_BYTES = 6 * 1024 * 1024
 
 interface BusyBlock {
-  day_of_week: number   // 0=Sun..6=Sat
-  start_time: string    // HH:MM (24h)
-  end_time: string      // HH:MM (24h)
+  day_of_week: number
+  start_time: string
+  end_time: string
   label?: string
 }
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
-
-  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
-  if (!LOVABLE_API_KEY) {
-    return new Response(JSON.stringify({ error: 'AI gateway not configured' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-  }
-
-  let imageDataUrl: string
-  try {
-    const body = await req.json()
-    imageDataUrl = body.image
-    if (!imageDataUrl?.startsWith('data:image/')) throw new Error('image must be a data URL')
-  } catch (e) {
-    return new Response(JSON.stringify({ error: 'invalid_request', details: (e as Error).message }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-  }
-
-  const systemPrompt = `You analyze a screenshot of a weekly class schedule or calendar.
-Extract recurring busy/occupied time blocks. Return STRICT JSON only with shape:
-{
-  "confidence": "low" | "medium" | "high",
-  "notes": "short text if anything is ambiguous",
-  "blocks": [{ "day_of_week": 0-6 (0=Sun, 1=Mon ... 6=Sat), "start_time": "HH:MM" 24h, "end_time": "HH:MM" 24h, "label": "optional class/event name" }]
-}
-Rules:
-- Only include time blocks that look like recurring weekly commitments (classes, labs, standing meetings).
-- Combine adjacent identical blocks; ignore one-off events if a calendar shows them.
-- If you cannot confidently identify any blocks, return blocks: [] with confidence "low".
-- Times must be 24h "HH:MM". day_of_week MUST be an integer 0-6.
-- Output JSON only, no markdown, no commentary.`
-
-  const aiResp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${LOVABLE_API_KEY}` },
-    body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: [
-          { type: 'text', text: 'Extract recurring busy times from this schedule image.' },
-          { type: 'image_url', image_url: { url: imageDataUrl } },
-        ] },
-      ],
-    }),
+function jsonResp(status: number, body: Record<string, unknown>) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
-
-  if (!aiResp.ok) {
-    const txt = await aiResp.text()
-    if (aiResp.status === 429) {
-      return new Response(JSON.stringify({ error: 'rate_limited', message: 'AI gateway rate limit reached. Try again shortly.' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-    }
-    if (aiResp.status === 402) {
-      return new Response(JSON.stringify({ error: 'payment_required', message: 'AI credits exhausted on your workspace. Add credits to enable schedule parsing.' }), { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-    }
-    return new Response(JSON.stringify({ error: 'ai_failed', details: txt.slice(0, 400) }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-  }
-
-  const data = await aiResp.json()
-  const content: string = data?.choices?.[0]?.message?.content ?? ''
-
-  // Strip code fences if model returned them despite instructions
-  const cleaned = content.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim()
-
-  let parsed: { confidence?: string; notes?: string; blocks?: BusyBlock[] }
-  try {
-    parsed = JSON.parse(cleaned)
-  } catch {
-    return new Response(JSON.stringify({ error: 'parse_failed', confidence: 'low', blocks: [], notes: 'Could not interpret schedule image. Try a clearer screenshot or add busy times manually.' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-  }
-
-  // Validate / sanitize
-  const blocks = Array.isArray(parsed.blocks) ? parsed.blocks.filter(isValidBlock) : []
-  return new Response(JSON.stringify({
-    confidence: parsed.confidence ?? (blocks.length ? 'medium' : 'low'),
-    notes: parsed.notes ?? null,
-    blocks,
-  }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-})
+}
 
 function isValidBlock(b: any): b is BusyBlock {
   return b
@@ -101,3 +30,88 @@ function isValidBlock(b: any): b is BusyBlock {
     && /^\d{2}:\d{2}$/.test(b.end_time)
     && b.start_time < b.end_time
 }
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
+
+  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
+  if (!LOVABLE_API_KEY) {
+    return jsonResp(500, { error: 'config_error', message: 'AI gateway is not configured. Contact an admin.' })
+  }
+
+  // Anonymous-callable: gateway has verify_jwt=false. The client sends only the
+  // anon apikey (the user JWT is intentionally omitted to dodge an ES256 gateway bug).
+  // No PII or DB writes happen here; this is a stateless image-to-JSON helper.
+
+  let imageDataUrl = ''
+  try {
+    const body = await req.json()
+    imageDataUrl = body?.image
+    if (!imageDataUrl || typeof imageDataUrl !== 'string') throw new Error('Missing image')
+    if (!imageDataUrl.startsWith('data:image/')) throw new Error('Image must be a PNG, JPG, or WEBP screenshot')
+    if (imageDataUrl.length > MAX_IMAGE_BYTES * 1.4) {
+      return jsonResp(413, { error: 'image_too_large', message: 'Image is too large. Try a screenshot under 5 MB.' })
+    }
+  } catch (e) {
+    return jsonResp(400, { error: 'invalid_request', message: (e as Error).message || 'Invalid image upload.' })
+  }
+
+  const systemPrompt = [
+    'You analyze a screenshot of a weekly class schedule or calendar.',
+    'Extract recurring busy/occupied time blocks. Return STRICT JSON only with shape:',
+    '{ "confidence": "low"|"medium"|"high", "notes": "short text if anything is ambiguous", "blocks": [{ "day_of_week": 0-6 (0=Sun..6=Sat), "start_time": "HH:MM" 24h, "end_time": "HH:MM" 24h, "label": "optional class/event name" }] }',
+    'Rules: only recurring weekly commitments; combine adjacent identical blocks; skip one-off events; HH:MM 24h; day_of_week integer 0-6; if unsure return blocks: [] with confidence "low". Output JSON only, no markdown, no commentary.',
+  ].join('\n')
+
+  let aiResp: Response
+  try {
+    aiResp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${LOVABLE_API_KEY}` },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Extract recurring busy times from this schedule image.' },
+              { type: 'image_url', image_url: { url: imageDataUrl } },
+            ],
+          },
+        ],
+      }),
+    })
+  } catch {
+    return jsonResp(502, { error: 'provider_unreachable', message: 'Could not reach the AI provider. Check your connection and retry.' })
+  }
+
+  if (!aiResp.ok) {
+    const txt = await aiResp.text().catch(() => '')
+    if (aiResp.status === 429) return jsonResp(429, { error: 'rate_limited', message: 'AI is busy right now. Try again in a minute.' })
+    if (aiResp.status === 402) return jsonResp(402, { error: 'payment_required', message: 'AI credits are exhausted. Add credits in workspace settings to use schedule import.' })
+    if (aiResp.status === 413) return jsonResp(413, { error: 'image_too_large', message: 'The provider rejected the image as too large. Try a smaller screenshot.' })
+    return jsonResp(502, { error: 'ai_failed', message: 'AI provider error. Try a clearer screenshot or add busy times manually.', details: txt.slice(0, 200) })
+  }
+
+  const data = await aiResp.json().catch(() => null) as any
+  const content: string = data?.choices?.[0]?.message?.content ?? ''
+  if (!content) {
+    return jsonResp(200, { error: 'empty_response', confidence: 'low', blocks: [], notes: 'AI returned an empty response. Try another screenshot.' })
+  }
+
+  const cleaned = content.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim()
+  let parsed: { confidence?: string; notes?: string; blocks?: BusyBlock[] }
+  try {
+    parsed = JSON.parse(cleaned)
+  } catch {
+    return jsonResp(200, { error: 'parse_failed', confidence: 'low', blocks: [], notes: 'Could not interpret the screenshot. Try a clearer image or add busy times manually.' })
+  }
+
+  const blocks = Array.isArray(parsed.blocks) ? parsed.blocks.filter(isValidBlock) : []
+  return jsonResp(200, {
+    confidence: parsed.confidence ?? (blocks.length ? 'medium' : 'low'),
+    notes: parsed.notes ?? null,
+    blocks,
+  })
+})
