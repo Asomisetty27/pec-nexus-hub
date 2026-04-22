@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { CalendarDays, MapPin, Plus, Check, Clock, Pencil, Trash2, Ban, Mail, AlertTriangle, Link2 } from "lucide-react";
+import { CalendarDays, MapPin, Plus, Check, Clock, Pencil, Trash2, Ban, Mail, AlertTriangle, Link2, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { logAuditAction } from "@/lib/audit";
@@ -109,6 +109,7 @@ export default function Events() {
       location: f.get("location") as string,
       start_time: f.get("start_time") as string,
       meeting_link: (f.get("meeting_link") as string) || null,
+      teams_link: (f.get("teams_link") as string) || null,
       audience_scope: audience,
       audience_target_id: (audience === "cohort" || audience === "project") ? (audienceTarget || null) : null,
       notify_on_create: notifyOnCreate,
@@ -234,7 +235,8 @@ export default function Events() {
               </div>
             </div>
             <div className="space-y-2"><Label>Location</Label><Input name="location" defaultValue={editing?.location || ""} /></div>
-            <div className="space-y-2"><Label className="flex items-center gap-1.5"><Link2 className="h-3 w-3" /> Meeting link (Teams / Zoom / etc.)</Label><Input name="meeting_link" type="url" placeholder="https://teams.microsoft.com/..." defaultValue={editing?.meeting_link || ""} /></div>
+            <div className="space-y-2"><Label className="flex items-center gap-1.5"><Link2 className="h-3 w-3" /> Meeting link (Zoom, Meet, etc.)</Label><Input name="meeting_link" type="url" placeholder="https://zoom.us/j/..." defaultValue={editing?.meeting_link || ""} /></div>
+            <div className="space-y-2"><Label className="flex items-center gap-1.5"><MessageSquare className="h-3 w-3" /> Microsoft Teams link (optional)</Label><Input name="teams_link" type="url" placeholder="https://teams.microsoft.com/l/meetup-join/..." defaultValue={editing?.teams_link || ""} /></div>
 
             <div className="space-y-2">
               <Label>Audience</Label>
@@ -305,6 +307,11 @@ export default function Events() {
                     {ev.meeting_link && (
                       <a href={ev.meeting_link} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-[11px] text-primary hover:underline">
                         <Link2 className="h-3 w-3" /> Join meeting
+                      </a>
+                    )}
+                    {ev.teams_link && (
+                      <a href={ev.teams_link} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-[11px] text-primary hover:underline">
+                        <MessageSquare className="h-3 w-3" /> Open in Teams
                       </a>
                     )}
                     {!isPast && !isCancelled && (

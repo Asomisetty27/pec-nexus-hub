@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AvailabilityChips from "@/components/AvailabilityChips";
+import SmartScheduleImport from "@/components/SmartScheduleImport";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import {
   CalendarDays, Clock, Plus, Trash2, Users, Zap, ChevronLeft, ChevronRight,
-  CalendarRange, List, MapPin, Flag, Target, AlertCircle,
+  CalendarRange, List, MapPin, Flag, Target, AlertCircle, Pencil, Link2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -299,10 +300,31 @@ export default function Scheduling() {
 
         {/* ============= AVAILABILITY ============= */}
         <TabsContent value="availability" className="mt-4 space-y-5">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">Set when you're free so leads can find optimal cohort meeting times.</p>
+          <div className="rounded-lg border border-accent/30 bg-accent/5 p-4 space-y-1">
+            <p className="text-sm font-medium">Fast path: upload your class schedule</p>
+            <p className="text-xs text-muted-foreground">
+              Drop a screenshot of your weekly calendar or class schedule. Nexus extracts recurring busy times — you review every block before anything saves. Manual edits below remain available as fallback.
+            </p>
+          </div>
+
+          <SmartScheduleImport onSaved={async () => {
+            const { data } = await supabase.from("availability_windows").select("*").eq("user_id", user!.id).order("day_of_week");
+            setWindows((data as any[]) || []);
+            if (cohort?.cohort_id) {
+              const memRes = await supabase.from("cohort_memberships").select("user_id").eq("cohort_id", cohort.cohort_id);
+              const userIds = memRes.data?.map((m: any) => m.user_id) || [];
+              const cwRes = await supabase.from("availability_windows").select("*, profiles:user_id(full_name)").in("user_id", userIds);
+              setCohortWindows((cwRes.data as any[]) || []);
+            }
+          }} />
+
+          <div className="flex items-center justify-between pt-2 border-t border-border/40">
+            <div>
+              <p className="text-sm font-medium">Manual refinement</p>
+              <p className="text-xs text-muted-foreground">Add or tweak individual windows. Use the chips below for quick weekly preferences.</p>
+            </div>
             <Dialog open={addDialog} onOpenChange={setAddDialog}>
-              <DialogTrigger asChild><Button size="sm" className="gap-2"><Plus className="h-3.5 w-3.5" />Add Window</Button></DialogTrigger>
+              <DialogTrigger asChild><Button size="sm" variant="outline" className="gap-2"><Plus className="h-3.5 w-3.5" />Add Window</Button></DialogTrigger>
               <DialogContent>
                 <DialogHeader><DialogTitle>Add Availability Window</DialogTitle></DialogHeader>
                 <div className="space-y-4">
@@ -467,6 +489,16 @@ export default function Scheduling() {
                 )}
                 {selectedEvent.description && (
                   <p className="text-muted-foreground whitespace-pre-line">{selectedEvent.description}</p>
+                )}
+                {selectedEvent.meta?.meeting_link && (
+                  <Button asChild size="sm" variant="outline" className="w-full gap-2">
+                    <a href={selectedEvent.meta.meeting_link} target="_blank" rel="noreferrer"><Link2 className="h-3.5 w-3.5" /> Join meeting</a>
+                  </Button>
+                )}
+                {selectedEvent.meta?.teams_link && (
+                  <Button asChild size="sm" className="w-full gap-2">
+                    <a href={selectedEvent.meta.teams_link} target="_blank" rel="noreferrer"><Link2 className="h-3.5 w-3.5" /> Open in Teams</a>
+                  </Button>
                 )}
                 {selectedEvent.link && (
                   <Button asChild size="sm" variant="outline" className="w-full"><a href={selectedEvent.link}>Open project</a></Button>

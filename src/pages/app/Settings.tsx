@@ -10,7 +10,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Shield, Cpu, Award, User, Mail, GraduationCap, Linkedin, Phone, BookOpen } from "lucide-react";
+import { Shield, Cpu, Award, User, Mail, GraduationCap, Linkedin, Phone, BookOpen, MessageSquare, CheckCircle2, XCircle, AlertTriangle, ExternalLink, Loader2 } from "lucide-react";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
 const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } };
@@ -19,12 +19,33 @@ export default function Settings() {
   const { profile, roles, highestRole, refreshProfile } = useAuth();
   const [saving, setSaving] = useState(false);
   const [cohort, setCohort] = useState<any>(null);
+  const [msState, setMsState] = useState<{ status: "idle" | "checking" | "connected" | "not_connected" | "blocked" | "error"; detail?: string }>({ status: "idle" });
 
   useEffect(() => {
     if (!profile) return;
     supabase.from("cohort_memberships").select("*, cohorts(*)").eq("user_id", profile.user_id).limit(1).maybeSingle()
       .then(({ data }) => setCohort(data));
   }, [profile]);
+
+  const checkMicrosoft = async () => {
+    setMsState({ status: "checking" });
+    try {
+      const { data, error } = await supabase.functions.invoke("microsoft-status", { body: {} });
+      if (error) {
+        setMsState({ status: "error", detail: error.message });
+        return;
+      }
+      const d = data as any;
+      if (d?.status === "connected") setMsState({ status: "connected", detail: d.account });
+      else if (d?.status === "blocked") setMsState({ status: "blocked", detail: d.message });
+      else if (d?.status === "not_configured") setMsState({ status: "not_connected", detail: d.message });
+      else setMsState({ status: "error", detail: d?.message || "Unknown response" });
+    } catch (e: any) {
+      setMsState({ status: "error", detail: e.message });
+    }
+  };
+
+  useEffect(() => { if (profile) checkMicrosoft(); }, [profile]);
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -161,6 +182,61 @@ export default function Settings() {
             </div>
             <p className="text-[10px] text-muted-foreground mt-3">
               Roles are assigned by admins and determined by your cohort membership.
+            </p>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Microsoft 365 / Teams integration */}
+      <motion.div variants={item}>
+        <Card>
+          <CardHeader className="py-4 px-6">
+            <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
+              <MessageSquare className="h-3.5 w-3.5 text-accent-foreground" /> Microsoft 365 / Teams
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-6 pb-6 space-y-3">
+            <div className="flex items-start gap-3 rounded-md border border-border bg-muted/20 p-3">
+              {msState.status === "checking" && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mt-0.5" />}
+              {msState.status === "connected" && <CheckCircle2 className="h-4 w-4 text-success mt-0.5" />}
+              {msState.status === "not_connected" && <XCircle className="h-4 w-4 text-muted-foreground mt-0.5" />}
+              {msState.status === "blocked" && <AlertTriangle className="h-4 w-4 text-warning mt-0.5" />}
+              {msState.status === "error" && <AlertTriangle className="h-4 w-4 text-destructive mt-0.5" />}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium">
+                  {msState.status === "checking" && "Checking connection…"}
+                  {msState.status === "connected" && "Connected"}
+                  {msState.status === "not_connected" && "Not connected"}
+                  {msState.status === "blocked" && "Tenant restricted"}
+                  {msState.status === "error" && "Connection error"}
+                  {msState.status === "idle" && "Status unknown"}
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-0.5 break-words">
+                  {msState.detail || (msState.status === "not_connected"
+                    ? "Connect a Microsoft 365 account to attach Teams meeting context to events. Nexus messaging keeps working either way."
+                    : "")}
+                </p>
+              </div>
+              <Button size="sm" variant="outline" onClick={checkMicrosoft} disabled={msState.status === "checking"} className="text-xs">
+                Recheck
+              </Button>
+            </div>
+
+            <div className="rounded-md border border-dashed border-border p-3 space-y-2">
+              <p className="text-xs font-medium">How this works honestly</p>
+              <ul className="text-[11px] text-muted-foreground space-y-1 list-disc pl-4">
+                <li>Nexus messaging is the system of record. Microsoft integration layers on top — never replaces it.</li>
+                <li>If your Cal Poly tenant blocks third-party Microsoft Graph apps, you'll see "Tenant restricted" — Nexus features keep working.</li>
+                <li>Teams meeting links you paste on events are surfaced as "Open in Teams" buttons regardless of integration state.</li>
+              </ul>
+              <a href="https://teams.microsoft.com" target="_blank" rel="noreferrer"
+                 className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline mt-1">
+                Open Teams <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+
+            <p className="text-[10px] text-muted-foreground">
+              Full per-user Microsoft OAuth requires Cal Poly tenant admin approval. We do not claim Teams delivery succeeded unless it actually did.
             </p>
           </CardContent>
         </Card>
