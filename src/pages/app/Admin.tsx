@@ -319,6 +319,22 @@ export default function Admin() {
         <TabsContent value="metrics" className="mt-4">
           <PublicMetricsEditor />
         </TabsContent>
+
+        <TabsContent value="identity" className="mt-4">
+          {tab === "identity" && <PermissionInspector />}
+        </TabsContent>
+
+        <TabsContent value="invites" className="mt-4">
+          {tab === "invites" && <InviteManagement />}
+        </TabsContent>
+
+        <TabsContent value="analytics" className="mt-4">
+          {tab === "analytics" && <Analytics />}
+        </TabsContent>
+
+        <TabsContent value="feedback" className="mt-4">
+          {tab === "feedback" && <FeedbackDashboard />}
+        </TabsContent>
       </Tabs>
     </motion.div>
   );
