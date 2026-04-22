@@ -42,6 +42,7 @@ export default function InlineDeliverableSubmit({ open, onOpenChange, deliverabl
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [justSubmitted, setJustSubmitted] = useState(false);
 
   if (!deliverable) return null;
 
@@ -49,7 +50,7 @@ export default function InlineDeliverableSubmit({ open, onOpenChange, deliverabl
   const nextVersion = isRevision ? deliverable.version + 1 : 1;
 
   const reset = () => {
-    setFile(null); setLinkUrl(""); setNotes(""); setError(null); setMode("link");
+    setFile(null); setLinkUrl(""); setNotes(""); setError(null); setMode("link"); setJustSubmitted(false);
   };
 
   const handleSubmit = async () => {
