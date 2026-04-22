@@ -125,6 +125,16 @@ export default function LeadWorkspace() {
         <SummaryCard icon={Users} label="Members" value={members.length} />
       </motion.div>
 
+      {/* Momentum risk for projects this cohort touches */}
+      <motion.div variants={item}>
+        <MomentumRiskPanel
+          projectIds={cohortProjectIds}
+          mode="leadership"
+          limit={6}
+          title="Momentum Risk · Your Projects"
+        />
+      </motion.div>
+
       <Tabs defaultValue="review">
         <TabsList>
           <TabsTrigger value="review" className="gap-1.5">

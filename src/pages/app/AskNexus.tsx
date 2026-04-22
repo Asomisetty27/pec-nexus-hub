@@ -291,7 +291,8 @@ export default function AskNexus() {
     [filter]);
 
   const runQuery = async (q: QueryDef) => {
-    if (q.needsCohort && !cohortId) {
+    const effectiveCohort = cohortId && cohortId !== "all" ? cohortId : null;
+    if (q.needsCohort && !effectiveCohort) {
       setActive(q);
       setAnswer({ headline: "Pick a cohort to run this query.", rows: [] });
       return;
@@ -300,7 +301,7 @@ export default function AskNexus() {
     setLoading(true);
     setAnswer(null);
     try {
-      const a = await q.run({ cohortId: cohortId || null });
+      const a = await q.run({ cohortId: effectiveCohort });
       setAnswer(a);
       if (user) {
         void supabase.from("ask_nexus_query_log").insert({ user_id: user.id, query_key: q.key, result_count: a.rows.length });
