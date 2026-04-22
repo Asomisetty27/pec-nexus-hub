@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { Wand2 } from "lucide-react";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } };
@@ -37,6 +38,8 @@ export default function PermissionInspector() {
   const [userMockProjects, setUserMockProjects] = useState<any[]>([]);
   const [userChannels, setUserChannels] = useState<any[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [rosterRow, setRosterRow] = useState<any>(null);
+  const [repairing, setRepairing] = useState(false);
 
   // Resource inspection
   const [projects, setProjects] = useState<any[]>([]);
