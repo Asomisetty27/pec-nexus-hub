@@ -19,6 +19,7 @@ import {
   Settings,
   Shield,
   ShieldCheck,
+  Sparkles,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -68,6 +69,7 @@ const mainNav: NavItem[] = [
   { title: "Scheduling", url: "/app/scheduling", icon: Clock, hideForApplicants: true },
   { title: "Events", url: "/app/events", icon: CalendarDays },
   { title: "Academy", url: "/app/academy", icon: GraduationCap },
+  { title: "Ask Nexus", url: "/app/ask", icon: Sparkles, hideForApplicants: true },
   {
     title: "Lead Workspace",
     url: "/app/lead",

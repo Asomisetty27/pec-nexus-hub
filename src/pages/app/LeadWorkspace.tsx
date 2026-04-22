@@ -16,6 +16,7 @@ import { motion } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { logAuditAction } from "@/lib/audit";
 import { SectionExplainer, InfoDot } from "@/components/ui/SectionExplainer";
+import { MomentumRiskPanel } from "@/components/momentum/MomentumRiskPanel";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } };
@@ -29,6 +30,7 @@ export default function LeadWorkspace() {
   const [helpRequests, setHelpRequests] = useState<any[]>([]);
   const [stages, setStages] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
+  const [cohortProjectIds, setCohortProjectIds] = useState<string[]>([]);
   const [announceText, setAnnounceText] = useState("");
   const [announceTitle, setAnnounceTitle] = useState("");
 
@@ -52,6 +54,12 @@ export default function LeadWorkspace() {
       setDeliverables(delRes.data || []);
       setHelpRequests(helpRes.data || []);
       setMembers(memRes.data || []);
+
+      // Resolve projects this cohort touches (via project memberships)
+      if (memberIds.length > 0) {
+        const { data: pms } = await supabase.from("project_memberships").select("project_id").in("user_id", memberIds);
+        setCohortProjectIds(Array.from(new Set((pms || []).map((p: any) => p.project_id))));
+      }
 
       // Fetch stages for active mock projects
       if (projRes.data && projRes.data.length > 0) {
@@ -115,6 +123,16 @@ export default function LeadWorkspace() {
         <SummaryCard icon={Clock} label="Pending Review" value={pendingReview.length} />
         <SummaryCard icon={HelpCircle} label="Help Requests" value={helpRequests.length} variant={helpRequests.length > 0 ? "warning" : "default"} />
         <SummaryCard icon={Users} label="Members" value={members.length} />
+      </motion.div>
+
+      {/* Momentum risk for projects this cohort touches */}
+      <motion.div variants={item}>
+        <MomentumRiskPanel
+          projectIds={cohortProjectIds}
+          mode="leadership"
+          limit={6}
+          title="Momentum Risk · Your Projects"
+        />
       </motion.div>
 
       <Tabs defaultValue="review">
