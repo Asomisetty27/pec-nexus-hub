@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -85,8 +85,11 @@ const App = () => (
               <Route path="ops" element={<OpsDashboard />} />
               <Route path="permissions" element={<PermissionInspector />} />
               <Route path="lead" element={<LeadWorkspace />} />
-              <Route path="review" element={<ReviewQueue />} />
+              {/* Review queue is now part of Lead Workspace. Keep deep links working. */}
+              <Route path="review" element={<Navigate to="/app/lead" replace />} />
               <Route path="review/:id" element={<ReviewQueue />} />
+              {/* Ops Dashboard consolidated into Command Center. */}
+              <Route path="ops" element={<Navigate to="/app/command" replace />} />
               <Route path="command" element={<CommandCenter />} />
               <Route path="invites" element={<InviteManagement />} />
               <Route path="advisor" element={<AdvisorPortal />} />

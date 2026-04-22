@@ -80,7 +80,6 @@ const mainNav: NavItem[] = [
 
 const orgNav: NavItem[] = [
   { title: "Members", url: "/app/members", icon: Users, hideForApplicants: true },
-  { title: "Ops Command", url: "/app/ops", icon: Briefcase, requiresBoardOrAdmin: true },
   { title: "Sponsors & CRM", url: "/app/crm", icon: Building2, requiresBoardOrAdmin: true },
   { title: "Documents", url: "/app/docs", icon: FileText, hideForApplicants: true },
 ];

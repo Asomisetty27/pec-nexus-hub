@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Shield, Users, AlertTriangle, Clock, CheckCircle2, FolderKanban,
   HelpCircle, Mail, ChevronRight, Activity, Eye, Compass, Trophy,
-  Briefcase, Rocket, Target, Cpu, Wrench, Code,
+  Briefcase, Rocket, Target, Cpu, Wrench, Code, Building2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -38,6 +38,9 @@ export default function CommandCenter() {
   const [recentAudit, setRecentAudit] = useState<any[]>([]);
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const [globalStats, setGlobalStats] = useState({ members: 0, projects: 0, blockedStages: 0, pendingReviews: 0 });
+  const [opsTasks, setOpsTasks] = useState<any[]>([]);
+  const [opsLeads, setOpsLeads] = useState<any[]>([]);
+  const [opsSponsors, setOpsSponsors] = useState<any[]>([]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -68,6 +71,16 @@ export default function CommandCenter() {
         blockedStages: stageRes.count || 0,
         pendingReviews: revDelRes.count || 0,
       });
+
+      // Operations consolidated from former Ops Dashboard
+      const [opsTaskRes, opsLeadRes, opsSpRes] = await Promise.all([
+        supabase.from("ops_tasks").select("*, profiles:assignee_id(full_name)").order("created_at", { ascending: false }).limit(30),
+        supabase.from("leads").select("*, organizations(name)").order("updated_at", { ascending: false }).limit(15),
+        supabase.from("sponsorship_packages").select("*, organizations(name)").order("created_at", { ascending: false }).limit(15),
+      ]);
+      setOpsTasks((opsTaskRes.data as any[]) || []);
+      setOpsLeads(opsLeadRes.data || []);
+      setOpsSponsors(opsSpRes.data || []);
 
       // Per-cohort enrichment
       for (const c of cohortRes.data || []) {
@@ -153,6 +166,7 @@ export default function CommandCenter() {
           <TabsTrigger value="opportunities" className="gap-1.5"><Rocket className="h-3 w-3" />Opportunities ({opportunities.length})</TabsTrigger>
           <TabsTrigger value="overdue" className="gap-1.5"><AlertTriangle className="h-3 w-3" />Overdue ({overdue.length})</TabsTrigger>
           <TabsTrigger value="help" className="gap-1.5"><HelpCircle className="h-3 w-3" />Help ({openHelp.length})</TabsTrigger>
+          <TabsTrigger value="ops" className="gap-1.5"><Briefcase className="h-3 w-3" />Operations</TabsTrigger>
           <TabsTrigger value="audit"><Activity className="h-3 w-3" /> Activity</TabsTrigger>
         </TabsList>
 
@@ -302,6 +316,81 @@ export default function CommandCenter() {
               </CardContent>
             </Card>
           ))}
+        </TabsContent>
+
+        {/* Operations (consolidated from Ops Dashboard) */}
+        <TabsContent value="ops" className="mt-4 space-y-4">
+          <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
+            <HealthCard icon={Target} label="Active tasks" value={opsTasks.filter(t => t.status !== "done").length} />
+            <HealthCard icon={AlertTriangle} label="Blocked" value={opsTasks.filter(t => t.status === "blocked").length} variant={opsTasks.some(t => t.status === "blocked") ? "destructive" : "default"} />
+            <HealthCard icon={Mail} label="Open leads" value={opsLeads.length} />
+            <HealthCard icon={Building2} label="Sponsors tracked" value={opsSponsors.length} />
+          </div>
+
+          <div>
+            <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-2">Recent ops tasks</p>
+            <div className="space-y-1.5">
+              {opsTasks.length === 0 ? (
+                <Card><CardContent className="py-8 text-center text-xs text-muted-foreground">No ops tasks yet.</CardContent></Card>
+              ) : opsTasks.slice(0, 8).map(t => (
+                <Card key={t.id}>
+                  <CardContent className="flex items-center gap-3 p-3">
+                    <div className={`h-2 w-2 rounded-full ${t.status === "done" ? "bg-success" : t.status === "blocked" ? "bg-destructive" : t.status === "in_progress" ? "bg-warning" : "bg-muted-foreground/40"}`} />
+                    <p className={`flex-1 min-w-0 truncate text-sm ${t.status === "done" ? "line-through text-muted-foreground" : ""}`}>{t.title}</p>
+                    <Badge variant="outline" className="text-[9px] font-mono capitalize">{t.category}</Badge>
+                    {t.due_date && (
+                      <span className={`text-[10px] font-mono ${new Date(t.due_date) < new Date() && t.status !== "done" ? "text-destructive font-semibold" : "text-muted-foreground"}`}>
+                        {new Date(t.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </span>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-2">Active leads</p>
+              {opsLeads.length === 0 ? (
+                <Card><CardContent className="py-6 text-center text-xs text-muted-foreground">No leads tracked.</CardContent></Card>
+              ) : (
+                <div className="space-y-1.5">
+                  {opsLeads.slice(0, 5).map(l => (
+                    <Card key={l.id} className="cursor-pointer hover:border-accent/30" onClick={() => navigate("/app/crm")}>
+                      <CardContent className="flex items-center gap-3 p-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{l.contact_name}</p>
+                          <p className="text-[10px] text-muted-foreground font-mono">{(l.organizations as any)?.name || l.contact_email || "—"}</p>
+                        </div>
+                        <Badge variant="outline" className="text-[9px] font-mono capitalize">{l.stage}</Badge>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div>
+              <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-2">Sponsorship pipeline</p>
+              {opsSponsors.length === 0 ? (
+                <Card><CardContent className="py-6 text-center text-xs text-muted-foreground">No sponsorship packages.</CardContent></Card>
+              ) : (
+                <div className="space-y-1.5">
+                  {opsSponsors.slice(0, 5).map(s => (
+                    <Card key={s.id}>
+                      <CardContent className="flex items-center gap-3 p-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{s.name}</p>
+                          <p className="text-[10px] text-muted-foreground font-mono">{(s.organizations as any)?.name} · {s.tier}</p>
+                        </div>
+                        {s.amount && <span className="text-sm font-mono font-bold">${Number(s.amount).toLocaleString()}</span>}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </TabsContent>
 
         {/* Audit */}

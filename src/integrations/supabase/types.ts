@@ -350,6 +350,45 @@ export type Database = {
           },
         ]
       }
+      chapters: {
+        Row: {
+          city: string | null
+          created_at: string
+          founded_at: string | null
+          id: string
+          name: string
+          slug: string
+          state: string | null
+          status: string
+          university: string | null
+          updated_at: string
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          founded_at?: string | null
+          id?: string
+          name: string
+          slug: string
+          state?: string | null
+          status?: string
+          university?: string | null
+          updated_at?: string
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          founded_at?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          state?: string | null
+          status?: string
+          university?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       client_contacts: {
         Row: {
           created_at: string
@@ -481,6 +520,7 @@ export type Database = {
       }
       cohorts: {
         Row: {
+          chapter_id: string | null
           color: string | null
           created_at: string
           description: string | null
@@ -489,6 +529,7 @@ export type Database = {
           name: string
         }
         Insert: {
+          chapter_id?: string | null
           color?: string | null
           created_at?: string
           description?: string | null
@@ -497,6 +538,7 @@ export type Database = {
           name: string
         }
         Update: {
+          chapter_id?: string | null
           color?: string | null
           created_at?: string
           description?: string | null
@@ -504,7 +546,15 @@ export type Database = {
           id?: string
           name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "cohorts_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       competition_applications: {
         Row: {
@@ -2690,6 +2740,7 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           cal_poly_email: string | null
+          chapter_id: string | null
           created_at: string
           full_name: string
           graduation_year: number | null
@@ -2708,6 +2759,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           cal_poly_email?: string | null
+          chapter_id?: string | null
           created_at?: string
           full_name?: string
           graduation_year?: number | null
@@ -2726,6 +2778,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           cal_poly_email?: string | null
+          chapter_id?: string | null
           created_at?: string
           full_name?: string
           graduation_year?: number | null
@@ -2740,7 +2793,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_memberships: {
         Row: {
@@ -2910,6 +2971,7 @@ export type Database = {
       }
       projects: {
         Row: {
+          chapter_id: string | null
           client_org_id: string | null
           created_at: string
           created_by: string
@@ -2926,6 +2988,7 @@ export type Database = {
           visibility_scope: Database["public"]["Enums"]["visibility_scope"]
         }
         Insert: {
+          chapter_id?: string | null
           client_org_id?: string | null
           created_at?: string
           created_by: string
@@ -2942,6 +3005,7 @@ export type Database = {
           visibility_scope?: Database["public"]["Enums"]["visibility_scope"]
         }
         Update: {
+          chapter_id?: string | null
           client_org_id?: string | null
           created_at?: string
           created_by?: string
@@ -2958,6 +3022,13 @@ export type Database = {
           visibility_scope?: Database["public"]["Enums"]["visibility_scope"]
         }
         Relationships: [
+          {
+            foreignKeyName: "projects_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "projects_client_org_id_fkey"
             columns: ["client_org_id"]
