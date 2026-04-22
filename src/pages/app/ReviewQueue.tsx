@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import DeliverableStatusBadge from "@/components/DeliverableStatusBadge";
 import DeliverableReviewHistory from "@/components/DeliverableReviewHistory";
 import { getUnifiedStatus, isBlockingStage } from "@/lib/deliverableStatus";
+import { approveDeliverable, requestDeliverableChanges, rejectDeliverable } from "@/lib/reviewActions";
 
 interface Row {
   id: string;
@@ -136,21 +137,21 @@ export default function ReviewQueue() {
 
   const approve = async (r: Row) => {
     setBusy(r.id);
-    const { error } = await supabase.rpc("approve_deliverable", { p_deliverable_id: r.id });
+    const res = await approveDeliverable(r.id);
     setBusy(null);
-    if (error) { toast.error(`Approve failed: ${error.message}`); return; }
+    if (res.ok === false) { toast.error(`Approve failed: ${res.error}`); return; }
     toast.success(`Approved · ${r.title}`);
     setRows(prev => prev.filter(x => x.id !== r.id));
   };
 
   const submitReason = async () => {
     if (!reasonFor) return;
-    if (reasonText.trim().length < 3) { toast.error("Add a reason (3+ chars) so the owner knows what to change."); return; }
     setBusy(reasonFor.id);
-    const fn = reasonFor.mode === "reject" ? "reject_deliverable" : "request_deliverable_changes";
-    const { error } = await supabase.rpc(fn, { p_deliverable_id: reasonFor.id, p_reason: reasonText.trim() });
+    const res = reasonFor.mode === "reject"
+      ? await rejectDeliverable(reasonFor.id, reasonText)
+      : await requestDeliverableChanges(reasonFor.id, reasonText);
     setBusy(null);
-    if (error) { toast.error(`Action failed: ${error.message}`); return; }
+    if (res.ok === false) { toast.error(res.error); return; }
     toast.success(reasonFor.mode === "reject" ? "Deliverable rejected" : "Revision requested");
     setRows(prev => prev.filter(x => x.id !== reasonFor.id));
     setReasonFor(null); setReasonText("");
