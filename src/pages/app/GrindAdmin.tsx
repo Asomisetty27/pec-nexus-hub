@@ -164,10 +164,10 @@ export default function GrindAdmin() {
 
   const handleSaveEdit = async () => {
     if (!editing) return;
-    const { id, title, prompt, scenario, model_answer, rubric, why_it_matters, estimated_minutes, xp_reward } = editing;
+    const { id, title, prompt, scenario, model_answer, rubric, why_it_matters, estimated_minutes, xp_reward, ai_feedback_enabled } = editing;
     const { error } = await supabase.from("drills").update({
       title, prompt, scenario, model_answer, rubric, why_it_matters,
-      estimated_minutes, xp_reward,
+      estimated_minutes, xp_reward, ai_feedback_enabled,
     }).eq("id", id);
     if (error) { toast.error(error.message); return; }
     toast.success("Saved");
