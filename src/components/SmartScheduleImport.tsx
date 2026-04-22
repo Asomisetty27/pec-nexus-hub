@@ -33,26 +33,46 @@ export default function SmartScheduleImport({ onSaved }: { onSaved?: () => void 
     setBlocks([]);
     setConfidence(null);
     setNotes(null);
+    if (!/^image\/(png|jpe?g|webp|heic)$/i.test(file.type) && !file.type.startsWith("image/")) {
+      setError("Unsupported file type. Upload a PNG, JPG, or WEBP screenshot.");
+      return;
+    }
     if (file.size > 5 * 1024 * 1024) {
-      setError("Image too large (max 5 MB). Try a screenshot.");
+      setError("Image too large (max 5 MB). Try compressing or screenshotting just the schedule grid.");
       return;
     }
     setParsing(true);
     try {
       const dataUrl = await fileToDataUrl(file);
       const { data, error } = await supabase.functions.invoke("parse-schedule-image", { body: { image: dataUrl } });
-      if (error) throw error;
+      if (error) {
+        // FunctionsHttpError exposes parsed body via .context.json() on newer SDKs; fall back to message.
+        let msg = error.message || "Could not reach schedule parser.";
+        try {
+          const ctx: any = (error as any).context;
+          if (ctx && typeof ctx.json === "function") {
+            const j = await ctx.json();
+            if (j?.message) msg = j.message;
+          }
+        } catch { /* ignore */ }
+        setError(msg);
+        return;
+      }
       const d = data as any;
       if (d?.error) {
         setError(d.message || d.error);
+        if (Array.isArray(d.blocks) && d.blocks.length > 0) {
+          setBlocks(d.blocks.map((b: any) => ({ ...b, keep: true })));
+          setConfidence(d.confidence || "low");
+        }
       } else {
         setConfidence(d.confidence || null);
         setNotes(d.notes || null);
         setBlocks((d.blocks || []).map((b: any) => ({ ...b, keep: true })));
-        if ((d.blocks || []).length === 0) setError("No recurring busy times detected. Try a clearer screenshot or add manually.");
+        if ((d.blocks || []).length === 0) setError("No recurring busy times detected. Try a clearer screenshot, or add busy times manually below.");
       }
     } catch (e: any) {
-      setError(e.message || "Failed to parse image");
+      setError(e?.message || "Failed to parse image. Try a different screenshot or add busy times manually.");
     } finally {
       setParsing(false);
     }
