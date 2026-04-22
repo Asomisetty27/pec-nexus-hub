@@ -331,6 +331,11 @@ export default function Events() {
                         <Button variant="ghost" size="sm" className="h-7 flex-1 text-[11px] gap-1 text-destructive hover:text-destructive" onClick={() => setConfirmDelete(ev)}><Trash2 className="h-3 w-3" />Delete</Button>
                       </div>
                     )}
+                    {!isCancelled && (
+                      <Button variant="outline" size="sm" className="w-full h-7 text-[11px] gap-1" onClick={() => setBriefEvent(ev)}>
+                        <Sparkles className="h-3 w-3" /> Pre-meeting brief
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               </motion.div>
@@ -372,6 +377,15 @@ export default function Events() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {briefEvent && (
+        <MeetingBriefDialog
+          open={!!briefEvent}
+          onOpenChange={(o) => !o && setBriefEvent(null)}
+          eventId={briefEvent.id}
+          eventTitle={briefEvent.title}
+        />
+      )}
     </motion.div>
   );
 }
