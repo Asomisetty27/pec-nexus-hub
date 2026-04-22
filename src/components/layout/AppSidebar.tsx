@@ -71,6 +71,7 @@ const mainNav: NavItem[] = [
   { title: "Events", url: "/app/events", icon: CalendarDays },
   { title: "Academy", url: "/app/academy", icon: GraduationCap },
   { title: "Grind", url: "/app/grind", icon: Swords, hideForApplicants: true },
+  { title: "Skill Dashboard", url: "/app/skills", icon: BarChart3, requiresLeadAccess: true },
   { title: "Ask Nexus", url: "/app/ask", icon: Sparkles, hideForApplicants: true },
   {
     title: "Lead Workspace",
@@ -89,6 +90,7 @@ const orgNav: NavItem[] = [
 const adminNav: NavItem[] = [
   { title: "Command Center", url: "/app/command", icon: Shield, requiresAdmin: true },
   { title: "Admin Console", url: "/app/admin", icon: Shield, requiresAdmin: true },
+  { title: "Grind Admin", url: "/app/grind/admin", icon: Sparkles, requiresAdmin: true },
   { title: "Invites", url: "/app/invites", icon: UserPlus, requiresAdmin: true },
   { title: "Permissions", url: "/app/permissions", icon: Eye, requiresAdmin: true },
   { title: "Analytics", url: "/app/analytics", icon: BarChart3, requiresAdmin: true },
