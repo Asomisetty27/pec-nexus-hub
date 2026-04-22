@@ -203,6 +203,19 @@ export default function ReviewQueue() {
         </CardContent>
       </Card>
 
+      {reviewedOnce && (
+        <FeedbackPrompt
+          feature="deliverable_review"
+          prompt="Did reviewing feel clear?"
+          options={[
+            { label: "Clear", rating: "positive" },
+            { label: "Okay", rating: "neutral" },
+            { label: "Needs improvement", rating: "negative" },
+          ]}
+          onClose={() => setReviewedOnce(false)}
+        />
+      )}
+
       {/* List */}
       {loading ? (
         <div className="flex items-center justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
