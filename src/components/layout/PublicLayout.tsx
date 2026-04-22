@@ -58,10 +58,10 @@ export function PublicLayout() {
               </h3>
               <div className="mt-3 space-y-1 text-sm text-primary-foreground/80">
                 <a
-                  href="mailto:pec@calpoly.edu"
+                  href="mailto:calpoly.pec@gmail.com"
                   className="block transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/50"
                 >
-                  pec@calpoly.edu
+                  calpoly.pec@gmail.com
                 </a>
                 <p>Cal Poly, San Luis Obispo, CA</p>
               </div>

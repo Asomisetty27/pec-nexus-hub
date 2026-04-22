@@ -80,20 +80,20 @@ export default function Intake() {
           })
           .eq("id", existingLead.id);
       } else {
-      const { error: leadError } = await supabase.from("leads").insert({
-        contact_name: name,
-        contact_email: email,
-        org_id: orgId,
-        source: "intake_form",
-        stage: "new" as any,
-        contact_role: role || null,
-        website: website || null,
-        engagement_type: engagementType,
-        timeline: timeline || null,
-        budget_range: budget || null,
-        notes: noteBlock,
-      });
-      if (leadError) throw leadError;
+        const { error: leadError } = await supabase.from("leads").insert({
+          contact_name: name,
+          contact_email: email,
+          org_id: orgId,
+          source: "intake_form",
+          stage: "new" as any,
+          contact_role: role || null,
+          website: website || null,
+          engagement_type: engagementType,
+          timeline: timeline || null,
+          budget_range: budget || null,
+          notes: noteBlock,
+        });
+        if (leadError) throw leadError;
       }
 
       setSubmitted(true);
@@ -124,14 +124,23 @@ export default function Intake() {
                     <Clock className="mt-0.5 h-4 w-4 shrink-0 text-accent-foreground" />
                     <div className="text-sm">
                       <p className="font-medium">What happens next</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">A PEC officer will review your submission within ~5 business days. If it aligns with active cohort capacity, we'll reach out to schedule a scoping call.</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        A PEC officer will review your submission within ~5 business days. If it aligns with active
+                        cohort capacity, we'll reach out to schedule a scoping call.
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3 rounded-md border bg-muted/30 p-3">
                     <Mail className="mt-0.5 h-4 w-4 shrink-0 text-accent-foreground" />
                     <div className="text-sm">
                       <p className="font-medium">Need to follow up?</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">Email <a href="mailto:pec@calpoly.edu" className="underline">pec@calpoly.edu</a> referencing your company name.</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Email{" "}
+                        <a href="mailto:calpoly.pec@gmail.com" className="underline">
+                          pec@calpoly.edu
+                        </a>{" "}
+                        referencing your company name.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -154,7 +163,8 @@ export default function Intake() {
             <CardHeader className="text-center">
               <CardTitle className="font-display text-3xl">Work With PEC</CardTitle>
               <CardDescription className="text-base">
-                Poly-Engineering Consulting partners with companies, sponsors, and competition organizers. Tell us about your need and we'll route it to the right cohort.
+                Poly-Engineering Consulting partners with companies, sponsors, and competition organizers. Tell us about
+                your need and we'll route it to the right cohort.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -199,13 +209,22 @@ export default function Intake() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="description">What do you need? *</Label>
-                  <Textarea id="description" name="description" rows={5} placeholder="Describe the problem, the domain (e.g. embedded firmware, mechanical design, data tooling), and any specific requirements..." required minLength={20} />
+                  <Textarea
+                    id="description"
+                    name="description"
+                    rows={5}
+                    placeholder="Describe the problem, the domain (e.g. embedded firmware, mechanical design, data tooling), and any specific requirements..."
+                    required
+                    minLength={20}
+                  />
                 </div>
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Timeline</Label>
                     <Select value={timeline} onValueChange={setTimeline}>
-                      <SelectTrigger><SelectValue placeholder="When do you need this?" /></SelectTrigger>
+                      <SelectTrigger>
+                        <SelectValue placeholder="When do you need this?" />
+                      </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="urgent">Urgent — within 4 weeks</SelectItem>
                         <SelectItem value="quarter">This quarter</SelectItem>
@@ -217,7 +236,9 @@ export default function Intake() {
                   <div className="space-y-2">
                     <Label>Estimated Budget</Label>
                     <Select value={budget} onValueChange={setBudget}>
-                      <SelectTrigger><SelectValue placeholder="Optional" /></SelectTrigger>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Optional" />
+                      </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="<5k">Under $5,000</SelectItem>
                         <SelectItem value="5k-15k">$5,000 – $15,000</SelectItem>
@@ -229,7 +250,8 @@ export default function Intake() {
                   </div>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  By submitting, you agree your inquiry will be reviewed by Poly-Engineering Consulting officers at Cal Poly SLO. We do not share your information externally.
+                  By submitting, you agree your inquiry will be reviewed by Poly-Engineering Consulting officers at Cal
+                  Poly SLO. We do not share your information externally.
                 </p>
                 <Button type="submit" size="lg" className="w-full gap-2" disabled={submitting}>
                   <Send className="h-4 w-4" /> {submitting ? "Submitting..." : "Submit Inquiry"}
