@@ -10,7 +10,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Shield, Cpu, Award, User, Mail, GraduationCap, Linkedin, Phone, BookOpen } from "lucide-react";
+import { Shield, Cpu, Award, User, Mail, GraduationCap, Linkedin, Phone, BookOpen, MessageSquare, CheckCircle2, XCircle, AlertTriangle, ExternalLink, Loader2 } from "lucide-react";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
 const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } };
@@ -19,12 +19,33 @@ export default function Settings() {
   const { profile, roles, highestRole, refreshProfile } = useAuth();
   const [saving, setSaving] = useState(false);
   const [cohort, setCohort] = useState<any>(null);
+  const [msState, setMsState] = useState<{ status: "idle" | "checking" | "connected" | "not_connected" | "blocked" | "error"; detail?: string }>({ status: "idle" });
 
   useEffect(() => {
     if (!profile) return;
     supabase.from("cohort_memberships").select("*, cohorts(*)").eq("user_id", profile.user_id).limit(1).maybeSingle()
       .then(({ data }) => setCohort(data));
   }, [profile]);
+
+  const checkMicrosoft = async () => {
+    setMsState({ status: "checking" });
+    try {
+      const { data, error } = await supabase.functions.invoke("microsoft-status", { body: {} });
+      if (error) {
+        setMsState({ status: "error", detail: error.message });
+        return;
+      }
+      const d = data as any;
+      if (d?.status === "connected") setMsState({ status: "connected", detail: d.account });
+      else if (d?.status === "blocked") setMsState({ status: "blocked", detail: d.message });
+      else if (d?.status === "not_configured") setMsState({ status: "not_connected", detail: d.message });
+      else setMsState({ status: "error", detail: d?.message || "Unknown response" });
+    } catch (e: any) {
+      setMsState({ status: "error", detail: e.message });
+    }
+  };
+
+  useEffect(() => { if (profile) checkMicrosoft(); }, [profile]);
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
