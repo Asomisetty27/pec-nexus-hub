@@ -212,6 +212,31 @@ export default function SmartScheduleImport({ onSaved }: { onSaved?: () => void 
         <p className="text-[10px] text-muted-foreground">
           Image parsing is best-effort. You always confirm before anything is saved. Manual chips and existing availability remain untouched.
         </p>
+
+        {justSaved && (
+          <FeedbackPrompt
+            feature="schedule_import"
+            prompt="Did this save you time?"
+            options={[
+              { label: "Yes", rating: "positive" },
+              { label: "Kind of", rating: "neutral" },
+              { label: "No", rating: "negative" },
+            ]}
+            onClose={() => setJustSaved(false)}
+          />
+        )}
+        {importFailed && (
+          <FeedbackPrompt
+            feature="schedule_import_failure"
+            prompt="The parser had trouble. What got in the way?"
+            options={[
+              { label: "Wrong times", rating: "negative" },
+              { label: "Missed rows", rating: "negative" },
+              { label: "Crashed", rating: "negative" },
+            ]}
+            onClose={() => setImportFailed(false)}
+          />
+        )}
       </CardContent>
     </Card>
   );
