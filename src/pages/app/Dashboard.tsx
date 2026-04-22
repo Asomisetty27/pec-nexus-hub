@@ -426,6 +426,61 @@ export default function Dashboard() {
         <StatTile icon={Users} label="Members" value={stats.totalMembers} />
       </motion.div>
 
+      {changes && changes.total > 0 && lastVisit && (
+        <motion.div variants={item}>
+          <Card className="border-accent/20 bg-accent/[0.03]">
+            <CardContent className="py-3 px-5">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-2 shrink-0">
+                  <Activity className="h-3.5 w-3.5 text-accent-foreground" />
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                    Since {new Date(lastVisit).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 flex-wrap text-[11px] font-mono">
+                  {changes.new_submissions > 0 && (
+                    <button onClick={() => navigate(isLead ? "/app/lead" : "/app/projects")} className="inline-flex items-center gap-1.5 hover:text-accent-foreground transition-colors">
+                      <span className="h-1.5 w-1.5 rounded-full bg-warning" />
+                      <span className="font-bold">{changes.new_submissions}</span> new submission{changes.new_submissions === 1 ? "" : "s"}
+                    </button>
+                  )}
+                  {changes.approvals > 0 && (
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="h-1.5 w-1.5 rounded-full bg-success" />
+                      <span className="font-bold">{changes.approvals}</span> approval{changes.approvals === 1 ? "" : "s"}
+                    </span>
+                  )}
+                  {changes.revisions > 0 && (
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
+                      <span className="font-bold">{changes.revisions}</span> revision{changes.revisions === 1 ? "" : "s"}
+                    </span>
+                  )}
+                  {changes.new_decisions > 0 && (
+                    <span className="inline-flex items-center gap-1.5">
+                      <GitCommit className="h-3 w-3 text-primary" />
+                      <span className="font-bold">{changes.new_decisions}</span> decision{changes.new_decisions === 1 ? "" : "s"}
+                    </span>
+                  )}
+                  {changes.new_events > 0 && (
+                    <button onClick={() => navigate("/app/events")} className="inline-flex items-center gap-1.5 hover:text-accent-foreground transition-colors">
+                      <CalendarDays className="h-3 w-3" />
+                      <span className="font-bold">{changes.new_events}</span> new event{changes.new_events === 1 ? "" : "s"}
+                    </button>
+                  )}
+                  {changes.new_announcements > 0 && (
+                    <button onClick={() => navigate("/app/announcements")} className="inline-flex items-center gap-1.5 hover:text-accent-foreground transition-colors">
+                      <Megaphone className="h-3 w-3" />
+                      <span className="font-bold">{changes.new_announcements}</span> announcement{changes.new_announcements === 1 ? "" : "s"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
       {/* Main grid */}
       <div className="grid gap-5 lg:grid-cols-12">
         <div className="lg:col-span-7 space-y-5">
