@@ -242,6 +242,10 @@ export default function Settings() {
           </CardContent>
         </Card>
       </motion.div>
+
+      <motion.div variants={item}>
+        <NotificationPreferences />
+      </motion.div>
     </motion.div>
   );
 }
