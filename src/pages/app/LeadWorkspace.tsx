@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   FolderKanban, CheckCircle2, AlertTriangle, Clock, Users,
   MessageSquare, Target, Shield, ChevronRight, Megaphone, HelpCircle,
-  BookOpen, Send,
+  BookOpen, Send, RefreshCw, Ban, ExternalLink, History, Loader2, Sparkles,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -17,8 +17,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { logAuditAction } from "@/lib/audit";
 import { SectionExplainer, InfoDot } from "@/components/ui/SectionExplainer";
 import { MomentumRiskPanel } from "@/components/momentum/MomentumRiskPanel";
-import { approveDeliverable as approveDeliverableRpc, requestDeliverableChanges } from "@/lib/reviewActions";
+import { approveDeliverable as approveDeliverableRpc, requestDeliverableChanges, rejectDeliverable } from "@/lib/reviewActions";
 import { displayName } from "@/lib/utils";
+import { AssignmentBundleDialog } from "@/components/AssignmentBundleDialog";
+import DeliverableReviewHistory from "@/components/DeliverableReviewHistory";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } };
@@ -35,6 +38,10 @@ export default function LeadWorkspace() {
   const [cohortProjectIds, setCohortProjectIds] = useState<string[]>([]);
   const [announceText, setAnnounceText] = useState("");
   const [announceTitle, setAnnounceTitle] = useState("");
+  const [reasonFor, setReasonFor] = useState<{ id: string; mode: "request_changes" | "reject" } | null>(null);
+  const [reasonText, setReasonText] = useState("");
+  const [historyFor, setHistoryFor] = useState<any | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
