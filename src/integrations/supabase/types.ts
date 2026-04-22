@@ -983,6 +983,173 @@ export type Database = {
           },
         ]
       }
+      drill_attempts: {
+        Row: {
+          attempted_at: string
+          drill_id: string
+          id: string
+          is_correct: boolean | null
+          response: Json | null
+          self_score: number | null
+          time_spent_seconds: number | null
+          user_id: string
+          xp_earned: number
+        }
+        Insert: {
+          attempted_at?: string
+          drill_id: string
+          id?: string
+          is_correct?: boolean | null
+          response?: Json | null
+          self_score?: number | null
+          time_spent_seconds?: number | null
+          user_id: string
+          xp_earned?: number
+        }
+        Update: {
+          attempted_at?: string
+          drill_id?: string
+          id?: string
+          is_correct?: boolean | null
+          response?: Json | null
+          self_score?: number | null
+          time_spent_seconds?: number | null
+          user_id?: string
+          xp_earned?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drill_attempts_drill_id_fkey"
+            columns: ["drill_id"]
+            isOneToOne: false
+            referencedRelation: "drills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      drill_generation_jobs: {
+        Row: {
+          category: string
+          cohort: Database["public"]["Enums"]["drill_cohort"]
+          completed_at: string | null
+          count_requested: number
+          created_at: string
+          difficulty: Database["public"]["Enums"]["drill_difficulty"]
+          drafts_created: number
+          drill_type: Database["public"]["Enums"]["drill_type"]
+          error_message: string | null
+          id: string
+          requested_by: string
+          status: string
+        }
+        Insert: {
+          category: string
+          cohort: Database["public"]["Enums"]["drill_cohort"]
+          completed_at?: string | null
+          count_requested?: number
+          created_at?: string
+          difficulty: Database["public"]["Enums"]["drill_difficulty"]
+          drafts_created?: number
+          drill_type: Database["public"]["Enums"]["drill_type"]
+          error_message?: string | null
+          id?: string
+          requested_by: string
+          status?: string
+        }
+        Update: {
+          category?: string
+          cohort?: Database["public"]["Enums"]["drill_cohort"]
+          completed_at?: string | null
+          count_requested?: number
+          created_at?: string
+          difficulty?: Database["public"]["Enums"]["drill_difficulty"]
+          drafts_created?: number
+          drill_type?: Database["public"]["Enums"]["drill_type"]
+          error_message?: string | null
+          id?: string
+          requested_by?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      drills: {
+        Row: {
+          category: string
+          cohort: Database["public"]["Enums"]["drill_cohort"]
+          correct_answer: Json | null
+          created_at: string
+          created_by: string | null
+          difficulty: Database["public"]["Enums"]["drill_difficulty"]
+          drill_type: Database["public"]["Enums"]["drill_type"]
+          estimated_minutes: number
+          id: string
+          model_answer: string | null
+          options: Json | null
+          prompt: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          rubric: string | null
+          scenario: string | null
+          source: Database["public"]["Enums"]["drill_source"]
+          status: Database["public"]["Enums"]["drill_status"]
+          tags: string[] | null
+          title: string
+          updated_at: string
+          why_it_matters: string | null
+          xp_reward: number
+        }
+        Insert: {
+          category: string
+          cohort: Database["public"]["Enums"]["drill_cohort"]
+          correct_answer?: Json | null
+          created_at?: string
+          created_by?: string | null
+          difficulty?: Database["public"]["Enums"]["drill_difficulty"]
+          drill_type: Database["public"]["Enums"]["drill_type"]
+          estimated_minutes?: number
+          id?: string
+          model_answer?: string | null
+          options?: Json | null
+          prompt: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          rubric?: string | null
+          scenario?: string | null
+          source?: Database["public"]["Enums"]["drill_source"]
+          status?: Database["public"]["Enums"]["drill_status"]
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          why_it_matters?: string | null
+          xp_reward?: number
+        }
+        Update: {
+          category?: string
+          cohort?: Database["public"]["Enums"]["drill_cohort"]
+          correct_answer?: Json | null
+          created_at?: string
+          created_by?: string | null
+          difficulty?: Database["public"]["Enums"]["drill_difficulty"]
+          drill_type?: Database["public"]["Enums"]["drill_type"]
+          estimated_minutes?: number
+          id?: string
+          model_answer?: string | null
+          options?: Json | null
+          prompt?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          rubric?: string | null
+          scenario?: string | null
+          source?: Database["public"]["Enums"]["drill_source"]
+          status?: Database["public"]["Enums"]["drill_status"]
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          why_it_matters?: string | null
+          xp_reward?: number
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -1562,6 +1729,75 @@ export type Database = {
           updated_at?: string
           version?: number
           visibility?: Database["public"]["Enums"]["doc_visibility"]
+        }
+        Relationships: []
+      }
+      grind_progress: {
+        Row: {
+          current_streak: number
+          drills_completed: number
+          drills_correct: number
+          last_attempt_date: string | null
+          longest_streak: number
+          total_xp: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          current_streak?: number
+          drills_completed?: number
+          drills_correct?: number
+          last_attempt_date?: string | null
+          longest_streak?: number
+          total_xp?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          current_streak?: number
+          drills_completed?: number
+          drills_correct?: number
+          last_attempt_date?: string | null
+          longest_streak?: number
+          total_xp?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      grind_skill_progress: {
+        Row: {
+          attempts: number
+          category: string
+          cohort: Database["public"]["Enums"]["drill_cohort"]
+          correct: number
+          id: string
+          last_attempt_at: string | null
+          total_xp: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          category: string
+          cohort: Database["public"]["Enums"]["drill_cohort"]
+          correct?: number
+          id?: string
+          last_attempt_at?: string | null
+          total_xp?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          category?: string
+          cohort?: Database["public"]["Enums"]["drill_cohort"]
+          correct?: number
+          id?: string
+          last_attempt_at?: string | null
+          total_xp?: number
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -4002,6 +4238,21 @@ export type Database = {
         }[]
       }
       get_user_cohort_id: { Args: { _user_id: string }; Returns: string }
+      grind_leaderboard: {
+        Args: {
+          p_cohort?: Database["public"]["Enums"]["drill_cohort"]
+          p_limit?: number
+        }
+        Returns: {
+          accuracy: number
+          current_streak: number
+          drills_completed: number
+          full_name: string
+          rank: number
+          total_xp: number
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -4047,6 +4298,23 @@ export type Database = {
           read_ct: number
         }[]
       }
+      recommend_drills: {
+        Args: {
+          p_cohort?: Database["public"]["Enums"]["drill_cohort"]
+          p_limit?: number
+        }
+        Returns: {
+          category: string
+          cohort: Database["public"]["Enums"]["drill_cohort"]
+          difficulty: Database["public"]["Enums"]["drill_difficulty"]
+          drill_type: Database["public"]["Enums"]["drill_type"]
+          estimated_minutes: number
+          id: string
+          reason: string
+          title: string
+          xp_reward: number
+        }[]
+      }
       reject_deliverable: {
         Args: { p_deliverable_id: string; p_reason: string }
         Returns: undefined
@@ -4061,6 +4329,16 @@ export type Database = {
       seed_project_memberships_from_cohort: {
         Args: { p_cohort_id: string; p_project_id: string }
         Returns: number
+      }
+      submit_drill_attempt: {
+        Args: {
+          p_drill_id: string
+          p_is_correct: boolean
+          p_response: Json
+          p_self_score?: number
+          p_time_spent_seconds?: number
+        }
+        Returns: Json
       }
       track_recent_item: {
         Args: {
@@ -4089,6 +4367,18 @@ export type Database = {
         | "rejected"
         | "revision_requested"
       doc_visibility: "public" | "members" | "board" | "admin"
+      drill_cohort: "software" | "hardware" | "mechanical" | "ops"
+      drill_difficulty: "easy" | "medium" | "hard" | "expert"
+      drill_source: "seeded" | "ai_generated" | "admin_created"
+      drill_status: "draft" | "pending_review" | "published" | "archived"
+      drill_type:
+        | "multiple_choice"
+        | "short_answer"
+        | "scenario"
+        | "prioritization"
+        | "debugging"
+        | "design_critique"
+        | "mini_case"
       event_type:
         | "workshop"
         | "meeting"
@@ -4288,6 +4578,19 @@ export const Constants = {
         "revision_requested",
       ],
       doc_visibility: ["public", "members", "board", "admin"],
+      drill_cohort: ["software", "hardware", "mechanical", "ops"],
+      drill_difficulty: ["easy", "medium", "hard", "expert"],
+      drill_source: ["seeded", "ai_generated", "admin_created"],
+      drill_status: ["draft", "pending_review", "published", "archived"],
+      drill_type: [
+        "multiple_choice",
+        "short_answer",
+        "scenario",
+        "prioritization",
+        "debugging",
+        "design_critique",
+        "mini_case",
+      ],
       event_type: [
         "workshop",
         "meeting",

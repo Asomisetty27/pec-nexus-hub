@@ -41,6 +41,7 @@ import Opportunities from "./pages/app/Opportunities";
 import ReviewQueue from "./pages/app/ReviewQueue";
 import AdvisorPortal from "./pages/app/AdvisorPortal";
 import AskNexus from "./pages/app/AskNexus";
+import Grind from "./pages/app/Grind";
 
 const queryClient = new QueryClient();
 
@@ -94,6 +95,7 @@ const App = () => (
               <Route path="invites" element={<InviteManagement />} />
               <Route path="advisor" element={<AdvisorPortal />} />
               <Route path="ask" element={<AskNexus />} />
+              <Route path="grind" element={<Grind />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
