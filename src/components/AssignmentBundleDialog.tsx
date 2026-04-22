@@ -8,8 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { displayName } from "@/lib/utils";
 
-interface Member { user_id: string; full_name?: string | null; }
+interface Member { user_id: string; full_name?: string | null; cal_poly_email?: string | null; }
 interface Milestone { id: string; title: string; }
 
 interface Props {
