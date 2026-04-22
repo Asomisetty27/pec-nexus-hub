@@ -161,7 +161,72 @@ export default function Grind() {
         </TabsList>
 
         <TabsContent value={cohortFilter} className="space-y-6 mt-6">
-          {/* Recommended */}
+          {/* Active Challenge — highest priority lane when present */}
+          {challengeDrills.length > 0 && challengeMeta && (
+            <section className="rounded-xl border-2 border-primary/40 bg-primary/5 p-4">
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Trophy className="h-4 w-4 text-primary" />
+                    <h2 className="font-display text-lg font-semibold">{challengeMeta.name}</h2>
+                    {challengeMeta.bonus > 1 && (
+                      <Badge className="text-[10px] font-mono">{challengeMeta.bonus}× XP</Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Active challenge · ends {new Date(challengeMeta.ends_at).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric" })}
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                {challengeDrills.map((r) => (
+                  <RecCard key={r.id} drill={r} onStart={() => {
+                    const full = allDrills.find((d) => d.id === r.id);
+                    if (full) setActiveDrill(full);
+                  }} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Weak Skills lane — only if user has weak categories */}
+          {weakSkills.length > 0 && (
+            <section>
+              <div className="mb-3 flex items-center gap-2">
+                <Target className="h-4 w-4 text-amber-600" />
+                <h2 className="font-display text-lg font-semibold">Weak skills</h2>
+                <span className="text-xs text-muted-foreground">Targets categories where you've slipped</span>
+              </div>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+                {weakSkills.map((r) => (
+                  <RecCard key={r.id} drill={r} onStart={() => {
+                    const full = allDrills.find((d) => d.id === r.id);
+                    if (full) setActiveDrill(full);
+                  }} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Theme Week lane */}
+          {themeDrills.length > 0 && themeName && (
+            <section>
+              <div className="mb-3 flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-accent-foreground" />
+                <h2 className="font-display text-lg font-semibold">This week: {themeName}</h2>
+              </div>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+                {themeDrills.map((r) => (
+                  <RecCard key={r.id} drill={r} onStart={() => {
+                    const full = allDrills.find((d) => d.id === r.id);
+                    if (full) setActiveDrill(full);
+                  }} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Recommended for you (existing personalised lane) */}
           {recommended.length > 0 && (
             <section>
               <h2 className="mb-3 font-display text-lg font-semibold">Recommended for you</h2>
