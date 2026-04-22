@@ -12,9 +12,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Sparkles, Check, X, Pencil, Loader2, Shield, ListChecks, DollarSign } from "lucide-react";
+import { Sparkles, Check, X, Pencil, Loader2, Shield, ListChecks, DollarSign, CalendarRange } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import ThemeChallengeManager from "@/components/admin/ThemeChallengeManager";
 
 type Cohort = "software" | "hardware" | "mechanical" | "ops";
 type Difficulty = "easy" | "medium" | "hard" | "expert";
@@ -204,6 +205,9 @@ export default function GrindAdmin() {
           <TabsTrigger value="review" className="gap-2">
             <ListChecks className="h-4 w-4" />
             Review Queue {pending.length > 0 && <Badge variant="secondary" className="ml-1">{pending.length}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="freshness" className="gap-2">
+            <CalendarRange className="h-4 w-4" /> Themes & Challenges
           </TabsTrigger>
           <TabsTrigger value="cost" className="gap-2">
             <DollarSign className="h-4 w-4" /> AI Cost
