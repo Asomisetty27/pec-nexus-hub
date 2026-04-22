@@ -42,6 +42,8 @@ import ReviewQueue from "./pages/app/ReviewQueue";
 import AdvisorPortal from "./pages/app/AdvisorPortal";
 import AskNexus from "./pages/app/AskNexus";
 import Grind from "./pages/app/Grind";
+import GrindAdmin from "./pages/app/GrindAdmin";
+import SkillDashboard from "./pages/app/SkillDashboard";
 
 const queryClient = new QueryClient();
 
@@ -96,6 +98,8 @@ const App = () => (
               <Route path="advisor" element={<AdvisorPortal />} />
               <Route path="ask" element={<AskNexus />} />
               <Route path="grind" element={<Grind />} />
+              <Route path="grind/admin" element={<GrindAdmin />} />
+              <Route path="skills" element={<SkillDashboard />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
