@@ -110,6 +110,30 @@ export type Database = {
         }
         Relationships: []
       }
+      ask_nexus_query_log: {
+        Row: {
+          created_at: string
+          id: string
+          query_key: string
+          result_count: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          query_key: string
+          result_count?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          query_key?: string
+          result_count?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -635,30 +659,45 @@ export type Database = {
       }
       decisions: {
         Row: {
+          affects: string[] | null
+          alternatives_considered: string | null
+          category: string
           decided_at: string
           decided_by: string
           id: string
           project_id: string
           rationale: string | null
           reference_links: string | null
+          status: string
+          tags: string[] | null
           title: string
         }
         Insert: {
+          affects?: string[] | null
+          alternatives_considered?: string | null
+          category?: string
           decided_at?: string
           decided_by: string
           id?: string
           project_id: string
           rationale?: string | null
           reference_links?: string | null
+          status?: string
+          tags?: string[] | null
           title: string
         }
         Update: {
+          affects?: string[] | null
+          alternatives_considered?: string | null
+          category?: string
           decided_at?: string
           decided_by?: string
           id?: string
           project_id?: string
           rationale?: string | null
           reference_links?: string | null
+          status?: string
+          tags?: string[] | null
           title?: string
         }
         Relationships: [
@@ -1876,6 +1915,44 @@ export type Database = {
           },
         ]
       }
+      meeting_briefs: {
+        Row: {
+          brief_markdown: string
+          created_at: string
+          event_id: string
+          generated_by: string
+          id: string
+          model: string | null
+          source_snapshot: Json
+        }
+        Insert: {
+          brief_markdown: string
+          created_at?: string
+          event_id: string
+          generated_by: string
+          id?: string
+          model?: string | null
+          source_snapshot?: Json
+        }
+        Update: {
+          brief_markdown?: string
+          created_at?: string
+          event_id?: string
+          generated_by?: string
+          id?: string
+          model?: string | null
+          source_snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_briefs_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_notes: {
         Row: {
           action_items: Json | null
@@ -2170,6 +2247,41 @@ export type Database = {
             columns: ["cohort_id"]
             isOneToOne: false
             referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      momentum_signals: {
+        Row: {
+          computed_at: string
+          id: string
+          project_id: string
+          risk_level: string
+          risk_score: number
+          signals: Json
+        }
+        Insert: {
+          computed_at?: string
+          id?: string
+          project_id: string
+          risk_level?: string
+          risk_score?: number
+          signals?: Json
+        }
+        Update: {
+          computed_at?: string
+          id?: string
+          project_id?: string
+          risk_level?: string
+          risk_score?: number
+          signals?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "momentum_signals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -3735,6 +3847,11 @@ export type Database = {
         Args: { p_deliverable_id: string }
         Returns: undefined
       }
+      array_overlap_count: {
+        Args: { a: string[]; b: string[] }
+        Returns: number
+      }
+      compute_momentum_risk: { Args: { _project_id: string }; Returns: Json }
       create_assignment_bundle: {
         Args: {
           p_description?: string
@@ -3781,6 +3898,24 @@ export type Database = {
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      find_related_decisions: {
+        Args: {
+          _category?: string
+          _limit?: number
+          _project_id: string
+          _tags?: string[]
+        }
+        Returns: {
+          category: string
+          decided_at: string
+          id: string
+          project_id: string
+          rationale: string
+          relevance: number
+          tags: string[]
+          title: string
+        }[]
       }
       get_milestone_blockers: {
         Args: { p_milestone_id: string }
@@ -3851,6 +3986,7 @@ export type Database = {
       }
       resync_user_from_roster: { Args: { p_user_id: string }; Returns: Json }
       run_escalation_scan: { Args: never; Returns: Json }
+      run_momentum_scan: { Args: never; Returns: Json }
       seed_project_memberships_from_cohort: {
         Args: { p_cohort_id: string; p_project_id: string }
         Returns: number

@@ -14,6 +14,8 @@ import { CalendarDays, MapPin, Plus, Check, Clock, Pencil, Trash2, Ban, Mail, Al
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { logAuditAction } from "@/lib/audit";
+import { Sparkles } from "lucide-react";
+import { MeetingBriefDialog } from "@/components/MeetingBriefDialog";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } };
@@ -48,6 +50,7 @@ export default function Events() {
   const [audience, setAudience] = useState<string>("all_members");
   const [audienceTarget, setAudienceTarget] = useState<string>("");
   const [notifyOnCreate, setNotifyOnCreate] = useState(true);
+  const [briefEvent, setBriefEvent] = useState<any | null>(null);
 
   const fetchEvents = async () => {
     const { data } = await supabase.from("events").select("*").order("start_time", { ascending: true });
@@ -328,6 +331,11 @@ export default function Events() {
                         <Button variant="ghost" size="sm" className="h-7 flex-1 text-[11px] gap-1 text-destructive hover:text-destructive" onClick={() => setConfirmDelete(ev)}><Trash2 className="h-3 w-3" />Delete</Button>
                       </div>
                     )}
+                    {!isCancelled && (
+                      <Button variant="outline" size="sm" className="w-full h-7 text-[11px] gap-1" onClick={() => setBriefEvent(ev)}>
+                        <Sparkles className="h-3 w-3" /> Pre-meeting brief
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               </motion.div>
@@ -369,6 +377,15 @@ export default function Events() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {briefEvent && (
+        <MeetingBriefDialog
+          open={!!briefEvent}
+          onOpenChange={(o) => !o && setBriefEvent(null)}
+          eventId={briefEvent.id}
+          eventTitle={briefEvent.title}
+        />
+      )}
     </motion.div>
   );
 }
