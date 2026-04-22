@@ -191,6 +191,9 @@ export default function GrindAdmin() {
             <ListChecks className="h-4 w-4" />
             Review Queue {pending.length > 0 && <Badge variant="secondary" className="ml-1">{pending.length}</Badge>}
           </TabsTrigger>
+          <TabsTrigger value="cost" className="gap-2">
+            <DollarSign className="h-4 w-4" /> AI Cost
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="generate" className="mt-6">
