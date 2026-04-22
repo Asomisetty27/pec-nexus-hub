@@ -141,6 +141,20 @@ export default function GrindAdmin() {
     fetchPending();
   };
 
+  const WRITTEN_TYPES: DrillType[] = [
+    "short_answer", "scenario_analysis", "debugging_diagnosis", "design_critique", "mini_case",
+  ];
+
+  const toggleAiFeedback = async (id: string, on: boolean) => {
+    // Optimistic update
+    setPending((prev) => prev.map((p) => (p.id === id ? { ...p, ai_feedback_enabled: on } : p)));
+    const { error } = await supabase.from("drills").update({ ai_feedback_enabled: on }).eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      fetchPending();
+    }
+  };
+
   const handleReject = async (id: string) => {
     const { error } = await supabase.from("drills").update({ status: "archived" }).eq("id", id);
     if (error) { toast.error(error.message); return; }
@@ -150,10 +164,10 @@ export default function GrindAdmin() {
 
   const handleSaveEdit = async () => {
     if (!editing) return;
-    const { id, title, prompt, scenario, model_answer, rubric, why_it_matters, estimated_minutes, xp_reward } = editing;
+    const { id, title, prompt, scenario, model_answer, rubric, why_it_matters, estimated_minutes, xp_reward, ai_feedback_enabled } = editing;
     const { error } = await supabase.from("drills").update({
       title, prompt, scenario, model_answer, rubric, why_it_matters,
-      estimated_minutes, xp_reward,
+      estimated_minutes, xp_reward, ai_feedback_enabled,
     }).eq("id", id);
     if (error) { toast.error(error.message); return; }
     toast.success("Saved");
@@ -340,6 +354,27 @@ export default function GrindAdmin() {
                       <p className="text-muted-foreground">{d.why_it_matters}</p>
                     </div>
                   )}
+                  {WRITTEN_TYPES.includes(d.drill_type as DrillType) && (
+                    <div className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2">
+                      <div>
+                        <p className="text-sm font-medium">AI feedback</p>
+                        <p className="text-xs text-muted-foreground">
+                          {d.ai_feedback_enabled
+                            ? "Users get AI-scored feedback on written answers (counts toward AI cap)."
+                            : "Rubric + model answer only. No AI calls for this drill."}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={!!d.ai_feedback_enabled}
+                          onCheckedChange={(on) => toggleAiFeedback(d.id, on)}
+                        />
+                        <span className="text-xs text-muted-foreground w-14">
+                          {d.ai_feedback_enabled ? "Enabled" : "Disabled"}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))
@@ -488,6 +523,18 @@ export default function GrindAdmin() {
                   <Input type="number" value={editing.xp_reward} onChange={(e) => setEditing({ ...editing, xp_reward: Number(e.target.value) })} />
                 </div>
               </div>
+              {WRITTEN_TYPES.includes(editing.drill_type as DrillType) && (
+                <div className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2">
+                  <div>
+                    <Label className="text-sm">AI feedback on written answers</Label>
+                    <p className="text-xs text-muted-foreground">Toggle off to keep this drill rubric-only.</p>
+                  </div>
+                  <Switch
+                    checked={!!editing.ai_feedback_enabled}
+                    onCheckedChange={(on) => setEditing({ ...editing, ai_feedback_enabled: on })}
+                  />
+                </div>
+              )}
             </div>
           )}
           <DialogFooter>
