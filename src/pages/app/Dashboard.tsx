@@ -332,7 +332,7 @@ export default function Dashboard() {
                         ? "No deliverables waiting on your review. When team members submit work, it'll appear here."
                         : labManual
                           ? "Continue your training playbook to stay ready for live engagements."
-                          : "Open Cohort Hub or Projects to see what's in flight."}
+                          : "Open Projects to see what's in flight."}
                     </p>
                     <div className="flex gap-2 mt-3">
                       {labManual && (
@@ -500,12 +500,8 @@ export default function Dashboard() {
               <CardContent className="pt-0 px-5 pb-3 space-y-0.5">
                 {[
                   { icon: Compass, label: "Purpose Track", path: "/app/purpose" },
-                  { icon: Cpu, label: "Cohort Hub", path: "/app/cohort" },
                   { icon: Rocket, label: "Opportunities", path: "/app/opportunities" },
-                  { icon: FolderKanban, label: "Projects", path: "/app/projects" },
-                  { icon: MessageSquare, label: "Messages", path: "/app/messages" },
-                  { icon: CalendarDays, label: "Events", path: "/app/events" },
-                  { icon: FileText, label: "Documents", path: "/app/docs" },
+                  { icon: GraduationCap, label: "Training", path: "/app/training" },
                 ].map((a) => (
                   <Button key={a.path} variant="ghost" size="sm" className="w-full justify-start h-8 text-[11px] font-sans" onClick={() => navigate(a.path)}>
                     <a.icon className="mr-2 h-3.5 w-3.5 text-muted-foreground" /> {a.label}
