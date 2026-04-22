@@ -84,11 +84,13 @@ export default function SmartScheduleImport({ onSaved }: { onSaved?: () => void 
           }
         } catch { /* ignore */ }
         setError(msg);
+        setImportFailed(true);
         return;
       }
       const d = data as any;
       if (d?.error) {
         setError(d.message || d.error);
+        setImportFailed(true);
         if (Array.isArray(d.blocks) && d.blocks.length > 0) {
           setBlocks(d.blocks.map((b: any) => ({ ...b, keep: true })));
           setConfidence(d.confidence || "low");
@@ -101,6 +103,7 @@ export default function SmartScheduleImport({ onSaved }: { onSaved?: () => void 
       }
     } catch (e: any) {
       setError(e?.message || "Failed to parse image. Try a different screenshot or add busy times manually.");
+      setImportFailed(true);
     } finally {
       setParsing(false);
     }
