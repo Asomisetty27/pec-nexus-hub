@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AvailabilityChips from "@/components/AvailabilityChips";
+import SmartScheduleImport from "@/components/SmartScheduleImport";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import {
   CalendarDays, Clock, Plus, Trash2, Users, Zap, ChevronLeft, ChevronRight,
-  CalendarRange, List, MapPin, Flag, Target, AlertCircle,
+  CalendarRange, List, MapPin, Flag, Target, AlertCircle, Pencil, Link2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
