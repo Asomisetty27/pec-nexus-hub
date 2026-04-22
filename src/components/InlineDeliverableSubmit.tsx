@@ -228,13 +228,21 @@ export default function InlineDeliverableSubmit({ open, onOpenChange, deliverabl
                 : `Marked Complete immediately (no approval required).`}
             </p>
           </div>
+          </>
+          )}
         </div>
 
         <DrawerFooter className="flex-row gap-2">
-          <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)} disabled={submitting}>Cancel</Button>
-          <Button className="flex-1" onClick={handleSubmit} disabled={submitting}>
-            {submitting ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Submitting…</> : <><CheckCircle2 className="h-3 w-3 mr-1" /> Confirm & Submit</>}
-          </Button>
+          {justSubmitted ? (
+            <Button className="flex-1" onClick={() => { reset(); onOpenChange(false); }}>Done</Button>
+          ) : (
+            <>
+              <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)} disabled={submitting}>Cancel</Button>
+              <Button className="flex-1" onClick={handleSubmit} disabled={submitting}>
+                {submitting ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Submitting…</> : <><CheckCircle2 className="h-3 w-3 mr-1" /> Confirm & Submit</>}
+              </Button>
+            </>
+          )}
         </DrawerFooter>
       </DrawerContent>
     </Drawer>
