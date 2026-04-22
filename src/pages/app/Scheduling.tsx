@@ -256,6 +256,34 @@ export default function Scheduling() {
     toast.success("Meeting proposal created");
   };
 
+  // v2: create a proposal from a multi-factor recommendation
+  const createSmartProposal = async (rec: any) => {
+    const nextDate = getNextDate(rec.day_of_week, rec.start_hour);
+    const { error } = await supabase.from("meeting_proposals").insert({
+      proposed_by: user!.id, cohort_id: cohort!.cohort_id, candidate_time: nextDate.toISOString(),
+      duration_minutes: rec.duration_min,
+      conflict_count: rec.conflict_count, attendance_score: rec.attendance_pct,
+      explanation: `${rec.available_count}/${rec.total_count} available · ${rec.lead_count} lead${rec.lead_count === 1 ? "" : "s"} · score ${rec.score}`,
+      status: "draft",
+    } as any);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Meeting proposal created");
+    const { data } = await supabase.from("meeting_proposals").select("*").eq("cohort_id", cohort!.cohort_id).order("attendance_score", { ascending: false });
+    setProposals((data as any[]) || []);
+  };
+
+  // Compute a rank label for the top 3 recs (best overall / lowest conflict / best for leads)
+  const labeledRecs = useMemo(() => {
+    if (smartRecs.length === 0) return [];
+    const arr = smartRecs.map((r) => ({ ...r }));
+    if (arr[0]) arr[0].rank_label = "Best overall";
+    const lowest = [...arr].sort((a, b) => a.conflict_count - b.conflict_count)[0];
+    if (lowest && lowest !== arr[0]) lowest.rank_label = "Lowest conflict";
+    const bestLead = [...arr].sort((a, b) => b.lead_count - a.lead_count || b.score - a.score)[0];
+    if (bestLead && !bestLead.rank_label) bestLead.rank_label = "Best lead coverage";
+    return arr;
+  }, [smartRecs]);
+
   // -------- header --------
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-5 max-w-6xl">
