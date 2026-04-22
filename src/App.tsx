@@ -41,6 +41,7 @@ import Opportunities from "./pages/app/Opportunities";
 import ReviewQueue from "./pages/app/ReviewQueue";
 import AdvisorPortal from "./pages/app/AdvisorPortal";
 import AskNexus from "./pages/app/AskNexus";
+import { Navigate } from "react-router-dom";
 
 const queryClient = new QueryClient();
 
@@ -85,8 +86,11 @@ const App = () => (
               <Route path="ops" element={<OpsDashboard />} />
               <Route path="permissions" element={<PermissionInspector />} />
               <Route path="lead" element={<LeadWorkspace />} />
-              <Route path="review" element={<ReviewQueue />} />
+              {/* Review queue is now part of Lead Workspace. Keep deep links working. */}
+              <Route path="review" element={<Navigate to="/app/lead" replace />} />
               <Route path="review/:id" element={<ReviewQueue />} />
+              {/* Ops Dashboard consolidated into Command Center. */}
+              <Route path="ops" element={<Navigate to="/app/command" replace />} />
               <Route path="command" element={<CommandCenter />} />
               <Route path="invites" element={<InviteManagement />} />
               <Route path="advisor" element={<AdvisorPortal />} />
