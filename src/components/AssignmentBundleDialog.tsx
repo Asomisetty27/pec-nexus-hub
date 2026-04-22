@@ -8,8 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { displayName } from "@/lib/utils";
 
-interface Member { user_id: string; full_name?: string | null; }
+interface Member { user_id: string; full_name?: string | null; cal_poly_email?: string | null; }
 interface Milestone { id: string; title: string; }
 
 interface Props {
@@ -85,7 +86,7 @@ export function AssignmentBundleDialog({ projectId, members, milestones = [], on
                 <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select owner" /></SelectTrigger>
                 <SelectContent>
                   {members.map(m => (
-                    <SelectItem key={m.user_id} value={m.user_id}>{m.full_name || "Member"}</SelectItem>
+                    <SelectItem key={m.user_id} value={m.user_id}>{displayName(m)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -96,7 +97,7 @@ export function AssignmentBundleDialog({ projectId, members, milestones = [], on
                 <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Optional" /></SelectTrigger>
                 <SelectContent>
                   {members.map(m => (
-                    <SelectItem key={m.user_id} value={m.user_id}>{m.full_name || "Member"}</SelectItem>
+                    <SelectItem key={m.user_id} value={m.user_id}>{displayName(m)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
