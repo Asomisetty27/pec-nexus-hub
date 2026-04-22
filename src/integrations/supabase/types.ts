@@ -171,7 +171,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "availability_windows_user_profile_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       badges: {
         Row: {
@@ -270,6 +278,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "channels"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_members_user_profile_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -391,6 +406,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cohorts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cohort_memberships_user_profile_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -771,6 +793,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "milestones"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deliverables_owner_profile_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "deliverables_project_id_fkey"
@@ -1463,6 +1492,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "help_requests_requester_profile_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "help_requests_step_id_fkey"
             columns: ["step_id"]
             isOneToOne: false
@@ -1953,6 +1989,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "messages_author_profile_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "messages_channel_id_fkey"
             columns: ["channel_id"]
             isOneToOne: false
@@ -2044,6 +2087,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "mock_projects"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mock_project_memberships_user_profile_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -2251,6 +2301,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "ops_tasks_assignee_profile_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "ops_tasks_cohort_id_fkey"
             columns: ["cohort_id"]
             isOneToOne: false
@@ -2434,6 +2491,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_memberships_user_profile_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -3086,7 +3150,15 @@ export type Database = {
           status?: Database["public"]["Enums"]["role_request_status"]
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "role_requests_user_profile_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       sponsorship_packages: {
         Row: {
@@ -3244,6 +3316,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "tasks_assignee_profile_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "tasks_project_id_fkey"
             columns: ["project_id"]
