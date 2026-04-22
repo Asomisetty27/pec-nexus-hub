@@ -17,6 +17,7 @@ import InlineDeliverableSubmit from "@/components/InlineDeliverableSubmit";
 import DeliverableStatusBadge from "@/components/DeliverableStatusBadge";
 import { AssignmentBundleDialog } from "@/components/AssignmentBundleDialog";
 import { useRecentItems } from "@/hooks/useRecentItems";
+import { DecisionMemoryWidget } from "@/components/decision/DecisionMemoryWidget";
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -217,6 +218,9 @@ export default function ProjectDetail() {
                 )}
               </CardContent>
             </Card>
+          </div>
+          <div className="mt-6">
+            <DecisionMemoryWidget projectId={id!} onSaved={fetchAll} />
           </div>
         </TabsContent>
 
