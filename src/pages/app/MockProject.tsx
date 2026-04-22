@@ -102,7 +102,10 @@ const getRoleOnProject = (role?: string) => {
 const formatLaneLabel = (lane?: string | null) =>
   lane ? lane.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()) : "Unassigned";
 
-const getMemberDisplayName = (member: any) => member?.profiles?.full_name || member?.user_id?.slice(0, 8) || "Unknown member";
+const getMemberDisplayName = (member: any) =>
+  member?.profiles?.full_name
+  || member?.profiles?.cal_poly_email?.split("@")[0]
+  || "Former member";
 const getMemberSubline = (member: any) => member?.profiles?.cal_poly_email || member?.role_on_project || "";
 const getWorkstreams = (isEECohort: boolean) => (isEECohort ? EE_WORKSTREAMS : STANDARD_WORKSTREAMS);
 

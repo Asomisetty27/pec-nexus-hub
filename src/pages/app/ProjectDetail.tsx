@@ -350,7 +350,11 @@ export default function ProjectDetail() {
                     {(m.profiles as any)?.full_name?.charAt(0) || "?"}
                   </div>
                   <div>
-                    <p className="text-sm font-medium">{(m.profiles as any)?.full_name || "Unknown"}</p>
+                    <p className="text-sm font-medium">
+                      {(m.profiles as any)?.full_name
+                        || (m.profiles as any)?.cal_poly_email?.split("@")[0]
+                        || "Former member"}
+                    </p>
                     <Badge variant="outline" className="text-[10px]">{m.role_on_project}</Badge>
                   </div>
                 </CardContent>
