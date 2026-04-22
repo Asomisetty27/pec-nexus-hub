@@ -303,6 +303,8 @@ export default function Dashboard() {
                 )}
               </div>
 
+              <ResumeStrip />
+
               {/* Next Moves with engagement tags */}
               <div className="space-y-2 max-w-md">
                 <div className="flex items-center gap-2 mb-0.5">
