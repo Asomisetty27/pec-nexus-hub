@@ -16,7 +16,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import {
   CalendarDays, Clock, Plus, Trash2, Users, Zap, ChevronLeft, ChevronRight,
   CalendarRange, List, MapPin, Flag, Target, AlertCircle, Pencil, Link2,
-  Sparkles, ArrowRight, UserCheck, UserX, Crown,
+  Sparkles, ArrowRight, UserCheck, UserX, Crown, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -94,6 +94,8 @@ export default function Scheduling() {
   const [smartRecs, setSmartRecs] = useState<any[]>([]);
   const [memberNames, setMemberNames] = useState<Record<string, string>>({});
   const [loadingRecs, setLoadingRecs] = useState(false);
+  // Passive vs Active mode: when planMode is on, show recommendations side panel
+  const [planMode, setPlanMode] = useState(false);
 
   const loadRecommendations = async (cohortId: string, durationMin: number) => {
     setLoadingRecs(true);
@@ -303,54 +305,8 @@ export default function Scheduling() {
 
         {/* ============= CALENDAR ============= */}
         <TabsContent value="calendar" className="mt-4 space-y-4">
-          {isLeadOrPM && labeledRecs.length > 0 && (
-            <Card className="border-accent/20 bg-accent/[0.03]">
-              <CardHeader className="py-2.5 px-4 flex flex-row items-center justify-between">
-                <CardTitle className="text-xs font-sans font-semibold flex items-center gap-2">
-                  <Sparkles className="h-3.5 w-3.5 text-accent-foreground" />
-                  Smart meeting times
-                  <span className="text-[10px] font-mono text-muted-foreground font-normal">· {recDuration}min · {labeledRecs[0]?.total_count} members</span>
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  <Select value={String(recDuration)} onValueChange={async (v) => {
-                    const d = parseInt(v);
-                    setRecDuration(d);
-                    if (cohort?.cohort_id) await loadRecommendations(cohort.cohort_id, d);
-                  }}>
-                    <SelectTrigger className="h-6 w-[88px] text-[10px]"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="30">30 min</SelectItem>
-                      <SelectItem value="60">60 min</SelectItem>
-                      <SelectItem value="90">90 min</SelectItem>
-                      <SelectItem value="120">2 hours</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardHeader>
-              <CardContent className="px-4 pb-3 pt-0 space-y-1.5">
-                {labeledRecs.slice(0, 3).map((rec, i) => (
-                  <SmartRecRow key={i} rec={rec} memberNames={memberNames} onPropose={() => createSmartProposal(rec)} />
-                ))}
-              </CardContent>
-            </Card>
-          )}
-          {isLeadOrPM && smartRecs.length === 0 && cohortWindows.length === 0 && (
-            <Card className="border-dashed">
-              <CardContent className="py-4 px-5 flex items-start gap-3">
-                <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Not enough availability data yet</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    Smart recommendations need at least one member's availability. Ask your team to upload a class schedule screenshot or set chip-based availability.
-                  </p>
-                  <Button variant="outline" size="sm" className="h-7 text-[10px] mt-2 gap-1.5" onClick={() => setTab("availability")}>
-                    <ArrowRight className="h-3 w-3" /> Set availability
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
+          <div className={`grid gap-4 ${planMode && isLeadOrPM ? "lg:grid-cols-[1fr_320px]" : "grid-cols-1"}`}>
+          <div className="space-y-4 min-w-0">
           <Card>
             <CardHeader className="py-3 px-5 flex flex-row items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-2">
@@ -364,6 +320,17 @@ export default function Scheduling() {
                 </CardTitle>
               </div>
               <div className="flex items-center gap-2">
+                {isLeadOrPM && (
+                  <Button
+                    variant={planMode ? "default" : "outline"}
+                    size="sm"
+                    className="h-7 text-xs gap-1.5"
+                    onClick={() => setPlanMode(p => !p)}
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    {planMode ? "Browsing" : "Plan a meeting"}
+                  </Button>
+                )}
                 <Select value={filter} onValueChange={(v: any) => setFilter(v)}>
                   <SelectTrigger className="h-7 w-[140px] text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -400,6 +367,63 @@ export default function Scheduling() {
                 <span className={`h-2 w-2 rounded-full ${s.dot}`} />{s.label}
               </span>
             ))}
+          </div>
+          </div>
+
+          {/* Plan-mode side panel: recommendations (active mode only) */}
+          {planMode && isLeadOrPM && (
+            <aside className="space-y-3">
+              <Card className="border-accent/30 bg-accent/[0.03] sticky top-4">
+                <CardHeader className="py-2.5 px-4 flex flex-row items-center justify-between">
+                  <CardTitle className="text-xs font-sans font-semibold flex items-center gap-2">
+                    <Sparkles className="h-3.5 w-3.5 text-accent-foreground" />
+                    Smart meeting times
+                  </CardTitle>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setPlanMode(false)}>
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </CardHeader>
+                <CardContent className="px-4 pb-3 pt-0 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-mono text-muted-foreground">Duration</span>
+                    <Select value={String(recDuration)} onValueChange={async (v) => {
+                      const d = parseInt(v);
+                      setRecDuration(d);
+                      if (cohort?.cohort_id) await loadRecommendations(cohort.cohort_id, d);
+                    }}>
+                      <SelectTrigger className="h-6 w-[96px] text-[10px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="30">30 min</SelectItem>
+                        <SelectItem value="60">60 min</SelectItem>
+                        <SelectItem value="90">90 min</SelectItem>
+                        <SelectItem value="120">2 hours</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {labeledRecs.length > 0 ? (
+                    <div className="space-y-1.5">
+                      {labeledRecs.slice(0, 4).map((rec, i) => (
+                        <SmartRecRow key={i} rec={rec} memberNames={memberNames} onPropose={() => createSmartProposal(rec)} />
+                      ))}
+                      <p className="text-[9px] font-mono text-muted-foreground pt-1">
+                        Ranked by attendance · lead coverage · preference
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="py-3 text-center space-y-2">
+                      <AlertCircle className="h-4 w-4 text-muted-foreground/60 mx-auto" />
+                      <p className="text-[11px] text-muted-foreground">
+                        Not enough availability yet. Ask your team to upload schedules.
+                      </p>
+                      <Button variant="outline" size="sm" className="h-6 text-[10px] gap-1.5" onClick={() => setTab("availability")}>
+                        <ArrowRight className="h-3 w-3" /> Set availability
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </aside>
+          )}
           </div>
         </TabsContent>
 
@@ -666,13 +690,13 @@ function MonthGrid({ cursor, itemsByDay, onDayClick, onEventClick }: {
           return (
             <button
               key={day.toISOString()} type="button" onClick={() => onDayClick(day)}
-              className={`min-h-[84px] p-1.5 text-left bg-card hover:bg-accent/5 transition-colors flex flex-col gap-1 ${!inMonth ? "opacity-40" : ""}`}
+              className={`min-h-[112px] p-2 text-left bg-card hover:bg-accent/5 transition-colors flex flex-col gap-1 ${!inMonth ? "bg-muted/20 text-muted-foreground/60" : ""} ${today ? "bg-primary/[0.04] ring-1 ring-inset ring-primary/30" : ""}`}
             >
               <div className="flex items-center justify-between">
-                <span className={`text-xs font-mono ${today ? "h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center" : ""}`}>
+                <span className={`text-xs font-mono ${today ? "h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold" : "font-medium"}`}>
                   {format(day, "d")}
                 </span>
-                {items.length > 3 && <span className="text-[9px] font-mono text-muted-foreground">+{items.length - 3}</span>}
+                {items.length > 3 && <span className="text-[9px] font-mono text-muted-foreground">+{items.length - 3} more</span>}
               </div>
               <div className="space-y-0.5">
                 {items.slice(0, 3).map((it) => {
@@ -681,9 +705,10 @@ function MonthGrid({ cursor, itemsByDay, onDayClick, onEventClick }: {
                     <div
                       key={it.id}
                       onClick={(e) => { e.stopPropagation(); onEventClick(it); }}
-                      className={`text-[10px] truncate px-1.5 py-0.5 rounded border ${s.bg} cursor-pointer`}
+                      className={`text-[10px] truncate px-1.5 py-0.5 rounded border ${s.bg} cursor-pointer hover:opacity-90 leading-tight`}
                       title={it.title}
                     >
+                      <span className="font-mono opacity-70 mr-1">{format(it.start, "h:mma").toLowerCase()}</span>
                       {it.title}
                     </div>
                   );
@@ -703,31 +728,42 @@ function WeekGrid({ cursor, itemsByDay, onEventClick }: {
   const weekStart = startOfWeek(cursor);
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   return (
-    <div className="grid grid-cols-7 gap-2">
-      {days.map((day) => {
-        const items = itemsByDay.get(format(day, "yyyy-MM-dd")) || [];
-        const today = isToday(day);
-        return (
-          <div key={day.toISOString()} className={`rounded-md border bg-card p-2 min-h-[260px] ${today ? "ring-2 ring-primary/40" : ""}`}>
-            <div className="text-[10px] uppercase text-muted-foreground tracking-wider">{format(day, "EEE")}</div>
-            <div className={`text-lg font-display ${today ? "text-primary" : ""}`}>{format(day, "d")}</div>
-            <div className="mt-2 space-y-1.5">
+    <div className="rounded-md border overflow-hidden">
+      {/* Day header bar */}
+      <div className="grid grid-cols-7 bg-muted/30 border-b">
+        {days.map((day) => {
+          const today = isToday(day);
+          return (
+            <div key={day.toISOString()} className={`px-2 py-2 text-center border-r last:border-r-0 ${today ? "bg-primary/[0.06]" : ""}`}>
+              <div className="text-[10px] uppercase text-muted-foreground tracking-wider">{format(day, "EEE")}</div>
+              <div className={`text-lg font-display leading-tight ${today ? "text-primary font-bold" : ""}`}>{format(day, "d")}</div>
+            </div>
+          );
+        })}
+      </div>
+      {/* Day columns */}
+      <div className="grid grid-cols-7 bg-card">
+        {days.map((day) => {
+          const items = itemsByDay.get(format(day, "yyyy-MM-dd")) || [];
+          const today = isToday(day);
+          return (
+            <div key={day.toISOString()} className={`min-h-[340px] p-1.5 border-r last:border-r-0 space-y-1 ${today ? "bg-primary/[0.03]" : ""}`}>
               {items.length === 0 ? (
-                <p className="text-[10px] text-muted-foreground/60 italic">—</p>
+                <p className="text-[10px] text-muted-foreground/40 italic text-center pt-6">—</p>
               ) : items.map((it) => {
                 const s = CATEGORY_STYLES[it.category] || CATEGORY_STYLES.other;
                 return (
                   <button key={it.id} onClick={() => onEventClick(it)}
-                    className={`w-full text-left text-[10px] rounded border px-1.5 py-1 ${s.bg} hover:opacity-90`}>
+                    className={`w-full text-left text-[10px] rounded border px-1.5 py-1 ${s.bg} hover:opacity-90 leading-tight`}>
+                    <div className="font-mono opacity-70 text-[9px]">{format(it.start, "h:mma").toLowerCase()}</div>
                     <div className="font-medium truncate">{it.title}</div>
-                    <div className="text-[9px] opacity-70 font-mono">{format(it.start, "h:mm a")}</div>
                   </button>
                 );
               })}
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
