@@ -728,31 +728,42 @@ function WeekGrid({ cursor, itemsByDay, onEventClick }: {
   const weekStart = startOfWeek(cursor);
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   return (
-    <div className="grid grid-cols-7 gap-2">
-      {days.map((day) => {
-        const items = itemsByDay.get(format(day, "yyyy-MM-dd")) || [];
-        const today = isToday(day);
-        return (
-          <div key={day.toISOString()} className={`rounded-md border bg-card p-2 min-h-[260px] ${today ? "ring-2 ring-primary/40" : ""}`}>
-            <div className="text-[10px] uppercase text-muted-foreground tracking-wider">{format(day, "EEE")}</div>
-            <div className={`text-lg font-display ${today ? "text-primary" : ""}`}>{format(day, "d")}</div>
-            <div className="mt-2 space-y-1.5">
+    <div className="rounded-md border overflow-hidden">
+      {/* Day header bar */}
+      <div className="grid grid-cols-7 bg-muted/30 border-b">
+        {days.map((day) => {
+          const today = isToday(day);
+          return (
+            <div key={day.toISOString()} className={`px-2 py-2 text-center border-r last:border-r-0 ${today ? "bg-primary/[0.06]" : ""}`}>
+              <div className="text-[10px] uppercase text-muted-foreground tracking-wider">{format(day, "EEE")}</div>
+              <div className={`text-lg font-display leading-tight ${today ? "text-primary font-bold" : ""}`}>{format(day, "d")}</div>
+            </div>
+          );
+        })}
+      </div>
+      {/* Day columns */}
+      <div className="grid grid-cols-7 bg-card">
+        {days.map((day) => {
+          const items = itemsByDay.get(format(day, "yyyy-MM-dd")) || [];
+          const today = isToday(day);
+          return (
+            <div key={day.toISOString()} className={`min-h-[340px] p-1.5 border-r last:border-r-0 space-y-1 ${today ? "bg-primary/[0.03]" : ""}`}>
               {items.length === 0 ? (
-                <p className="text-[10px] text-muted-foreground/60 italic">—</p>
+                <p className="text-[10px] text-muted-foreground/40 italic text-center pt-6">—</p>
               ) : items.map((it) => {
                 const s = CATEGORY_STYLES[it.category] || CATEGORY_STYLES.other;
                 return (
                   <button key={it.id} onClick={() => onEventClick(it)}
-                    className={`w-full text-left text-[10px] rounded border px-1.5 py-1 ${s.bg} hover:opacity-90`}>
+                    className={`w-full text-left text-[10px] rounded border px-1.5 py-1 ${s.bg} hover:opacity-90 leading-tight`}>
+                    <div className="font-mono opacity-70 text-[9px]">{format(it.start, "h:mma").toLowerCase()}</div>
                     <div className="font-medium truncate">{it.title}</div>
-                    <div className="text-[9px] opacity-70 font-mono">{format(it.start, "h:mm a")}</div>
                   </button>
                 );
               })}
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
