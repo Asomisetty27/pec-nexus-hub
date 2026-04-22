@@ -45,12 +45,12 @@ function topFactors(signals: any): { key: string; value: number }[] {
  * `mode="leadership"` filters to watch+ only; `mode="all"` shows everything.
  */
 export function MomentumRiskPanel({
-  cohortId,
+  projectIds,
   mode = "leadership",
   limit = 8,
   title = "Momentum Risk",
 }: {
-  cohortId?: string | null;
+  projectIds?: string[] | null;
   mode?: "leadership" | "all";
   limit?: number;
   title?: string;
@@ -62,11 +62,11 @@ export function MomentumRiskPanel({
 
   const load = async () => {
     setLoading(true);
-    // Pull all projects in scope
-    let pq = supabase.from("projects").select("id, name, cohort_id, status").eq("status", "active");
-    if (cohortId) pq = pq.eq("cohort_id", cohortId);
+    // Pull projects in scope
+    let pq = supabase.from("projects").select("id, name, status").eq("status", "active");
+    if (projectIds && projectIds.length > 0) pq = pq.in("id", projectIds);
     const { data: projects } = await pq;
-    const projIds = (projects || []).map(p => p.id);
+    const projIds = (projects || []).map((p: any) => p.id);
     if (projIds.length === 0) { setRows([]); setLoading(false); return; }
 
     // Pull latest momentum_signals per project
@@ -81,10 +81,10 @@ export function MomentumRiskPanel({
 
     const merged: Row[] = (projects || [])
       .map(p => {
-        const s = latest.get(p.id);
+        const s = latest.get((p as any).id);
         return s ? {
-          project_id: p.id,
-          project_name: p.name,
+          project_id: (p as any).id,
+          project_name: (p as any).name,
           risk_score: s.risk_score,
           risk_level: s.risk_level,
           signals: s.signals,
@@ -102,15 +102,15 @@ export function MomentumRiskPanel({
     setLoading(false);
   };
 
-  useEffect(() => { void load(); /* eslint-disable-next-line */ }, [cohortId, mode, limit]);
+  useEffect(() => { void load(); /* eslint-disable-next-line */ }, [JSON.stringify(projectIds), mode, limit]);
 
   const refresh = async () => {
     setRefreshing(true);
     try {
       let pq = supabase.from("projects").select("id").eq("status", "active");
-      if (cohortId) pq = pq.eq("cohort_id", cohortId);
+      if (projectIds && projectIds.length > 0) pq = pq.in("id", projectIds);
       const { data: projects } = await pq;
-      await Promise.all((projects || []).map(p => supabase.rpc("compute_momentum_risk", { _project_id: p.id })));
+      await Promise.all((projects || []).map((p: any) => supabase.rpc("compute_momentum_risk", { _project_id: p.id })));
       await load();
       toast.success("Momentum scores recomputed");
     } catch (e: any) {
