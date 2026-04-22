@@ -16,6 +16,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { SectionExplainer, InfoDot } from "@/components/ui/SectionExplainer";
 import DeliverableStatusBadge from "@/components/DeliverableStatusBadge";
+import { ResumeStrip } from "@/components/ResumeStrip";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
 const item = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: 0.22 } } };
@@ -301,6 +302,8 @@ export default function Dashboard() {
                   </div>
                 )}
               </div>
+
+              <ResumeStrip />
 
               {/* Next Moves with engagement tags */}
               <div className="space-y-2 max-w-md">

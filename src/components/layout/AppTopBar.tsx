@@ -1,13 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
-import { Bell, Command, Moon, Search, Sun } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Command, Moon, Search, Sun } from "lucide-react";
 
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { NotificationBell } from "@/components/NotificationBell";
 
 const THEME_STORAGE_KEY = "theme";
 
@@ -30,10 +26,6 @@ function applyTheme(theme: ThemeMode) {
 }
 
 export function AppTopBar() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-
-  const [unreadCount, setUnreadCount] = useState(0);
   const [theme, setTheme] = useState<ThemeMode>("dark");
   const isDark = theme === "dark";
 
@@ -48,61 +40,6 @@ export function AppTopBar() {
     setTheme(nextTheme);
     applyTheme(nextTheme);
   };
-
-  useEffect(() => {
-    if (!user?.id) {
-      setUnreadCount(0);
-      return;
-    }
-
-    let isMounted = true;
-
-    const fetchUnread = async () => {
-      const { count, error } = await supabase
-        .from("notifications")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("read", false);
-
-      if (error) {
-        console.error("Failed to fetch unread notifications:", error);
-        return;
-      }
-
-      if (isMounted) {
-        setUnreadCount(count ?? 0);
-      }
-    };
-
-    void fetchUnread();
-
-    const channel = supabase
-      .channel(`notifications-count:${user.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          void fetchUnread();
-        },
-      )
-      .subscribe();
-
-    return () => {
-      isMounted = false;
-      void supabase.removeChannel(channel);
-    };
-  }, [user?.id]);
-
-  const unreadLabel = useMemo(() => {
-    if (unreadCount <= 0) return "No unread notifications";
-    if (unreadCount > 9) return "9 or more unread notifications";
-    return `${unreadCount} unread notification${unreadCount === 1 ? "" : "s"}`;
-  }, [unreadCount]);
 
   const openCommandPalette = () => {
     window.dispatchEvent(new CustomEvent("pec:command-palette:open"));
@@ -137,33 +74,7 @@ export function AppTopBar() {
           {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </Button>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative h-8 w-8"
-          onClick={() => navigate("/app/settings")}
-          title={unreadLabel}
-          aria-label={unreadLabel}
-        >
-          <Bell className="h-4 w-4" />
-
-          <AnimatePresence>
-            {unreadCount > 0 && (
-              <motion.div
-                key="notification-badge"
-                initial={{ scale: 0.75, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.75, opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="absolute -right-0.5 -top-0.5"
-              >
-                <Badge className="flex h-4 min-w-4 items-center justify-center p-0 font-mono text-[9px]">
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </Badge>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </Button>
+        <NotificationBell />
       </div>
     </header>
   );

@@ -15,11 +15,14 @@ import { Plus, ArrowLeft, Users, Target, FileOutput, AlertTriangle, BookOpen, Cl
 import { toast } from "sonner";
 import InlineDeliverableSubmit from "@/components/InlineDeliverableSubmit";
 import DeliverableStatusBadge from "@/components/DeliverableStatusBadge";
+import { AssignmentBundleDialog } from "@/components/AssignmentBundleDialog";
+import { useRecentItems } from "@/hooks/useRecentItems";
 
 export default function ProjectDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
+  const { trackVisit } = useRecentItems(0);
   const [project, setProject] = useState<any>(null);
   const [tasks, setTasks] = useState<any[]>([]);
   const [milestones, setMilestones] = useState<any[]>([]);
@@ -61,6 +64,12 @@ export default function ProjectDetail() {
 
   useEffect(() => { fetchAll(); }, [id]);
 
+  useEffect(() => {
+    if (project?.id && project?.name) {
+      void trackVisit("project", project.id, project.name, `/app/projects/${project.id}`);
+    }
+  }, [project?.id, project?.name, trackVisit]);
+
   const handleCreateTask = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
@@ -100,6 +109,14 @@ export default function ProjectDetail() {
             {project.organizations?.name && <Badge variant="outline">{project.organizations.name}</Badge>}
           </div>
         </div>
+        {isProjectLead && (
+          <AssignmentBundleDialog
+            projectId={id!}
+            members={members.map((m: any) => ({ user_id: m.user_id, full_name: m.profiles?.full_name }))}
+            milestones={milestones.map((m: any) => ({ id: m.id, title: m.title }))}
+            onCreated={fetchAll}
+          />
+        )}
       </div>
 
       <Tabs defaultValue="board" className="space-y-4">

@@ -9,8 +9,9 @@ import {
 import {
   LayoutDashboard, FolderKanban, MessageSquare, Users, CalendarDays,
   Trophy, GraduationCap, FileText, BarChart3, Shield, Building2,
-  Megaphone, Settings, Cpu, BookOpen, Target, Search, Zap,
+  Megaphone, Settings, Cpu, BookOpen, Target, Search, Zap, Clock, Pin,
 } from "lucide-react";
+import { useRecentItems } from "@/hooks/useRecentItems";
 
 const staticPages = [
   { label: "Mission Control", path: "/app", icon: LayoutDashboard, group: "Navigate" },
@@ -40,6 +41,7 @@ export function CommandPalette() {
   const [knowledgeCards, setKnowledgeCards] = useState<any[]>([]);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { items: recents, pinned } = useRecentItems(8);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -49,7 +51,12 @@ export function CommandPalette() {
       }
     };
     document.addEventListener("keydown", down);
-    return () => document.removeEventListener("keydown", down);
+    const openHandler = () => setOpen(true);
+    window.addEventListener("pec:command-palette:open", openHandler);
+    return () => {
+      document.removeEventListener("keydown", down);
+      window.removeEventListener("pec:command-palette:open", openHandler);
+    };
   }, []);
 
   useEffect(() => {
@@ -79,6 +86,32 @@ export function CommandPalette() {
       <CommandInput placeholder="Search everything... projects, manuals, members, pages" />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
+
+        {pinned.length > 0 && (
+          <CommandGroup heading="Pinned">
+            {pinned.map(p => (
+              <CommandItem key={`pin-${p.id}`} onSelect={() => go(p.link)} className="gap-3">
+                <Pin className="h-4 w-4 text-accent-foreground" />
+                <span>{p.label}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+
+        {recents.length > 0 && (
+          <>
+            {pinned.length > 0 && <CommandSeparator />}
+            <CommandGroup heading="Recent">
+              {recents.map(r => (
+                <CommandItem key={`recent-${r.id}`} onSelect={() => go(r.link)} className="gap-3">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span>{r.label}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+            <CommandSeparator />
+          </>
+        )}
 
         <CommandGroup heading="Pages">
           {staticPages.map(p => (

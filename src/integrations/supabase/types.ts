@@ -981,6 +981,39 @@ export type Database = {
         }
         Relationships: []
       }
+      escalation_events: {
+        Row: {
+          age_hours: number | null
+          created_at: string
+          id: string
+          metadata: Json | null
+          notified_user_ids: string[] | null
+          rule: string
+          target_id: string
+          target_type: string
+        }
+        Insert: {
+          age_hours?: number | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          notified_user_ids?: string[] | null
+          rule: string
+          target_id: string
+          target_type: string
+        }
+        Update: {
+          age_hours?: number | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          notified_user_ids?: string[] | null
+          rule?: string
+          target_id?: string
+          target_type?: string
+        }
+        Relationships: []
+      }
       event_notifications: {
         Row: {
           audience_scope: string | null
@@ -2141,31 +2174,139 @@ export type Database = {
           },
         ]
       }
+      notification_dispatch_log: {
+        Row: {
+          channel: string
+          created_at: string
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          notification_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          notification_id?: string | null
+          status: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          notification_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notification_preferences: {
+        Row: {
+          assignments: boolean
+          channel_email: boolean
+          channel_in_app: boolean
+          channel_teams: boolean
+          cohort_only: boolean
+          digest_frequency: string
+          events: boolean
+          keywords: string[]
+          leadership_alerts: boolean
+          mentions: boolean
+          preset: string
+          reviews: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assignments?: boolean
+          channel_email?: boolean
+          channel_in_app?: boolean
+          channel_teams?: boolean
+          cohort_only?: boolean
+          digest_frequency?: string
+          events?: boolean
+          keywords?: string[]
+          leadership_alerts?: boolean
+          mentions?: boolean
+          preset?: string
+          reviews?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assignments?: boolean
+          channel_email?: boolean
+          channel_in_app?: boolean
+          channel_teams?: boolean
+          cohort_only?: boolean
+          digest_frequency?: string
+          events?: boolean
+          keywords?: string[]
+          leadership_alerts?: boolean
+          mentions?: boolean
+          preset?: string
+          reviews?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
+          actor_id: string | null
           body: string | null
+          category: string
           created_at: string
+          dedupe_key: string | null
+          escalated: boolean
           id: string
           link: string | null
+          metadata: Json | null
+          priority: string
           read: boolean
+          target_id: string | null
+          target_type: string | null
           title: string
           user_id: string
         }
         Insert: {
+          actor_id?: string | null
           body?: string | null
+          category?: string
           created_at?: string
+          dedupe_key?: string | null
+          escalated?: boolean
           id?: string
           link?: string | null
+          metadata?: Json | null
+          priority?: string
           read?: boolean
+          target_id?: string | null
+          target_type?: string | null
           title: string
           user_id: string
         }
         Update: {
+          actor_id?: string | null
           body?: string | null
+          category?: string
           created_at?: string
+          dedupe_key?: string | null
+          escalated?: boolean
           id?: string
           link?: string | null
+          metadata?: Json | null
+          priority?: string
           read?: boolean
+          target_id?: string | null
+          target_type?: string | null
           title?: string
           user_id?: string
         }
@@ -2401,6 +2542,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pinned_items: {
+        Row: {
+          id: string
+          item_id: string
+          item_type: string
+          label: string
+          link: string
+          pinned_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          item_id: string
+          item_type: string
+          label: string
+          link: string
+          pinned_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          item_id?: string
+          item_type?: string
+          label?: string
+          link?: string
+          pinned_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -2914,6 +3085,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      recent_items: {
+        Row: {
+          id: string
+          item_id: string
+          item_type: string
+          label: string
+          link: string
+          metadata: Json | null
+          user_id: string
+          visited_at: string
+        }
+        Insert: {
+          id?: string
+          item_id: string
+          item_type: string
+          label: string
+          link: string
+          metadata?: Json | null
+          user_id: string
+          visited_at?: string
+        }
+        Update: {
+          id?: string
+          item_id?: string
+          item_type?: string
+          label?: string
+          link?: string
+          metadata?: Json | null
+          user_id?: string
+          visited_at?: string
+        }
+        Relationships: []
       }
       recruiting_applications: {
         Row: {
@@ -3531,6 +3735,36 @@ export type Database = {
         Args: { p_deliverable_id: string }
         Returns: undefined
       }
+      create_assignment_bundle: {
+        Args: {
+          p_description?: string
+          p_due_date?: string
+          p_milestone_id?: string
+          p_note?: string
+          p_owner_id: string
+          p_priority?: string
+          p_project_id: string
+          p_reviewer_id?: string
+          p_title: string
+        }
+        Returns: string
+      }
+      create_notification: {
+        Args: {
+          p_actor_id?: string
+          p_body?: string
+          p_category: string
+          p_dedupe_key?: string
+          p_link?: string
+          p_metadata?: Json
+          p_priority?: string
+          p_target_id?: string
+          p_target_type?: string
+          p_title: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       create_project_from_template: {
         Args: {
           p_cohort_id?: string
@@ -3589,6 +3823,7 @@ export type Database = {
         Args: { p_cohort_name: string; p_role: string; p_user_id: string }
         Returns: undefined
       }
+      mark_notifications_read: { Args: { p_ids?: string[] }; Returns: number }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -3615,9 +3850,20 @@ export type Database = {
         Returns: undefined
       }
       resync_user_from_roster: { Args: { p_user_id: string }; Returns: Json }
+      run_escalation_scan: { Args: never; Returns: Json }
       seed_project_memberships_from_cohort: {
         Args: { p_cohort_id: string; p_project_id: string }
         Returns: number
+      }
+      track_recent_item: {
+        Args: {
+          p_item_id: string
+          p_item_type: string
+          p_label: string
+          p_link: string
+          p_metadata?: Json
+        }
+        Returns: undefined
       }
     }
     Enums: {
