@@ -78,7 +78,7 @@ export default function LeadWorkspace() {
 
   const approveDeliverable = async (id: string) => {
     const res = await approveDeliverableRpc(id);
-    if (!res.ok) { toast.error(`Approval failed: ${res.error}`); return; }
+    if (res.ok === false) { toast.error(`Approval failed: ${res.error}`); return; }
     toast.success("Deliverable approved");
     setDeliverables(prev => prev.map(d => d.id === id ? { ...d, approval_status: "approved", approved: true } : d));
   };
@@ -87,7 +87,7 @@ export default function LeadWorkspace() {
     const reason = window.prompt("What needs to change? (will be visible to owner)");
     if (reason === null) return;
     const res = await requestDeliverableChanges(id, reason);
-    if (!res.ok) { toast.error(res.error); return; }
+    if (res.ok === false) { toast.error(res.error); return; }
     toast.info("Revision requested");
     setDeliverables(prev => prev.map(d => d.id === id ? { ...d, approval_status: "revision_requested" } : d));
   };
