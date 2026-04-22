@@ -690,13 +690,13 @@ function MonthGrid({ cursor, itemsByDay, onDayClick, onEventClick }: {
           return (
             <button
               key={day.toISOString()} type="button" onClick={() => onDayClick(day)}
-              className={`min-h-[84px] p-1.5 text-left bg-card hover:bg-accent/5 transition-colors flex flex-col gap-1 ${!inMonth ? "opacity-40" : ""}`}
+              className={`min-h-[112px] p-2 text-left bg-card hover:bg-accent/5 transition-colors flex flex-col gap-1 ${!inMonth ? "bg-muted/20 text-muted-foreground/60" : ""} ${today ? "bg-primary/[0.04] ring-1 ring-inset ring-primary/30" : ""}`}
             >
               <div className="flex items-center justify-between">
-                <span className={`text-xs font-mono ${today ? "h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center" : ""}`}>
+                <span className={`text-xs font-mono ${today ? "h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold" : "font-medium"}`}>
                   {format(day, "d")}
                 </span>
-                {items.length > 3 && <span className="text-[9px] font-mono text-muted-foreground">+{items.length - 3}</span>}
+                {items.length > 3 && <span className="text-[9px] font-mono text-muted-foreground">+{items.length - 3} more</span>}
               </div>
               <div className="space-y-0.5">
                 {items.slice(0, 3).map((it) => {
@@ -705,9 +705,10 @@ function MonthGrid({ cursor, itemsByDay, onDayClick, onEventClick }: {
                     <div
                       key={it.id}
                       onClick={(e) => { e.stopPropagation(); onEventClick(it); }}
-                      className={`text-[10px] truncate px-1.5 py-0.5 rounded border ${s.bg} cursor-pointer`}
+                      className={`text-[10px] truncate px-1.5 py-0.5 rounded border ${s.bg} cursor-pointer hover:opacity-90 leading-tight`}
                       title={it.title}
                     >
+                      <span className="font-mono opacity-70 mr-1">{format(it.start, "h:mma").toLowerCase()}</span>
                       {it.title}
                     </div>
                   );
