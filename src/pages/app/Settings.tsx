@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Shield, Cpu, Award, User, Mail, GraduationCap, Linkedin, Phone, BookOpen, MessageSquare, CheckCircle2, XCircle, AlertTriangle, ExternalLink, Loader2 } from "lucide-react";
+import { NotificationPreferences } from "@/components/NotificationPreferences";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
 const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } };
