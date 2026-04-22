@@ -17,6 +17,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { logAuditAction } from "@/lib/audit";
 import { SectionExplainer, InfoDot } from "@/components/ui/SectionExplainer";
 import { MomentumRiskPanel } from "@/components/momentum/MomentumRiskPanel";
+import { approveDeliverable as approveDeliverableRpc, requestDeliverableChanges } from "@/lib/reviewActions";
+import { displayName } from "@/lib/utils";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } };
@@ -75,18 +77,19 @@ export default function LeadWorkspace() {
   const cohortName = (cohort?.cohorts as any)?.name || "Your Cohort";
 
   const approveDeliverable = async (id: string) => {
-    const { error } = await supabase.from("deliverables").update({ approval_status: "approved" as any, approved: true, approved_by: user!.id, approved_at: new Date().toISOString() }).eq("id", id);
-    if (error) { toast.error(`Approval failed: ${error.message}`); return; }
-    await logAuditAction("deliverable_approved", "deliverables", id);
+    const res = await approveDeliverableRpc(id);
+    if (!res.ok) { toast.error(`Approval failed: ${res.error}`); return; }
     toast.success("Deliverable approved");
     setDeliverables(prev => prev.map(d => d.id === id ? { ...d, approval_status: "approved", approved: true } : d));
   };
 
   const requestChanges = async (id: string) => {
-    const { error } = await supabase.from("deliverables").update({ approval_status: "revision_requested" as any }).eq("id", id);
-    if (error) { toast.error(`Request failed: ${error.message}`); return; }
+    const reason = window.prompt("What needs to change? (will be visible to owner)");
+    if (reason === null) return;
+    const res = await requestDeliverableChanges(id, reason);
+    if (!res.ok) { toast.error(res.error); return; }
     toast.info("Revision requested");
-    setDeliverables(prev => prev.map(d => d.id === id ? { ...d, approval_status: "changes_requested" } : d));
+    setDeliverables(prev => prev.map(d => d.id === id ? { ...d, approval_status: "revision_requested" } : d));
   };
 
   const postAnnouncement = async () => {
