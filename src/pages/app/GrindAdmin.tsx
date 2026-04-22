@@ -385,6 +385,10 @@ export default function GrindAdmin() {
           )}
         </TabsContent>
 
+        <TabsContent value="freshness" className="mt-6">
+          <ThemeChallengeManager />
+        </TabsContent>
+
         <TabsContent value="cost" className="mt-6 space-y-4">
           {!usage || !settings ? (
             <div className="text-sm text-muted-foreground">Loading…</div>
