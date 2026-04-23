@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -11,7 +11,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, ArrowLeft, Users, Target, FileOutput, AlertTriangle, BookOpen, Clock, Upload, ExternalLink, CheckCircle2 } from "lucide-react";
+import {
+  Plus, ArrowLeft, Target, FileOutput, AlertTriangle, Upload, ExternalLink,
+  CheckCircle2, ChevronRight, Activity, Sparkles, Trophy, Briefcase, FlaskConical, Wrench
+} from "lucide-react";
 import { toast } from "sonner";
 import InlineDeliverableSubmit from "@/components/InlineDeliverableSubmit";
 import DeliverableStatusBadge from "@/components/DeliverableStatusBadge";
@@ -19,6 +22,15 @@ import { AssignmentBundleDialog } from "@/components/AssignmentBundleDialog";
 import { useRecentItems } from "@/hooks/useRecentItems";
 import { DecisionMemoryWidget } from "@/components/decision/DecisionMemoryWidget";
 import { approveDeliverable, requestDeliverableChanges } from "@/lib/reviewActions";
+import { getUnifiedStatus, isBlockingStage } from "@/lib/deliverableStatus";
+
+const MODE_META: Record<string, { label: string; Icon: any; tone: string }> = {
+  purpose_track: { label: "Purpose", Icon: FlaskConical, tone: "bg-primary/10 text-primary border-primary/20" },
+  competition: { label: "Competition", Icon: Trophy, tone: "bg-warning/10 text-warning border-warning/20" },
+  client_engagement: { label: "Contract", Icon: Briefcase, tone: "bg-accent/10 text-accent border-accent/20" },
+  internal_initiative: { label: "Internal", Icon: Wrench, tone: "bg-muted text-foreground border-border" },
+  training_mock: { label: "Training", Icon: Sparkles, tone: "bg-muted text-muted-foreground border-border" },
+};
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -33,6 +45,7 @@ export default function ProjectDetail() {
   const [risks, setRisks] = useState<any[]>([]);
   const [decisions, setDecisions] = useState<any[]>([]);
   const [updates, setUpdates] = useState<any[]>([]);
+  const [reviewEvents, setReviewEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [taskDialog, setTaskDialog] = useState(false);
   const [submitTarget, setSubmitTarget] = useState<any>(null);
@@ -43,15 +56,16 @@ export default function ProjectDetail() {
   const fetchAll = async () => {
     if (!id) return;
     setLoading(true);
-    const [pRes, tRes, mRes, dRes, memRes, rRes, decRes, uRes] = await Promise.all([
+    const [pRes, tRes, mRes, dRes, memRes, rRes, decRes, uRes, evRes] = await Promise.all([
       supabase.from("projects").select("*, organizations(name)").eq("id", id).single(),
       supabase.from("tasks").select("*, profiles:assignee_id(full_name)").eq("project_id", id).order("created_at", { ascending: false }),
       supabase.from("milestones").select("*").eq("project_id", id).order("due_date"),
-      supabase.from("deliverables").select("*").eq("project_id", id).order("created_at", { ascending: false }),
+      supabase.from("deliverables").select("*, owner:owner_id(full_name)").eq("project_id", id).order("created_at", { ascending: false }),
       supabase.from("project_memberships").select("*, profiles:user_id(full_name, avatar_url)").eq("project_id", id),
       supabase.from("risks").select("*").eq("project_id", id),
       supabase.from("decisions").select("*").eq("project_id", id).order("decided_at", { ascending: false }),
       supabase.from("project_updates").select("*").eq("project_id", id).order("created_at", { ascending: false }).limit(5),
+      supabase.from("deliverable_review_events").select("*").eq("project_id", id).order("created_at", { ascending: false }).limit(8),
     ]);
     setProject(pRes.data);
     setTasks(tRes.data || []);
@@ -61,6 +75,7 @@ export default function ProjectDetail() {
     setRisks(rRes.data || []);
     setDecisions(decRes.data || []);
     setUpdates(uRes.data || []);
+    setReviewEvents(evRes.data || []);
     setLoading(false);
   };
 
@@ -71,6 +86,60 @@ export default function ProjectDetail() {
       void trackVisit("project", project.id, project.name, `/app/projects/${project.id}`);
     }
   }, [project?.id, project?.name, trackVisit]);
+
+  // ---------- Derived execution state ----------
+  const currentStage = useMemo(() => {
+    if (!milestones.length) return null;
+    return (
+      milestones.find((m) => m.status === "in_progress") ||
+      milestones.find((m) => m.status === "not_started") ||
+      milestones[milestones.length - 1]
+    );
+  }, [milestones]);
+
+  const stageBlockers = useMemo(() => {
+    if (!currentStage) return [] as any[];
+    return deliverables.filter(
+      (d) => d.milestone_id === currentStage.id && isBlockingStage({
+        approval_status: d.approval_status, approval_required: d.approval_required,
+        file_url: d.file_url, due_date: d.due_date, required: d.required,
+      })
+    );
+  }, [deliverables, currentStage]);
+
+  const nextDeadline = useMemo(() => {
+    const upcoming = deliverables
+      .filter((d) => d.due_date && getUnifiedStatus({
+        approval_status: d.approval_status, approval_required: d.approval_required,
+        file_url: d.file_url, due_date: d.due_date,
+      }) !== "approved")
+      .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
+    return upcoming[0] || null;
+  }, [deliverables]);
+
+  // Personal next moves (member-centric)
+  const myMoves = useMemo(() => {
+    if (!user) return [] as any[];
+    const moves: { id: string; label: string; deliverable: any; tone: "danger" | "warn" | "default" }[] = [];
+    deliverables.forEach((d) => {
+      const mine = d.owner_id === user.id;
+      const status = getUnifiedStatus(d);
+      if (mine && (status === "not_started" || status === "overdue")) {
+        moves.push({ id: d.id, label: status === "overdue" ? "Overdue — submit now" : "Submit", deliverable: d, tone: status === "overdue" ? "danger" : "default" });
+      } else if (mine && status === "revision_requested") {
+        moves.push({ id: d.id, label: "Resubmit revision", deliverable: d, tone: "warn" });
+      }
+    });
+    return moves.slice(0, 3);
+  }, [deliverables, user]);
+
+  // Lead review queue (lead-centric)
+  const reviewQueue = useMemo(() => {
+    if (!isProjectLead) return [] as any[];
+    return deliverables.filter(
+      (d) => d.approval_required && d.file_url && d.approval_status === "pending"
+    ).slice(0, 3);
+  }, [deliverables, isProjectLead]);
 
   const handleCreateTask = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -99,17 +168,29 @@ export default function ProjectDetail() {
 
   const columns = ["todo", "in_progress", "review", "done"];
   const columnLabels: Record<string, string> = { todo: "To Do", in_progress: "In Progress", review: "Review", done: "Done" };
+  const mode = MODE_META[project.project_mode as string] || MODE_META.internal_initiative;
+  const ModeIcon = mode.Icon;
+  const stageProgress = currentStage?.progress ?? 0;
+  const stageIsBlocked = stageBlockers.length > 0;
+
+  const ownerName = (d: any) => d.owner?.full_name || (d.owner_id ? "Assigned" : "Unassigned");
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
+    <div className="space-y-5">
+      {/* ===================== STATUS HEADER ===================== */}
+      <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate("/app/projects")}><ArrowLeft className="h-4 w-4" /></Button>
-        <div className="flex-1">
-          <h1 className="font-display text-2xl font-bold">{project.name}</h1>
-          <div className="flex items-center gap-2 mt-1">
-            <Badge>{project.status}</Badge>
-            {project.organizations?.name && <Badge variant="outline">{project.organizations.name}</Badge>}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge variant="outline" className={`gap-1 text-[10px] ${mode.tone}`}>
+              <ModeIcon className="h-3 w-3" /> {mode.label}
+            </Badge>
+            <Badge variant="outline" className="text-[10px] capitalize">{project.status}</Badge>
+            {project.organizations?.name && (
+              <Badge variant="outline" className="text-[10px]">{project.organizations.name}</Badge>
+            )}
           </div>
+          <h1 className="font-display text-2xl font-bold truncate mt-1">{project.name}</h1>
         </div>
         {isProjectLead && (
           <AssignmentBundleDialog
@@ -121,20 +202,373 @@ export default function ProjectDetail() {
         )}
       </div>
 
-      <Tabs defaultValue="board" className="space-y-4">
+      {/* ===================== EXECUTION BANNER ===================== */}
+      <Card className={stageIsBlocked ? "border-destructive/40 bg-destructive/[0.03]" : "border-primary/30"}>
+        <CardContent className="p-4 grid gap-4 md:grid-cols-[1.6fr_1fr_1fr] items-center">
+          {/* Current stage */}
+          <div className="space-y-2 min-w-0">
+            <div className="flex items-center gap-2">
+              <Target className="h-4 w-4 text-primary shrink-0" />
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Current stage</p>
+            </div>
+            {currentStage ? (
+              <>
+                <p className="text-sm font-semibold truncate">{currentStage.title}</p>
+                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                  <div className={`h-full ${stageIsBlocked ? "bg-destructive" : "bg-primary"} transition-all`} style={{ width: `${stageProgress}%` }} />
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {stageIsBlocked ? (
+                    <Badge variant="destructive" className="gap-1 text-[10px]">
+                      <AlertTriangle className="h-2.5 w-2.5" /> Blocked · {stageBlockers.length}
+                    </Badge>
+                  ) : (
+                    <Badge className="gap-1 text-[10px] bg-success text-success-foreground border-transparent">
+                      <CheckCircle2 className="h-2.5 w-2.5" /> Ready
+                    </Badge>
+                  )}
+                  <span className="text-[10px] text-muted-foreground">{stageProgress}% complete</span>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">No stages defined yet.</p>
+            )}
+          </div>
+
+          {/* Next deadline */}
+          <div className="space-y-1 min-w-0">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Next deadline</p>
+            {nextDeadline ? (
+              <>
+                <p className="text-sm font-medium truncate">{nextDeadline.title}</p>
+                <p className="text-xs text-muted-foreground">
+                  Due {new Date(nextDeadline.due_date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  {" · "}{ownerName(nextDeadline)}
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">None upcoming</p>
+            )}
+          </div>
+
+          {/* Highest-priority action */}
+          <div className="space-y-1 min-w-0">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Top action</p>
+            {stageIsBlocked ? (
+              <Button size="sm" className="w-full justify-between" onClick={() => setSubmitTarget(stageBlockers[0])}>
+                <span className="truncate">Unblock: {stageBlockers[0].title}</span>
+                <ChevronRight className="h-3 w-3 shrink-0" />
+              </Button>
+            ) : myMoves[0] ? (
+              <Button size="sm" className="w-full justify-between" variant={myMoves[0].tone === "danger" ? "destructive" : "default"} onClick={() => setSubmitTarget(myMoves[0].deliverable)}>
+                <span className="truncate">{myMoves[0].label}</span>
+                <ChevronRight className="h-3 w-3 shrink-0" />
+              </Button>
+            ) : reviewQueue[0] ? (
+              <Button size="sm" className="w-full justify-between" variant="default" onClick={async () => {
+                setApproving(reviewQueue[0].id);
+                const res = await approveDeliverable(reviewQueue[0].id);
+                setApproving(null);
+                if (res.ok === false) return toast.error(res.error);
+                toast.success("Approved"); fetchAll();
+              }}>
+                <span className="truncate">Review: {reviewQueue[0].title}</span>
+                <ChevronRight className="h-3 w-3 shrink-0" />
+              </Button>
+            ) : (
+              <p className="text-xs text-muted-foreground italic">All clear</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ===================== TABS ===================== */}
+      <Tabs defaultValue="hub" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="board">Task Board</TabsTrigger>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="milestones">Milestones</TabsTrigger>
-          <TabsTrigger value="deliverables">Deliverables</TabsTrigger>
-          <TabsTrigger value="team">Team</TabsTrigger>
-          <TabsTrigger value="risks">Risks</TabsTrigger>
-          <TabsTrigger value="decisions">Decisions</TabsTrigger>
+          <TabsTrigger value="hub">Hub</TabsTrigger>
+          <TabsTrigger value="deliverables">Deliverables{deliverables.length > 0 && <span className="ml-1 text-[10px] text-muted-foreground">{deliverables.length}</span>}</TabsTrigger>
+          <TabsTrigger value="board">Board{tasks.length > 0 && <span className="ml-1 text-[10px] text-muted-foreground">{tasks.length}</span>}</TabsTrigger>
+          <TabsTrigger value="team">Team{members.length > 0 && <span className="ml-1 text-[10px] text-muted-foreground">{members.length}</span>}</TabsTrigger>
         </TabsList>
 
+        {/* ============ HUB ============ */}
+        <TabsContent value="hub" className="space-y-5">
+          {/* Personal & lead next moves */}
+          {(myMoves.length > 0 || reviewQueue.length > 0) && (
+            <div className="grid gap-4 lg:grid-cols-2">
+              {myMoves.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Your next moves</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {myMoves.map((m) => (
+                      <button key={m.id} onClick={() => setSubmitTarget(m.deliverable)}
+                        className="w-full flex items-center justify-between gap-2 rounded-md border bg-card hover:border-primary/40 hover:bg-muted/40 p-2.5 text-left transition-colors">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">{m.deliverable.title}</p>
+                          <p className="text-[11px] text-muted-foreground">{m.label}{m.deliverable.due_date && ` · Due ${new Date(m.deliverable.due_date).toLocaleDateString()}`}</p>
+                        </div>
+                        <Upload className="h-4 w-4 text-muted-foreground shrink-0" />
+                      </button>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+              {reviewQueue.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Awaiting your review</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {reviewQueue.map((d) => (
+                      <div key={d.id} className="flex items-center justify-between gap-2 rounded-md border p-2.5">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">{d.title}</p>
+                          <p className="text-[11px] text-muted-foreground">v{d.version} · {ownerName(d)}</p>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {d.file_url && (
+                            <Button asChild variant="ghost" size="sm" className="h-7 px-2">
+                              <a href={d.file_url} target="_blank" rel="noreferrer"><ExternalLink className="h-3 w-3" /></a>
+                            </Button>
+                          )}
+                          <Button size="sm" className="h-7 gap-1" disabled={approving === d.id} onClick={async () => {
+                            setApproving(d.id);
+                            const res = await approveDeliverable(d.id);
+                            setApproving(null);
+                            if (res.ok === false) return toast.error(res.error);
+                            toast.success("Approved"); fetchAll();
+                          }}>
+                            <CheckCircle2 className="h-3 w-3" /> Approve
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {/* Stages */}
+          <Card>
+            <CardHeader className="pb-2 flex flex-row items-center justify-between">
+              <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Stages</CardTitle>
+              <span className="text-[11px] text-muted-foreground">{milestones.length} total</span>
+            </CardHeader>
+            <CardContent>
+              {milestones.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No stages yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {milestones.map((m) => {
+                    const blockers = deliverables.filter((d: any) => d.milestone_id === m.id && isBlockingStage({
+                      approval_status: d.approval_status, approval_required: d.approval_required,
+                      file_url: d.file_url, due_date: d.due_date, required: d.required,
+                    }));
+                    const isCurrent = currentStage?.id === m.id;
+                    return (
+                      <div key={m.id} className={`rounded-md border p-3 ${isCurrent ? "border-primary/40 bg-primary/[0.03]" : ""}`}>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Target className={`h-4 w-4 shrink-0 ${isCurrent ? "text-primary" : "text-muted-foreground"}`} />
+                          <p className="font-medium text-sm flex-1 truncate">{m.title}</p>
+                          {isCurrent && <Badge variant="outline" className="text-[9px] border-primary/40 text-primary">Current</Badge>}
+                          {blockers.length > 0
+                            ? <Badge variant="destructive" className="text-[10px] gap-1"><AlertTriangle className="h-2.5 w-2.5" /> {blockers.length} blocking</Badge>
+                            : <Badge className="text-[10px] gap-1 bg-success text-success-foreground border-transparent"><CheckCircle2 className="h-2.5 w-2.5" /> Ready</Badge>}
+                          {m.due_date && <span className="text-[10px] text-muted-foreground">{new Date(m.due_date).toLocaleDateString()}</span>}
+                        </div>
+                        <div className="mt-2 h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                          <div className="h-full bg-primary transition-all" style={{ width: `${m.progress}%` }} />
+                        </div>
+                        {blockers.length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            {blockers.map((b: any) => (
+                              <button key={b.id} onClick={() => setSubmitTarget(b)}
+                                className="w-full flex items-center justify-between gap-2 text-xs rounded border border-destructive/20 bg-destructive/5 hover:bg-destructive/10 px-2 py-1.5 text-left">
+                                <span className="truncate">{b.title}</span>
+                                <span className="flex items-center gap-1.5 shrink-0">
+                                  <span className="text-[10px] text-muted-foreground">{ownerName(b)}</span>
+                                  <DeliverableStatusBadge status={b.approval_status} fileUrl={b.file_url} dueDate={b.due_date} approvalRequired={b.approval_required} />
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* What changed + Risks side-by-side */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
+                  <Activity className="h-3 w-3" /> What changed
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {reviewEvents.length === 0 && updates.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No recent activity.</p>
+                ) : (
+                  <ul className="space-y-2 text-sm">
+                    {reviewEvents.slice(0, 5).map((e) => (
+                      <li key={e.id} className="flex items-start gap-2">
+                        <span className="text-[10px] text-muted-foreground mt-0.5 w-14 shrink-0">{new Date(e.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                        <span className="capitalize text-foreground">
+                          {e.event_type.replace("_", " ")}
+                          {e.version && <span className="text-muted-foreground"> · v{e.version}</span>}
+                        </span>
+                      </li>
+                    ))}
+                    {updates.slice(0, 2).map((u) => (
+                      <li key={u.id} className="flex items-start gap-2">
+                        <span className="text-[10px] text-muted-foreground mt-0.5 w-14 shrink-0">{new Date(u.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                        <span className="text-foreground line-clamp-2">{u.summary}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Risks{risks.length > 0 && <span className="ml-1 lowercase tracking-normal text-muted-foreground">· {risks.length}</span>}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {risks.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No risks registered.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {risks.slice(0, 4).map((r) => (
+                      <li key={r.id} className="flex items-start gap-2 text-sm">
+                        <AlertTriangle className={`h-3.5 w-3.5 shrink-0 mt-0.5 ${r.severity === "critical" ? "text-destructive" : r.severity === "high" ? "text-warning" : "text-muted-foreground"}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="truncate">{r.title}</p>
+                          {r.mitigation && <p className="text-[11px] text-muted-foreground truncate">{r.mitigation}</p>}
+                        </div>
+                        <Badge variant={r.status === "open" ? "destructive" : "secondary"} className="text-[10px] shrink-0">{r.status}</Badge>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Decisions */}
+          <DecisionMemoryWidget projectId={id!} onSaved={fetchAll} />
+
+          {/* Project meta — collapsed at the bottom */}
+          {(project.description || project.scope) && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Context</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                {project.description && <p>{project.description}</p>}
+                {project.scope && <p className="text-muted-foreground"><span className="font-medium text-foreground">Scope:</span> {project.scope}</p>}
+                <div className="flex gap-4 text-xs text-muted-foreground">
+                  {project.start_date && <span>Start {project.start_date}</span>}
+                  {project.end_date && <span>End {project.end_date}</span>}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* ============ DELIVERABLES ============ */}
+        <TabsContent value="deliverables">
+          {deliverables.length === 0 ? <p className="text-sm text-muted-foreground text-center py-8">No deliverables yet.</p> : (
+            <div className="space-y-2">
+              {deliverables.map(d => {
+                const milestone = milestones.find((m: any) => m.id === d.milestone_id);
+                const isOwnerOrLead = d.owner_id === user?.id || !d.owner_id || isProjectLead;
+                const canApprove = isProjectLead && d.file_url && d.approval_status === "pending" && d.approval_required;
+                const blocking = isBlockingStage({
+                  approval_status: d.approval_status, approval_required: d.approval_required,
+                  file_url: d.file_url, due_date: d.due_date, required: d.required,
+                });
+                return (
+                  <Card key={d.id} className={blocking ? "border-destructive/30" : ""}>
+                    <CardContent className="flex items-center gap-4 p-4">
+                      <FileOutput className="h-5 w-5 text-primary shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-medium text-sm truncate">{d.title}</p>
+                          <span className="text-[10px] text-muted-foreground font-mono">v{d.version}</span>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap mt-1">
+                          <DeliverableStatusBadge
+                            status={d.approval_status}
+                            fileUrl={d.file_url}
+                            dueDate={d.due_date}
+                            approvalRequired={d.approval_required}
+                            blockingStage={blocking}
+                          />
+                          <span className="text-[10px] text-muted-foreground">Owner: {ownerName(d)}</span>
+                          {milestone && <span className="text-[10px] text-muted-foreground">· {milestone.title}</span>}
+                          {d.due_date && <span className="text-[10px] text-muted-foreground">· Due {new Date(d.due_date).toLocaleDateString()}</span>}
+                          {d.client_visible && <Badge variant="outline" className="text-[10px]">Client visible</Badge>}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {d.file_url && (
+                          <Button asChild variant="ghost" size="sm" className="h-8 gap-1">
+                            <a href={d.file_url} target="_blank" rel="noreferrer"><ExternalLink className="h-3 w-3" /> Open</a>
+                          </Button>
+                        )}
+                        {isOwnerOrLead && d.approval_status !== "approved" && (
+                          <Button size="sm" variant={d.file_url ? "outline" : "default"} className="h-8 gap-1" onClick={() => setSubmitTarget(d)}>
+                            <Upload className="h-3 w-3" />
+                            {d.file_url ? (d.approval_status === "revision_requested" ? "Resubmit" : "Replace") : "Submit"}
+                          </Button>
+                        )}
+                        {canApprove && (
+                          <>
+                            <Button size="sm" variant="default" className="h-8 gap-1" disabled={approving === d.id}
+                              onClick={async () => {
+                                setApproving(d.id);
+                                const res = await approveDeliverable(d.id);
+                                setApproving(null);
+                                if (res.ok === false) { toast.error(`Approve failed: ${res.error}`); return; }
+                                toast.success("Approved"); fetchAll();
+                              }}>
+                              <CheckCircle2 className="h-3 w-3" /> Approve
+                            </Button>
+                            <Button size="sm" variant="outline" className="h-8" disabled={approving === d.id}
+                              onClick={async () => {
+                                const reason = window.prompt("What needs to change? (will be visible to owner)");
+                                if (reason === null) return;
+                                setApproving(d.id);
+                                const res = await requestDeliverableChanges(d.id, reason);
+                                setApproving(null);
+                                if (res.ok === false) { toast.error(res.error); return; }
+                                toast.success("Revision requested"); fetchAll();
+                              }}>
+                              Request changes
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* ============ BOARD ============ */}
         <TabsContent value="board">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-sm text-muted-foreground">{tasks.length} tasks</p>
+            <p className="text-sm text-muted-foreground">{tasks.length} tasks · lightweight working list</p>
             <Dialog open={taskDialog} onOpenChange={setTaskDialog}>
               <DialogTrigger asChild><Button size="sm"><Plus className="mr-1 h-3 w-3" /> Add Task</Button></DialogTrigger>
               <DialogContent>
@@ -191,212 +625,48 @@ export default function ProjectDetail() {
           </div>
         </TabsContent>
 
-        <TabsContent value="overview">
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Card>
-              <CardHeader><CardTitle className="text-base">Details</CardTitle></CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div><span className="text-muted-foreground">Description:</span> <p>{project.description || "—"}</p></div>
-                <div><span className="text-muted-foreground">Scope:</span> <p>{project.scope || "—"}</p></div>
-                <div className="flex gap-4">
-                  <div><span className="text-muted-foreground">Start:</span> {project.start_date || "—"}</div>
-                  <div><span className="text-muted-foreground">End:</span> {project.end_date || "—"}</div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader><CardTitle className="text-base">Recent Updates</CardTitle></CardHeader>
-              <CardContent>
-                {updates.length === 0 ? <p className="text-sm text-muted-foreground">No updates yet.</p> : (
-                  <div className="space-y-3">
-                    {updates.map(u => (
-                      <div key={u.id} className="border-l-2 pl-3" style={{ borderColor: u.health === "green" ? "var(--success)" : u.health === "yellow" ? "var(--warning)" : "var(--destructive)" }}>
-                        <p className="text-sm">{u.summary}</p>
-                        <p className="text-[10px] text-muted-foreground">{new Date(u.created_at).toLocaleDateString()}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-          <div className="mt-6">
-            <DecisionMemoryWidget projectId={id!} onSaved={fetchAll} />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="milestones">
-          <div className="space-y-3">
-            {milestones.length === 0 ? <p className="text-sm text-muted-foreground text-center py-8">No milestones yet.</p> : milestones.map(m => {
-              const blockers = deliverables.filter((d: any) => d.milestone_id === m.id && d.required && (
-                (d.approval_required && d.approval_status !== "approved") ||
-                (!d.approval_required && !d.file_url)
-              ));
-              return (
-                <Card key={m.id}>
-                  <CardContent className="flex items-start gap-4 p-4">
-                    <Target className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-medium text-sm">{m.title}</p>
-                        <Badge variant="outline" className="text-[10px]">{m.status}</Badge>
-                        {blockers.length > 0
-                          ? <Badge variant="destructive" className="text-[10px] gap-1"><AlertTriangle className="h-2.5 w-2.5" /> Stage blocked · {blockers.length}</Badge>
-                          : <Badge className="text-[10px] gap-1 bg-success text-success-foreground border-transparent"><CheckCircle2 className="h-2.5 w-2.5" /> Ready</Badge>}
-                        {m.due_date && <span className="text-xs text-muted-foreground">{new Date(m.due_date).toLocaleDateString()}</span>}
-                      </div>
-                      <div className="mt-2 h-2 w-full rounded-full bg-muted">
-                        <div className="h-2 rounded-full bg-primary transition-all" style={{ width: `${m.progress}%` }} />
-                      </div>
-                      {blockers.length > 0 && (
-                        <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/5 p-2 space-y-1">
-                          <p className="text-[10px] font-medium text-destructive uppercase tracking-wide">Blocking deliverables</p>
-                          {blockers.map((b: any) => (
-                            <div key={b.id} className="flex items-center justify-between gap-2 text-xs">
-                              <span className="truncate">{b.title}</span>
-                              <DeliverableStatusBadge status={b.approval_status} fileUrl={b.file_url} dueDate={b.due_date} approvalRequired={b.approval_required} />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="deliverables">
-          {deliverables.length === 0 ? <p className="text-sm text-muted-foreground text-center py-8">No deliverables yet.</p> : (
-            <div className="space-y-2">
-              {deliverables.map(d => {
-                const milestone = milestones.find((m: any) => m.id === d.milestone_id);
-                const isOwnerOrLead = d.owner_id === user?.id || !d.owner_id || isProjectLead;
-                const canApprove = isProjectLead && d.file_url && d.approval_status === "pending" && d.approval_required;
-                return (
-                  <Card key={d.id}>
-                    <CardContent className="flex items-center gap-4 p-4">
-                      <FileOutput className="h-5 w-5 text-primary shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-medium text-sm truncate">{d.title}</p>
-                          <span className="text-[10px] text-muted-foreground font-mono">v{d.version}</span>
-                        </div>
-                        <div className="flex items-center gap-2 flex-wrap mt-1">
-                          <DeliverableStatusBadge
-                            status={d.approval_status}
-                            fileUrl={d.file_url}
-                            dueDate={d.due_date}
-                            approvalRequired={d.approval_required}
-                          />
-                          {milestone && <span className="text-[10px] text-muted-foreground">· Stage: {milestone.title}</span>}
-                          {d.due_date && <span className="text-[10px] text-muted-foreground">· Due {new Date(d.due_date).toLocaleDateString()}</span>}
-                          {d.client_visible && <Badge variant="outline" className="text-[10px]">Client visible</Badge>}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {d.file_url && (
-                          <Button asChild variant="ghost" size="sm" className="h-8 gap-1">
-                            <a href={d.file_url} target="_blank" rel="noreferrer"><ExternalLink className="h-3 w-3" /> Open</a>
-                          </Button>
-                        )}
-                        {isOwnerOrLead && d.approval_status !== "approved" && (
-                          <Button size="sm" variant={d.file_url ? "outline" : "default"} className="h-8 gap-1" onClick={() => setSubmitTarget(d)}>
-                            <Upload className="h-3 w-3" />
-                            {d.file_url ? (d.approval_status === "revision_requested" ? "Resubmit" : "Replace") : "Submit"}
-                          </Button>
-                        )}
-                        {canApprove && (
-                          <>
-                            <Button size="sm" variant="default" className="h-8 gap-1" disabled={approving === d.id}
-                              onClick={async () => {
-                                setApproving(d.id);
-                                const res = await approveDeliverable(d.id);
-                                setApproving(null);
-                                if (res.ok === false) { toast.error(`Approve failed: ${res.error}`); return; }
-                                toast.success("Approved"); fetchAll();
-                              }}>
-                              <CheckCircle2 className="h-3 w-3" /> Approve
-                            </Button>
-                            <Button size="sm" variant="outline" className="h-8" disabled={approving === d.id}
-                              onClick={async () => {
-                                const reason = window.prompt("What needs to change? (will be visible to owner)");
-                                if (reason === null) return;
-                                setApproving(d.id);
-                                const res = await requestDeliverableChanges(d.id, reason);
-                                setApproving(null);
-                                if (res.ok === false) { toast.error(res.error); return; }
-                                toast.success("Revision requested"); fetchAll();
-                              }}>
-                              Request changes
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </TabsContent>
-
+        {/* ============ TEAM ============ */}
         <TabsContent value="team">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {members.map(m => (
+          {(() => {
+            const leads = members.filter((m) => m.role_on_project === "lead");
+            const others = members.filter((m) => m.role_on_project !== "lead");
+            const ownedCount = (uid: string) => deliverables.filter((d) => d.owner_id === uid).length;
+            const renderCard = (m: any) => (
               <Card key={m.id}>
                 <CardContent className="flex items-center gap-3 p-4">
                   <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
                     {(m.profiles as any)?.full_name?.charAt(0) || "?"}
                   </div>
-                  <div>
-                    <p className="text-sm font-medium">
-                      {(m.profiles as any)?.full_name
-                        || (m.profiles as any)?.cal_poly_email?.split("@")[0]
-                        || "Former member"}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {(m.profiles as any)?.full_name || "Former member"}
                     </p>
-                    <Badge variant="outline" className="text-[10px]">{m.role_on_project}</Badge>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <Badge variant={m.role_on_project === "lead" ? "default" : "outline"} className="text-[10px] capitalize">{m.role_on_project}</Badge>
+                      <span className="text-[10px] text-muted-foreground">· owns {ownedCount(m.user_id)}</span>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="risks">
-          {risks.length === 0 ? <p className="text-sm text-muted-foreground text-center py-8">No risks registered.</p> : (
-            <div className="space-y-2">
-              {risks.map(r => (
-                <Card key={r.id}>
-                  <CardContent className="flex items-center gap-4 p-4">
-                    <AlertTriangle className={`h-5 w-5 shrink-0 ${r.severity === "critical" ? "text-destructive" : r.severity === "high" ? "text-warning" : "text-muted-foreground"}`} />
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{r.title}</p>
-                      <p className="text-xs text-muted-foreground">{r.mitigation || "No mitigation plan"}</p>
-                    </div>
-                    <Badge variant={r.status === "open" ? "destructive" : "secondary"} className="text-[10px]">{r.status}</Badge>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="decisions">
-          {decisions.length === 0 ? <p className="text-sm text-muted-foreground text-center py-8">No decisions logged.</p> : (
-            <div className="space-y-2">
-              {decisions.map(d => (
-                <Card key={d.id}>
-                  <CardContent className="p-4">
-                    <p className="font-medium text-sm">{d.title}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{d.rationale}</p>
-                    <p className="text-[10px] text-muted-foreground mt-2">{new Date(d.decided_at).toLocaleDateString()}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+            );
+            return (
+              <div className="space-y-5">
+                {leads.length > 0 && (
+                  <div>
+                    <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-2">Leads</h3>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{leads.map(renderCard)}</div>
+                  </div>
+                )}
+                {others.length > 0 && (
+                  <div>
+                    <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-2">Members</h3>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{others.map(renderCard)}</div>
+                  </div>
+                )}
+                {members.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">No members assigned.</p>}
+              </div>
+            );
+          })()}
         </TabsContent>
       </Tabs>
 
