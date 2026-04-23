@@ -13,7 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Plus, ArrowLeft, Target, FileOutput, AlertTriangle, Upload, ExternalLink,
-  CheckCircle2, ChevronRight, Activity, Sparkles, Trophy, Briefcase, FlaskConical, Wrench
+  CheckCircle2, ChevronRight, Activity, Sparkles, Trophy, Briefcase, FlaskConical, Wrench,
+  UserPlus, TrendingUp, TrendingDown, Minus, Zap
 } from "lucide-react";
 import { toast } from "sonner";
 import InlineDeliverableSubmit from "@/components/InlineDeliverableSubmit";
@@ -50,13 +51,15 @@ export default function ProjectDetail() {
   const [taskDialog, setTaskDialog] = useState(false);
   const [submitTarget, setSubmitTarget] = useState<any>(null);
   const [approving, setApproving] = useState<string | null>(null);
+  const [momentum, setMomentum] = useState<{ level: string; score: number } | null>(null);
+  const [reassigning, setReassigning] = useState<string | null>(null);
 
   const isProjectLead = members.some((m: any) => m.user_id === user?.id && m.role_on_project === "lead") || isAdmin;
 
   const fetchAll = async () => {
     if (!id) return;
     setLoading(true);
-    const [pRes, tRes, mRes, dRes, memRes, rRes, decRes, uRes, evRes] = await Promise.all([
+    const [pRes, tRes, mRes, dRes, memRes, rRes, decRes, uRes, evRes, momRes] = await Promise.all([
       supabase.from("projects").select("*, organizations(name)").eq("id", id).single(),
       supabase.from("tasks").select("*, profiles:assignee_id(full_name)").eq("project_id", id).order("created_at", { ascending: false }),
       supabase.from("milestones").select("*").eq("project_id", id).order("due_date"),
@@ -66,6 +69,7 @@ export default function ProjectDetail() {
       supabase.from("decisions").select("*").eq("project_id", id).order("decided_at", { ascending: false }),
       supabase.from("project_updates").select("*").eq("project_id", id).order("created_at", { ascending: false }).limit(5),
       supabase.from("deliverable_review_events").select("*").eq("project_id", id).order("created_at", { ascending: false }).limit(8),
+      supabase.from("momentum_signals").select("risk_level, risk_score").eq("project_id", id).order("computed_at", { ascending: false }).limit(1).maybeSingle(),
     ]);
     setProject(pRes.data);
     setTasks(tRes.data || []);
@@ -76,6 +80,7 @@ export default function ProjectDetail() {
     setDecisions(decRes.data || []);
     setUpdates(uRes.data || []);
     setReviewEvents(evRes.data || []);
+    setMomentum(momRes.data ? { level: momRes.data.risk_level, score: momRes.data.risk_score } : null);
     setLoading(false);
   };
 
@@ -141,6 +146,48 @@ export default function ProjectDetail() {
     ).slice(0, 3);
   }, [deliverables, isProjectLead]);
 
+  // Ownership gaps: required deliverables with no owner (lead concern).
+  const ownershipGaps = useMemo(() => {
+    return deliverables.filter((d) => d.required && !d.owner_id && d.approval_status !== "approved");
+  }, [deliverables]);
+
+  // Proactive top action — what to do AND why it matters.
+  const topAction = useMemo(() => {
+    const blocked = stageBlockers.length > 0;
+    if (blocked) {
+      const b = stageBlockers[0];
+      if (!b.owner_id && isProjectLead) {
+        return { kind: "assign", label: `Assign owner: ${b.title}`, hint: "to unblock this stage", deliverable: b, variant: "default" as const };
+      }
+      return { kind: "submit", label: `Unblock: ${b.title}`, hint: "to advance the current stage", deliverable: b, variant: "default" as const };
+    }
+    if (myMoves[0]) {
+      const m = myMoves[0];
+      const last = milestones[milestones.length - 1]?.id === m.deliverable.milestone_id;
+      const hint = m.tone === "danger" ? "this is overdue" : last ? "to complete the project" : "to keep the stage moving";
+      return { kind: "submit", label: m.label, hint, deliverable: m.deliverable, variant: m.tone === "danger" ? "destructive" as const : "default" as const };
+    }
+    if (reviewQueue[0]) {
+      return { kind: "review", label: `Review: ${reviewQueue[0].title}`, hint: "to unblock the submitter", deliverable: reviewQueue[0], variant: "default" as const };
+    }
+    if (ownershipGaps[0] && isProjectLead) {
+      return { kind: "assign", label: `Assign owner: ${ownershipGaps[0].title}`, hint: "no one is on this yet", deliverable: ownershipGaps[0], variant: "default" as const };
+    }
+    return null;
+  }, [stageBlockers, myMoves, reviewQueue, ownershipGaps, isProjectLead, milestones]);
+
+  // Inline owner reassignment for any deliverable.
+  const reassignOwner = async (deliverableId: string, newOwnerId: string | null) => {
+    setReassigning(deliverableId);
+    const { error } = await supabase.from("deliverables")
+      .update({ owner_id: newOwnerId })
+      .eq("id", deliverableId);
+    setReassigning(null);
+    if (error) { toast.error(error.message); return; }
+    toast.success(newOwnerId ? "Owner updated" : "Owner cleared");
+    fetchAll();
+  };
+
   const handleCreateTask = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
@@ -175,6 +222,13 @@ export default function ProjectDetail() {
 
   const ownerName = (d: any) => d.owner?.full_name || (d.owner_id ? "Assigned" : "Unassigned");
 
+  const MOMENTUM_META: Record<string, { label: string; tone: string; Icon: any }> = {
+    healthy: { label: "Healthy", tone: "bg-success/10 text-success border-success/20", Icon: TrendingUp },
+    watch: { label: "Watch", tone: "bg-muted text-foreground border-border", Icon: Minus },
+    at_risk: { label: "At risk", tone: "bg-warning/10 text-warning border-warning/20", Icon: TrendingDown },
+    stalled: { label: "Stalled", tone: "bg-destructive/10 text-destructive border-destructive/20", Icon: AlertTriangle },
+  };
+
   return (
     <div className="space-y-5">
       {/* ===================== STATUS HEADER ===================== */}
@@ -189,6 +243,14 @@ export default function ProjectDetail() {
             {project.organizations?.name && (
               <Badge variant="outline" className="text-[10px]">{project.organizations.name}</Badge>
             )}
+            {momentum && MOMENTUM_META[momentum.level] && (() => {
+              const M = MOMENTUM_META[momentum.level];
+              return (
+                <Badge variant="outline" className={`gap-1 text-[10px] ${M.tone}`} title={`Momentum score ${momentum.score}/100`}>
+                  <M.Icon className="h-3 w-3" /> {M.label}
+                </Badge>
+              );
+            })()}
           </div>
           <h1 className="font-display text-2xl font-bold truncate mt-1">{project.name}</h1>
         </div>
@@ -254,29 +316,32 @@ export default function ProjectDetail() {
           {/* Highest-priority action */}
           <div className="space-y-1 min-w-0">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Top action</p>
-            {stageIsBlocked ? (
-              <Button size="sm" className="w-full justify-between" onClick={() => setSubmitTarget(stageBlockers[0])}>
-                <span className="truncate">Unblock: {stageBlockers[0].title}</span>
-                <ChevronRight className="h-3 w-3 shrink-0" />
-              </Button>
-            ) : myMoves[0] ? (
-              <Button size="sm" className="w-full justify-between" variant={myMoves[0].tone === "danger" ? "destructive" : "default"} onClick={() => setSubmitTarget(myMoves[0].deliverable)}>
-                <span className="truncate">{myMoves[0].label}</span>
-                <ChevronRight className="h-3 w-3 shrink-0" />
-              </Button>
-            ) : reviewQueue[0] ? (
-              <Button size="sm" className="w-full justify-between" variant="default" onClick={async () => {
-                setApproving(reviewQueue[0].id);
-                const res = await approveDeliverable(reviewQueue[0].id);
-                setApproving(null);
-                if (res.ok === false) return toast.error(res.error);
-                toast.success("Approved"); fetchAll();
-              }}>
-                <span className="truncate">Review: {reviewQueue[0].title}</span>
-                <ChevronRight className="h-3 w-3 shrink-0" />
-              </Button>
+            {topAction ? (
+              <>
+                <Button
+                  size="sm"
+                  className="w-full justify-between"
+                  variant={topAction.variant}
+                  onClick={() => {
+                    if (topAction.kind === "review") {
+                      // jump to review queue card via deliverables tab focus
+                      setSubmitTarget(null);
+                      const el = document.querySelector(`[data-deliverable-id="${topAction.deliverable.id}"]`);
+                      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                    } else {
+                      setSubmitTarget(topAction.deliverable);
+                    }
+                  }}
+                >
+                  <span className="truncate flex items-center gap-1.5">
+                    <Zap className="h-3 w-3 shrink-0" />{topAction.label}
+                  </span>
+                  <ChevronRight className="h-3 w-3 shrink-0" />
+                </Button>
+                <p className="text-[10px] text-muted-foreground italic truncate">{topAction.hint}</p>
+              </>
             ) : (
-              <p className="text-xs text-muted-foreground italic">All clear</p>
+              <p className="text-xs text-muted-foreground italic">All clear · nothing blocking</p>
             )}
           </div>
         </CardContent>
@@ -496,7 +561,7 @@ export default function ProjectDetail() {
                   file_url: d.file_url, due_date: d.due_date, required: d.required,
                 });
                 return (
-                  <Card key={d.id} className={blocking ? "border-destructive/30" : ""}>
+                  <Card key={d.id} data-deliverable-id={d.id} className={blocking ? "border-destructive/30" : ""}>
                     <CardContent className="flex items-center gap-4 p-4">
                       <FileOutput className="h-5 w-5 text-primary shrink-0" />
                       <div className="flex-1 min-w-0">
@@ -512,7 +577,28 @@ export default function ProjectDetail() {
                             approvalRequired={d.approval_required}
                             blockingStage={blocking}
                           />
-                          <span className="text-[10px] text-muted-foreground">Owner: {ownerName(d)}</span>
+                          {isProjectLead ? (
+                            <Select
+                              value={d.owner_id || "__unassigned"}
+                              onValueChange={(v) => reassignOwner(d.id, v === "__unassigned" ? null : v)}
+                              disabled={reassigning === d.id}
+                            >
+                              <SelectTrigger className="h-6 px-2 text-[10px] w-auto gap-1 border-dashed">
+                                <UserPlus className="h-2.5 w-2.5" />
+                                <SelectValue>{ownerName(d)}</SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__unassigned">Unassigned</SelectItem>
+                                {members.map((m: any) => (
+                                  <SelectItem key={m.user_id} value={m.user_id}>
+                                    {m.profiles?.full_name || "Member"}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground">Owner: {ownerName(d)}</span>
+                          )}
                           {milestone && <span className="text-[10px] text-muted-foreground">· {milestone.title}</span>}
                           {d.due_date && <span className="text-[10px] text-muted-foreground">· Due {new Date(d.due_date).toLocaleDateString()}</span>}
                           {d.client_visible && <Badge variant="outline" className="text-[10px]">Client visible</Badge>}
