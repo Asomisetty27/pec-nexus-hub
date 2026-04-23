@@ -146,6 +146,47 @@ export default function ProjectDetail() {
     ).slice(0, 3);
   }, [deliverables, isProjectLead]);
 
+  // Ownership gaps: required deliverables with no owner (lead concern).
+  const ownershipGaps = useMemo(() => {
+    return deliverables.filter((d) => d.required && !d.owner_id && d.approval_status !== "approved");
+  }, [deliverables]);
+
+  // Proactive top action — what to do AND why it matters.
+  const topAction = useMemo(() => {
+    if (stageIsBlocked) {
+      const b = stageBlockers[0];
+      if (!b.owner_id && isProjectLead) {
+        return { kind: "assign", label: `Assign owner: ${b.title}`, hint: "to unblock this stage", deliverable: b, variant: "default" as const };
+      }
+      return { kind: "submit", label: `Unblock: ${b.title}`, hint: "to advance the current stage", deliverable: b, variant: "default" as const };
+    }
+    if (myMoves[0]) {
+      const m = myMoves[0];
+      const last = milestones[milestones.length - 1]?.id === m.deliverable.milestone_id;
+      const hint = m.tone === "danger" ? "this is overdue" : last ? "to complete the project" : "to keep the stage moving";
+      return { kind: "submit", label: m.label, hint, deliverable: m.deliverable, variant: m.tone === "danger" ? "destructive" as const : "default" as const };
+    }
+    if (reviewQueue[0]) {
+      return { kind: "review", label: `Review: ${reviewQueue[0].title}`, hint: "to unblock the submitter", deliverable: reviewQueue[0], variant: "default" as const };
+    }
+    if (ownershipGaps[0] && isProjectLead) {
+      return { kind: "assign", label: `Assign owner: ${ownershipGaps[0].title}`, hint: "no one is on this yet", deliverable: ownershipGaps[0], variant: "default" as const };
+    }
+    return null;
+  }, [stageIsBlocked, stageBlockers, myMoves, reviewQueue, ownershipGaps, isProjectLead, milestones]);
+
+  // Inline owner reassignment for any deliverable.
+  const reassignOwner = async (deliverableId: string, newOwnerId: string | null) => {
+    setReassigning(deliverableId);
+    const { error } = await supabase.from("deliverables")
+      .update({ owner_id: newOwnerId })
+      .eq("id", deliverableId);
+    setReassigning(null);
+    if (error) { toast.error(error.message); return; }
+    toast.success(newOwnerId ? "Owner updated" : "Owner cleared");
+    fetchAll();
+  };
+
   const handleCreateTask = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
