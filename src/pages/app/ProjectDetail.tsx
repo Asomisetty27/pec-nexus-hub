@@ -153,7 +153,8 @@ export default function ProjectDetail() {
 
   // Proactive top action — what to do AND why it matters.
   const topAction = useMemo(() => {
-    if (stageIsBlocked) {
+    const blocked = stageBlockers.length > 0;
+    if (blocked) {
       const b = stageBlockers[0];
       if (!b.owner_id && isProjectLead) {
         return { kind: "assign", label: `Assign owner: ${b.title}`, hint: "to unblock this stage", deliverable: b, variant: "default" as const };
@@ -173,7 +174,7 @@ export default function ProjectDetail() {
       return { kind: "assign", label: `Assign owner: ${ownershipGaps[0].title}`, hint: "no one is on this yet", deliverable: ownershipGaps[0], variant: "default" as const };
     }
     return null;
-  }, [stageIsBlocked, stageBlockers, myMoves, reviewQueue, ownershipGaps, isProjectLead, milestones]);
+  }, [stageBlockers, myMoves, reviewQueue, ownershipGaps, isProjectLead, milestones]);
 
   // Inline owner reassignment for any deliverable.
   const reassignOwner = async (deliverableId: string, newOwnerId: string | null) => {
