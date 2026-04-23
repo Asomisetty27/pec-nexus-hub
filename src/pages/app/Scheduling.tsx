@@ -652,68 +652,6 @@ export default function Scheduling() {
           )}
         </TabsContent>
 
-        {/* ============= PROPOSALS ============= */}
-        <TabsContent value="proposals" className="mt-4 space-y-4">
-          {labeledRecs.length > 0 && (
-            <Card className="border-accent/20">
-              <CardHeader className="py-3 px-5 flex flex-row items-center justify-between">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Sparkles className="h-3.5 w-3.5 text-accent-foreground" />
-                  Recommended Times
-                  <span className="text-[10px] font-mono text-muted-foreground font-normal">· ranked by attendance, lead coverage, preference</span>
-                </CardTitle>
-                <Select value={String(recDuration)} onValueChange={async (v) => {
-                  const d = parseInt(v);
-                  setRecDuration(d);
-                  if (cohort?.cohort_id) await loadRecommendations(cohort.cohort_id, d);
-                }}>
-                  <SelectTrigger className="h-7 w-[100px] text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="30">30 min</SelectItem>
-                    <SelectItem value="60">60 min</SelectItem>
-                    <SelectItem value="90">90 min</SelectItem>
-                    <SelectItem value="120">2 hours</SelectItem>
-                  </SelectContent>
-                </Select>
-              </CardHeader>
-              <CardContent className="pt-0 px-5 pb-4 space-y-2">
-                {labeledRecs.map((rec, i) => (
-                  <SmartRecRow key={i} rec={rec} memberNames={memberNames} expanded onPropose={isLeadOrPM ? () => createSmartProposal(rec) : undefined} />
-                ))}
-              </CardContent>
-            </Card>
-          )}
-          {labeledRecs.length === 0 && !loadingRecs && (
-            <Card className="border-dashed">
-              <CardContent className="py-6 px-5 text-center">
-                <Clock className="h-6 w-6 text-muted-foreground/40 mx-auto mb-2" />
-                <p className="text-sm font-medium">No recommendations yet</p>
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  Recommendations need cohort availability data. Have members upload schedules or set availability windows.
-                </p>
-                <Button variant="outline" size="sm" className="h-7 text-[10px] mt-3" onClick={() => setTab("availability")}>Set availability</Button>
-              </CardContent>
-            </Card>
-          )}
-
-          <Card>
-            <CardHeader className="py-3 px-5"><CardTitle className="text-sm flex items-center gap-2"><CalendarDays className="h-3.5 w-3.5 text-accent-foreground" />Active Proposals</CardTitle></CardHeader>
-            <CardContent className="pt-0 px-5 pb-4 space-y-2">
-              {proposals.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-6 text-center">No active proposals. Leads can propose meeting times from the recommended slots above.</p>
-              ) : proposals.map((p) => (
-                <div key={p.id} className="flex items-center gap-3 p-3 rounded-lg border">
-                  <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{format(new Date(p.candidate_time), "EEEE, MMM d 'at' h:mm a")}</p>
-                    <p className="text-[10px] text-muted-foreground font-mono">{p.explanation}</p>
-                  </div>
-                  <Badge variant="outline" className="text-[9px] font-mono capitalize">{p.status}</Badge>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
 
       {/* Day-detail sheet */}
