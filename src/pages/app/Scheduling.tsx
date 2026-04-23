@@ -287,14 +287,33 @@ export default function Scheduling() {
   // Compute a rank label for the top 3 recs (best overall / lowest conflict / best for leads)
   const labeledRecs = useMemo(() => {
     if (smartRecs.length === 0) return [];
-    const arr = smartRecs.map((r) => ({ ...r }));
-    if (arr[0]) arr[0].rank_label = "Best overall";
+    // Compute confidence per rec from data completeness + lead coverage
+    const arr = smartRecs.map((r) => {
+      const dataPct = r.total_count > 0 ? r.available_count / r.total_count : 0;
+      const matchesPattern = pattern &&
+        r.day_of_week === pattern.day_of_week &&
+        r.start_hour === pattern.start_hour;
+      let confidence: "high" | "medium" | "low" = "low";
+      if (dataPct >= 0.8 && r.total_count >= 3) confidence = "high";
+      else if (dataPct >= 0.6 && r.total_count >= 2) confidence = "medium";
+      if (matchesPattern && pattern?.stability === "strong") confidence = "high";
+      return { ...r, confidence, matches_pattern: !!matchesPattern };
+    });
+    // Float pattern-matching rec to the top
+    arr.sort((a, b) => {
+      if (a.matches_pattern && !b.matches_pattern) return -1;
+      if (!a.matches_pattern && b.matches_pattern) return 1;
+      return (b.score ?? 0) - (a.score ?? 0);
+    });
+    if (arr[0]) {
+      arr[0].rank_label = arr[0].matches_pattern ? "Your usual cadence" : "Best overall";
+    }
     const lowest = [...arr].sort((a, b) => a.conflict_count - b.conflict_count)[0];
     if (lowest && lowest !== arr[0]) lowest.rank_label = "Lowest conflict";
     const bestLead = [...arr].sort((a, b) => b.lead_count - a.lead_count || b.score - a.score)[0];
     if (bestLead && !bestLead.rank_label) bestLead.rank_label = "Best lead coverage";
     return arr;
-  }, [smartRecs]);
+  }, [smartRecs, pattern]);
 
   // -------- header --------
   return (
