@@ -66,7 +66,7 @@ const FILTERS = [
 // ---------- main ----------
 export default function Scheduling() {
   const { user } = useAuth();
-  const [tab, setTab] = useState<"calendar" | "availability" | "proposals">("calendar");
+  const [tab, setTab] = useState<"calendar" | "availability">("calendar");
 
   // Availability state (kept from original)
   const [windows, setWindows] = useState<any[]>([]);
@@ -96,6 +96,10 @@ export default function Scheduling() {
   const [loadingRecs, setLoadingRecs] = useState(false);
   // Passive vs Active mode: when planMode is on, show recommendations side panel
   const [planMode, setPlanMode] = useState(false);
+  // Awareness layer
+  const [hints, setHints] = useState<any[]>([]);
+  const [pattern, setPattern] = useState<any>(null);
+  const [pickedRec, setPickedRec] = useState<any>(null);
 
   const loadRecommendations = async (cohortId: string, durationMin: number) => {
     setLoadingRecs(true);
