@@ -915,6 +915,21 @@ function SmartRecRow({
             {rec.rank_label && (
               <Badge variant="outline" className="text-[9px] font-mono py-0">{rec.rank_label}</Badge>
             )}
+            {rec.confidence && (
+              <span
+                className={`inline-flex items-center gap-1 text-[9px] font-mono uppercase tracking-wider ${
+                  rec.confidence === "high" ? "text-success" :
+                  rec.confidence === "medium" ? "text-warning" : "text-muted-foreground"
+                }`}
+                title={`${rec.confidence} confidence — based on data completeness and pattern stability`}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${
+                  rec.confidence === "high" ? "bg-success" :
+                  rec.confidence === "medium" ? "bg-warning" : "bg-muted-foreground"
+                }`} />
+                {rec.confidence}
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-3 mt-0.5 text-[10px] font-mono text-muted-foreground">
             <span className="inline-flex items-center gap-1"><UserCheck className="h-2.5 w-2.5 text-success" />{rec.available_count}/{rec.total_count}</span>
