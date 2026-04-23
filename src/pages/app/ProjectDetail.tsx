@@ -13,7 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Plus, ArrowLeft, Target, FileOutput, AlertTriangle, Upload, ExternalLink,
-  CheckCircle2, ChevronRight, Activity, Sparkles, Trophy, Briefcase, FlaskConical, Wrench
+  CheckCircle2, ChevronRight, Activity, Sparkles, Trophy, Briefcase, FlaskConical, Wrench,
+  UserPlus, TrendingUp, TrendingDown, Minus, Zap
 } from "lucide-react";
 import { toast } from "sonner";
 import InlineDeliverableSubmit from "@/components/InlineDeliverableSubmit";
