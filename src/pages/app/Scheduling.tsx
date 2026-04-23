@@ -333,6 +333,34 @@ export default function Scheduling() {
 
         {/* ============= CALENDAR ============= */}
         <TabsContent value="calendar" className="mt-4 space-y-4">
+          {/* Awareness hints (passive mode) */}
+          {!planMode && hints.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {hints.slice(0, 3).map((h, i) => {
+                const tone = h.tone === "warning"
+                  ? "border-warning/30 bg-warning/5 text-warning"
+                  : h.tone === "positive"
+                  ? "border-success/30 bg-success/5 text-success"
+                  : "border-border bg-muted/30 text-muted-foreground";
+                const Icon = h.hint_type === "usual_slot" ? Repeat
+                  : h.hint_type === "high_conflict" ? AlertCircle
+                  : h.hint_type === "no_meeting_this_week" ? Lightbulb
+                  : Lightbulb;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => isLeadOrPM && setPlanMode(true)}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] ${tone} ${isLeadOrPM ? "hover:opacity-80 cursor-pointer" : "cursor-default"}`}
+                    title={isLeadOrPM ? "Open Plan a meeting" : undefined}
+                  >
+                    <Icon className="h-3 w-3" />
+                    <span>{h.message}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           <div className={`grid gap-4 ${planMode && isLeadOrPM ? "lg:grid-cols-[1fr_320px]" : "grid-cols-1"}`}>
           <div className="space-y-4 min-w-0">
           <Card>
