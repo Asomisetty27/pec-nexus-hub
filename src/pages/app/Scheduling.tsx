@@ -329,7 +329,6 @@ export default function Scheduling() {
         <TabsList>
           <TabsTrigger value="calendar" className="gap-1.5"><CalendarRange className="h-3.5 w-3.5" /> Calendar</TabsTrigger>
           <TabsTrigger value="availability" className="gap-1.5"><Clock className="h-3.5 w-3.5" /> Availability</TabsTrigger>
-          <TabsTrigger value="proposals" className="gap-1.5"><Zap className="h-3.5 w-3.5" /> Proposals {proposals.length > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px]">{proposals.length}</Badge>}</TabsTrigger>
         </TabsList>
 
         {/* ============= CALENDAR ============= */}
