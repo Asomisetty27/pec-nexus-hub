@@ -259,173 +259,120 @@ export default function Dashboard() {
   const CohortIcon = cohortIcons[(cohort as any)?.cohorts?.icon] || Cpu;
   const cohortName = (cohort as any)?.cohorts?.name || "PEC";
 
+  // Pick most-relevant project for context strip + Resume deep-link.
+  const primaryDeliverable = deliverables[0];
+  const primaryProjectName = (primaryDeliverable?.projects as any)?.name || mockProject?.title || null;
+
+  // Role-aware blockers. Members: own pending/overdue. Leads/admins: review queue.
+  const memberBlockers = deliverables.filter(d =>
+    d.approval_status === "revision_requested" ||
+    (d.due_date && new Date(d.due_date) < new Date() && d.approval_status !== "approved")
+  );
+  const blockerSection = isLead ? reviews : memberBlockers;
+  const blockerTitle = isLead ? "Review Queue" : "Your Blockers";
+  const blockerEmpty = isLead ? "No submissions awaiting your review." : "No blockers — you're clear.";
+
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-5 max-w-[1200px]">
-      {/* Hero */}
+      {/* CONTEXT STRIP — sticky, always visible */}
+      <motion.div variants={item} className="sticky top-0 z-20 -mx-4 px-4 py-2 backdrop-blur-md bg-background/85 border-b border-border/40">
+        <div className="flex items-center gap-2.5 flex-wrap text-[10px] font-mono">
+          <div className="flex items-center gap-1.5">
+            <div className="h-1.5 w-1.5 rounded-full bg-success status-pulse" />
+            <span className="uppercase tracking-[0.15em] text-muted-foreground">Mission Control</span>
+          </div>
+          <span className="text-muted-foreground/40">·</span>
+          <button onClick={() => navigate("/app/purpose")} className="inline-flex items-center gap-1.5 hover:text-accent-foreground transition-colors">
+            <CohortIcon className="h-3 w-3 text-accent-foreground" />
+            <span className="text-foreground">{cohortName}</span>
+          </button>
+          <span className="text-muted-foreground/40">·</span>
+          <Badge className="text-[9px] font-mono bg-accent/10 text-accent-foreground border-accent/30 h-4 px-1.5">{currentMode}</Badge>
+          {primaryProjectName && (
+            <>
+              <span className="text-muted-foreground/40">·</span>
+              <button onClick={() => primaryDeliverable && navigate(`/app/projects/${primaryDeliverable.project_id}`)} className="inline-flex items-center gap-1.5 hover:text-accent-foreground transition-colors truncate max-w-[200px]">
+                <Target className="h-3 w-3 text-primary" />
+                <span className="truncate">{primaryProjectName}</span>
+              </button>
+            </>
+          )}
+          {capacity && (
+            <span className="ml-auto text-muted-foreground hidden sm:inline">
+              {capacity.purpose_pct > 0 && <>P {capacity.purpose_pct}%</>}
+              {capacity.competition_pct > 0 && <> · C {capacity.competition_pct}%</>}
+              {capacity.contract_pct > 0 && <> · K {capacity.contract_pct}%</>}
+            </span>
+          )}
+        </div>
+      </motion.div>
+
+      {/* HERO + 1. NEXT MOVE (max 3) */}
       <motion.div variants={item} className="relative overflow-hidden rounded-2xl border bg-card">
         <div className="absolute inset-0 bg-grid-animate pointer-events-none" />
         <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-accent/5 blur-3xl pointer-events-none" />
-
-        <div className="relative p-6 sm:p-8">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-3">
-              <div className="h-2 w-2 rounded-full bg-success status-pulse" />
-              <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground">
-                Mission Control · {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge className="text-[9px] font-mono bg-accent/10 text-accent-foreground border-accent/30">{currentMode}</Badge>
-              <div className="badge-verified">
-                <Shield className="h-2.5 w-2.5" />
-                <span>{highestRole}</span>
-              </div>
-            </div>
+        <div className="relative p-6 sm:p-8 space-y-5">
+          <div>
+            <h1 className="font-display text-3xl sm:text-4xl font-bold leading-tight tracking-tight">
+              {getGreeting()}, {firstName}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1.5">
+              {nextMoves.length === 0
+                ? (isLead ? "Inbox clear. Push the long-term mission." : "No urgent items. Continue training or advance Purpose.")
+                : `${nextMoves.length} action${nextMoves.length === 1 ? "" : "s"} ranked by urgency.`}
+            </p>
           </div>
 
-          <div className="flex flex-col lg:flex-row lg:items-start gap-8">
-            <div className="flex-1 space-y-5">
-              <div>
-                <h1 className="font-display text-3xl sm:text-4xl font-bold leading-tight tracking-tight">
-                  {getGreeting()}, {firstName}
-                </h1>
-                <div className="flex items-center gap-2 mt-2">
-                  <CohortIcon className="h-3.5 w-3.5 text-accent-foreground" />
-                  <span className="text-sm text-muted-foreground">{cohortName}</span>
-                  {cohort && <span className="text-[10px] font-mono text-muted-foreground/60">· {cohort.role}</span>}
-                </div>
-              </div>
-
-              {/* Purpose + stage context */}
-              <div className="flex flex-wrap gap-2">
-                {purposeTrack && (
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent/5 border border-accent/15 cursor-pointer" onClick={() => navigate("/app/purpose")}>
-                    <Compass className="h-3 w-3 text-accent-foreground" />
-                    <span className="text-[10px] font-mono text-accent-foreground">{purposeTrack.title}</span>
-                    <Badge variant="outline" className="text-[8px] font-mono">{PHASE_LABELS[purposeTrack.current_phase]}</Badge>
-                  </div>
-                )}
-                {currentStage && (
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/5 border border-primary/15">
-                    <Target className="h-3 w-3 text-primary" />
-                    <span className="text-[10px] font-mono text-primary">Phase: {currentStage.name}</span>
-                  </div>
+          <div className="space-y-2 max-w-2xl">
+            <div className="flex items-center gap-2 mb-0.5">
+              <Sparkles className="h-3 w-3 text-accent-foreground" />
+              <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-muted-foreground">Next Move</span>
+            </div>
+            {nextMoves.length === 0 ? (
+              <div className="glass rounded-xl p-4 flex items-center gap-3">
+                <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+                <p className="text-sm flex-1">All clear.</p>
+                {labManual && (
+                  <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => navigate(`/app/lab/${labManual.id}`)}>
+                    Open playbook
+                  </Button>
                 )}
               </div>
-
-              <ResumeStrip />
-
-              {/* Next Moves with engagement tags */}
-              <div className="space-y-2 max-w-md">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <Sparkles className="h-3 w-3 text-accent-foreground" />
-                  <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-muted-foreground">Your Next Moves</span>
-                  <InfoDot tip="Ranked by urgency. Each shows what it advances — Purpose, Competition, or Contract." />
-                </div>
-                {nextMoves.length === 0 ? (
-                  <div className="glass rounded-xl p-4">
-                    <p className="text-sm font-semibold leading-tight">
-                      {isLead ? "Inbox is clear." : "Nothing urgent right now."}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-1">
-                      {isLead
-                        ? "No deliverables waiting on your review. When team members submit work, it'll appear here."
-                        : labManual
-                          ? "Continue your training playbook to stay ready for live engagements."
-                          : "Open Projects to see what's in flight."}
-                    </p>
-                    <div className="flex gap-2 mt-3">
-                      {labManual && (
-                        <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => navigate(`/app/lab/${labManual.id}`)}>
-                          <BookOpen className="h-3 w-3 mr-1" /> Open playbook
-                        </Button>
-                      )}
-                      <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => navigate("/app/projects")}>
-                        <FolderKanban className="h-3 w-3 mr-1" /> View projects
-                      </Button>
-                      {isLead && (
-                        <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => navigate("/app/review")}>
-                          <CheckCircle2 className="h-3 w-3 mr-1" /> Review queue
-                        </Button>
-                      )}
+            ) : nextMoves.map((move, i) => {
+              const eng = move.engagement ? ENGAGEMENT_LABELS[move.engagement] : null;
+              return (
+                <div key={i} className={`glass-strong rounded-xl p-4 cursor-pointer hover:border-accent/30 transition-all ${move.urgent ? "border-destructive/30" : ""}`} onClick={move.action}>
+                  <div className="flex items-start gap-3">
+                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${move.urgent ? "bg-destructive/10" : "bg-accent/10"}`}>
+                      <move.icon className={`h-3.5 w-3.5 ${move.urgent ? "text-destructive" : "text-accent-foreground"}`} />
                     </div>
-                  </div>
-                ) : nextMoves.map((move, i) => {
-                  const eng = move.engagement ? ENGAGEMENT_LABELS[move.engagement] : null;
-                  return (
-                    <div key={i} className={`glass-strong rounded-xl p-4 cursor-pointer hover:border-accent/30 transition-all ${move.urgent ? "border-destructive/30" : ""}`} onClick={move.action}>
-                      <div className="flex items-start gap-3">
-                        <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${move.urgent ? "bg-destructive/10" : "bg-accent/10"}`}>
-                          <move.icon className={`h-3.5 w-3.5 ${move.urgent ? "text-destructive" : "text-accent-foreground"}`} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold leading-tight truncate">{move.label}</p>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">{move.sublabel}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <p className="text-[9px] font-mono text-accent-foreground/70">{move.reason}</p>
-                            {eng && (
-                              <Badge variant="outline" className="text-[8px] font-mono gap-0.5 py-0">
-                                <eng.icon className={`h-2 w-2 ${eng.color}`} />
-                                {eng.label}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        {i === 0 && (
-                          <Button size="sm" variant={move.urgent ? "destructive" : "default"} className="shrink-0 gap-1 h-7 text-[10px]">
-                            <Play className="h-2.5 w-2.5" />Resume
-                          </Button>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold leading-tight truncate">{move.label}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{move.sublabel}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-[9px] font-mono text-accent-foreground/70">{move.reason}</p>
+                        {eng && (
+                          <Badge variant="outline" className="text-[8px] font-mono gap-0.5 py-0">
+                            <eng.icon className={`h-2 w-2 ${eng.color}`} />{eng.label}
+                          </Badge>
                         )}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Right column */}
-            <div className="flex flex-col gap-4 min-w-[200px]">
-              {/* Capacity card */}
-              <div className="glass rounded-xl p-4 text-center">
-                <p className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground mb-2">Capacity Split</p>
-                {capacity ? (
-                  <div className="flex justify-center gap-3">
-                    {capacity.purpose_pct > 0 && <CapChip label="Purpose" pct={capacity.purpose_pct} color="bg-accent" />}
-                    {capacity.competition_pct > 0 && <CapChip label="Comp" pct={capacity.competition_pct} color="bg-warning" />}
-                    {capacity.contract_pct > 0 && <CapChip label="Contract" pct={capacity.contract_pct} color="bg-primary" />}
+                    <Button size="sm" variant={move.urgent ? "destructive" : "default"} className="shrink-0 gap-1 h-7 text-[10px]">
+                      <Play className="h-2.5 w-2.5" />Go
+                    </Button>
                   </div>
-                ) : (
-                  <div className="flex justify-center"><CapChip label="Purpose" pct={100} color="bg-accent" /></div>
-                )}
-              </div>
-
-              {mockProject && (
-                <motion.div whileHover={{ scale: 1.02 }} className="glass rounded-xl p-4 cursor-pointer text-center card-hover" onClick={() => navigate(`/app/mock-project/${mockProject.id}`)}>
-                  <Target className="h-4 w-4 text-accent-foreground mx-auto mb-1.5" />
-                  <p className="text-xs font-semibold truncate">{mockProject.title}</p>
-                  <p className="text-[10px] text-muted-foreground capitalize mt-0.5">{mockProject.status}</p>
-                </motion.div>
-              )}
-              {labManual && (
-                <motion.div whileHover={{ scale: 1.02 }} className="glass rounded-xl p-4 cursor-pointer text-center card-hover" onClick={() => navigate(`/app/lab/${labManual.id}`)}>
-                  <BookOpen className="h-4 w-4 text-accent-foreground mx-auto mb-1.5" />
-                  <p className="text-xs font-semibold truncate">{labManual.title}</p>
-                  <p className="text-[10px] text-muted-foreground">Continue Playbook</p>
-                </motion.div>
-              )}
-            </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </motion.div>
 
-      {/* Stats */}
-      <motion.div variants={item} className="grid gap-3 grid-cols-2 sm:grid-cols-4">
-        <StatTile icon={FolderKanban} label="Projects" value={stats.activeProjects} />
-        <StatTile icon={AlertTriangle} label="Overdue" value={stats.overdueDeliverables} variant={stats.overdueDeliverables > 0 ? "destructive" : "default"} />
-        <StatTile icon={CalendarDays} label="Events" value={stats.upcomingEvents} />
-        <StatTile icon={Users} label="Members" value={stats.totalMembers} />
-      </motion.div>
+      {/* 2. RESUME — continuation, not history */}
+      <motion.div variants={item}><ResumeStrip /></motion.div>
 
+      {/* 3. WHAT CHANGED */}
       {changes && changes.total > 0 && lastVisit && (
         <motion.div variants={item}>
           <Card className="border-accent/20 bg-accent/[0.03]">
@@ -434,7 +381,7 @@ export default function Dashboard() {
                 <div className="flex items-center gap-2 shrink-0">
                   <Activity className="h-3.5 w-3.5 text-accent-foreground" />
                   <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                    Since {new Date(lastVisit).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                    Since last visit · {new Date(lastVisit).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                   </span>
                 </div>
                 <div className="flex items-center gap-3 flex-wrap text-[11px] font-mono">
@@ -445,22 +392,22 @@ export default function Dashboard() {
                     </button>
                   )}
                   {changes.approvals > 0 && (
-                    <span className="inline-flex items-center gap-1.5">
+                    <button onClick={() => navigate("/app/projects")} className="inline-flex items-center gap-1.5 hover:text-accent-foreground transition-colors">
                       <span className="h-1.5 w-1.5 rounded-full bg-success" />
                       <span className="font-bold">{changes.approvals}</span> approval{changes.approvals === 1 ? "" : "s"}
-                    </span>
+                    </button>
                   )}
                   {changes.revisions > 0 && (
-                    <span className="inline-flex items-center gap-1.5">
+                    <button onClick={() => navigate("/app/projects")} className="inline-flex items-center gap-1.5 hover:text-accent-foreground transition-colors">
                       <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
                       <span className="font-bold">{changes.revisions}</span> revision{changes.revisions === 1 ? "" : "s"}
-                    </span>
+                    </button>
                   )}
                   {changes.new_decisions > 0 && (
-                    <span className="inline-flex items-center gap-1.5">
+                    <button onClick={() => navigate("/app/projects")} className="inline-flex items-center gap-1.5 hover:text-accent-foreground transition-colors">
                       <GitCommit className="h-3 w-3 text-primary" />
                       <span className="font-bold">{changes.new_decisions}</span> decision{changes.new_decisions === 1 ? "" : "s"}
-                    </span>
+                    </button>
                   )}
                   {changes.new_events > 0 && (
                     <button onClick={() => navigate("/app/events")} className="inline-flex items-center gap-1.5 hover:text-accent-foreground transition-colors">
@@ -481,122 +428,76 @@ export default function Dashboard() {
         </motion.div>
       )}
 
-      {/* Main grid */}
-      <div className="grid gap-5 lg:grid-cols-12">
-        <div className="lg:col-span-7 space-y-5">
-          <motion.div variants={item}>
-            <Card className="overflow-hidden">
-              <CardHeader className="flex-row items-center justify-between py-3 px-5">
-                <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-accent-foreground" />My Deliverables
-                  <InfoDot tip="Required outputs you must submit. Each shows what engagement it advances." />
-                </CardTitle>
-                <Button variant="ghost" size="sm" className="text-[10px] font-mono h-7" onClick={() => navigate("/app/projects")}>View all <ArrowRight className="ml-1 h-3 w-3" /></Button>
-              </CardHeader>
-              <CardContent className="pt-0 px-5 pb-4">
-                {deliverables.length === 0 ? (
-                  <EmptyState icon={CheckCircle2} text="All clear — no pending deliverables." />
-                ) : (
-                  <div className="space-y-0.5">
-                    {deliverables.slice(0, 6).map((d: any) => {
-                      const eng = ENGAGEMENT_LABELS[d.engagement_type || "purpose"];
-                      return (
-                        <motion.div key={d.id} whileHover={{ x: 2 }} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-muted/40 transition-all cursor-pointer group" onClick={() => navigate(`/app/projects/${d.project_id}`)}>
-                          <div className={`h-2 w-2 rounded-full shrink-0 ${d.due_date && new Date(d.due_date) < new Date() && d.approval_status !== "approved" ? "bg-destructive animate-pulse" : "bg-muted-foreground/30"}`} />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate leading-tight">{d.title}</p>
-                            <p className="text-[10px] text-muted-foreground font-mono">{(d.projects as any)?.name}</p>
-                          </div>
-                          {eng && <Badge variant="outline" className="text-[8px] font-mono gap-0.5 py-0 shrink-0"><eng.icon className={`h-2 w-2 ${eng.color}`} />{eng.label}</Badge>}
-                          <DeliverableStatusBadge status={d.approval_status} fileUrl={d.file_url} dueDate={d.due_date} approvalRequired={d.approval_required} />
-                          {d.due_date && (
-                            <span className={`text-[10px] font-mono ${new Date(d.due_date) < new Date() && d.approval_status !== "approved" ? "text-destructive font-semibold" : "text-muted-foreground"}`}>
-                              {new Date(d.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                            </span>
-                          )}
-                          <ChevronRight className="h-3 w-3 text-transparent group-hover:text-muted-foreground transition-colors" />
-                        </motion.div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
+      {/* 4. BLOCKERS / REVIEWS — role-aware */}
+      <motion.div variants={item}>
+        <Card className="overflow-hidden">
+          <CardHeader className="flex-row items-center justify-between py-3 px-5">
+            <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
+              {isLead ? <CheckCircle2 className="h-3.5 w-3.5 text-accent-foreground" /> : <AlertTriangle className="h-3.5 w-3.5 text-accent-foreground" />}
+              {blockerTitle}
+              {blockerSection.length > 0 && <Badge variant="outline" className="text-[9px] font-mono h-4 px-1.5">{blockerSection.length}</Badge>}
+            </CardTitle>
+            <Button variant="ghost" size="sm" className="text-[10px] font-mono h-7" onClick={() => navigate(isLead ? "/app/lead" : "/app/projects")}>
+              {isLead ? "Lead workspace" : "All deliverables"} <ArrowRight className="ml-1 h-3 w-3" />
+            </Button>
+          </CardHeader>
+          <CardContent className="pt-0 px-5 pb-4">
+            {blockerSection.length === 0 ? (
+              <EmptyState icon={CheckCircle2} text={blockerEmpty} />
+            ) : (
+              <div className="space-y-0.5">
+                {blockerSection.slice(0, 6).map((d: any) => {
+                  const eng = ENGAGEMENT_LABELS[d.engagement_type || "purpose"];
+                  const isOverdue = d.due_date && new Date(d.due_date) < new Date();
+                  const link = isLead ? `/app/review/${d.id}` : `/app/projects/${d.project_id}`;
+                  return (
+                    <motion.div key={d.id} whileHover={{ x: 2 }} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-muted/40 transition-all cursor-pointer group" onClick={() => navigate(link)}>
+                      <div className={`h-2 w-2 rounded-full shrink-0 ${isOverdue ? "bg-destructive animate-pulse" : isLead ? "bg-warning" : "bg-muted-foreground/30"}`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate leading-tight">{d.title}</p>
+                        <p className="text-[10px] text-muted-foreground font-mono truncate">{(d.projects as any)?.name}{isLead && d.version ? ` · v${d.version}` : ""}</p>
+                      </div>
+                      {eng && !isLead && <Badge variant="outline" className="text-[8px] font-mono gap-0.5 py-0 shrink-0"><eng.icon className={`h-2 w-2 ${eng.color}`} />{eng.label}</Badge>}
+                      {!isLead && <DeliverableStatusBadge status={d.approval_status} fileUrl={d.file_url} dueDate={d.due_date} approvalRequired={d.approval_required} />}
+                      {d.due_date && (
+                        <span className={`text-[10px] font-mono ${isOverdue ? "text-destructive font-semibold" : "text-muted-foreground"}`}>
+                          {new Date(d.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        </span>
+                      )}
+                      <ChevronRight className="h-3 w-3 text-transparent group-hover:text-muted-foreground transition-colors" />
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
 
-        <div className="lg:col-span-5 space-y-5">
-          <motion.div variants={item}>
-            <Card>
-              <CardHeader className="py-3 px-5">
-                <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
-                  <Megaphone className="h-3.5 w-3.5 text-accent-foreground" /> Announcements
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0 px-5 pb-4">
-                {announcements.length === 0 ? <p className="text-[11px] text-muted-foreground text-center py-4">No announcements yet.</p> : (
-                  <div className="space-y-3">{announcements.map((a: any) => (
-                    <div key={a.id} className="border-l-2 border-accent/40 pl-3">
-                      <p className="text-sm font-medium leading-tight">{a.title}</p>
-                      <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">{a.body}</p>
-                      <p className="text-[9px] text-muted-foreground font-mono mt-1">{new Date(a.created_at).toLocaleDateString()}</p>
-                    </div>
-                  ))}</div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div variants={item}>
-            <Card>
-              <CardHeader className="py-3 px-5">
-                <CardTitle className="text-sm font-sans font-semibold">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0 px-5 pb-3 space-y-0.5">
-                {[
-                  { icon: Compass, label: "Purpose Track", path: "/app/purpose" },
-                  { icon: Rocket, label: "Opportunities", path: "/app/opportunities" },
-                  { icon: GraduationCap, label: "Training", path: "/app/training" },
-                ].map((a) => (
-                  <Button key={a.path} variant="ghost" size="sm" className="w-full justify-start h-8 text-[11px] font-sans" onClick={() => navigate(a.path)}>
-                    <a.icon className="mr-2 h-3.5 w-3.5 text-muted-foreground" /> {a.label}
-                  </Button>
-                ))}
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {(isBoardOrAdmin || highestRole === "project_lead") && (
-            <motion.div variants={item}>
-              <Card className="border-accent/20">
-                <CardHeader className="py-3 px-5">
-                  <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
-                    <Shield className="h-3.5 w-3.5 text-accent-foreground" /> Leadership
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0 px-5 pb-3 grid grid-cols-2 gap-2">
-                  {[
-                    { label: "Lead Workspace", path: "/app/lead", icon: Briefcase },
-                    { label: "Members", path: "/app/members", icon: Users },
-                    ...(isAdmin ? [
-                      { label: "Command Center", path: "/app/command", icon: Shield },
-                      { label: "Opportunities", path: "/app/opportunities", icon: Rocket },
-                    ] : []),
-                  ].map((m) => (
-                    <Button key={m.path} variant="outline" className="h-auto flex-col py-3 text-[10px] gap-1.5 card-hover" onClick={() => navigate(m.path)}>
-                      <m.icon className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span>{m.label}</span>
-                    </Button>
-                  ))}
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-        </div>
-      </div>
+      {/* Latest announcement — secondary, only when present */}
+      {announcements.length > 0 && (
+        <motion.div variants={item}>
+          <Card>
+            <CardHeader className="py-3 px-5 flex-row items-center justify-between">
+              <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
+                <Megaphone className="h-3.5 w-3.5 text-accent-foreground" /> Latest Announcement
+              </CardTitle>
+              <Button variant="ghost" size="sm" className="text-[10px] font-mono h-7" onClick={() => navigate("/app/announcements")}>All <ArrowRight className="ml-1 h-3 w-3" /></Button>
+            </CardHeader>
+            <CardContent className="pt-0 px-5 pb-4">
+              <div className="border-l-2 border-accent/40 pl-3">
+                <p className="text-sm font-medium leading-tight">{announcements[0].title}</p>
+                <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">{announcements[0].body}</p>
+                <p className="text-[9px] text-muted-foreground font-mono mt-1">{new Date(announcements[0].created_at).toLocaleDateString()}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
     </motion.div>
   );
 }
+
 
 function CapChip({ label, pct, color }: { label: string; pct: number; color: string }) {
   return (
