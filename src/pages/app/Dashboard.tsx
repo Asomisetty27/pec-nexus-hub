@@ -9,7 +9,7 @@ import {
   AlertTriangle, Zap, BookOpen, MessageSquare, Cpu, ChevronRight,
   Target, Sparkles, Play, GraduationCap, Shield, Users, BarChart3,
   Clock, Wrench, Code, Briefcase, FileText, Compass, Trophy, Rocket,
-  Activity, Bell, GitCommit,
+  Activity, Bell, GitCommit, HelpCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
