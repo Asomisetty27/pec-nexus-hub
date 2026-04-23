@@ -222,6 +222,13 @@ export default function ProjectDetail() {
 
   const ownerName = (d: any) => d.owner?.full_name || (d.owner_id ? "Assigned" : "Unassigned");
 
+  const MOMENTUM_META: Record<string, { label: string; tone: string; Icon: any }> = {
+    healthy: { label: "Healthy", tone: "bg-success/10 text-success border-success/20", Icon: TrendingUp },
+    watch: { label: "Watch", tone: "bg-muted text-foreground border-border", Icon: Minus },
+    at_risk: { label: "At risk", tone: "bg-warning/10 text-warning border-warning/20", Icon: TrendingDown },
+    stalled: { label: "Stalled", tone: "bg-destructive/10 text-destructive border-destructive/20", Icon: AlertTriangle },
+  };
+
   return (
     <div className="space-y-5">
       {/* ===================== STATUS HEADER ===================== */}
