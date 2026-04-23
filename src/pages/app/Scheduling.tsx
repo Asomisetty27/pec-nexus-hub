@@ -16,7 +16,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import {
   CalendarDays, Clock, Plus, Trash2, Users, Zap, ChevronLeft, ChevronRight,
   CalendarRange, List, MapPin, Flag, Target, AlertCircle, Pencil, Link2,
-  Sparkles, ArrowRight, UserCheck, UserX, Crown, X,
+  Sparkles, ArrowRight, UserCheck, UserX, Crown, X, Lightbulb, CheckCircle2, Repeat,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -66,7 +66,7 @@ const FILTERS = [
 // ---------- main ----------
 export default function Scheduling() {
   const { user } = useAuth();
-  const [tab, setTab] = useState<"calendar" | "availability" | "proposals">("calendar");
+  const [tab, setTab] = useState<"calendar" | "availability">("calendar");
 
   // Availability state (kept from original)
   const [windows, setWindows] = useState<any[]>([]);
@@ -96,16 +96,26 @@ export default function Scheduling() {
   const [loadingRecs, setLoadingRecs] = useState(false);
   // Passive vs Active mode: when planMode is on, show recommendations side panel
   const [planMode, setPlanMode] = useState(false);
+  // Awareness layer
+  const [hints, setHints] = useState<any[]>([]);
+  const [pattern, setPattern] = useState<any>(null);
+  const [pickedRec, setPickedRec] = useState<any>(null);
 
   const loadRecommendations = async (cohortId: string, durationMin: number) => {
     setLoadingRecs(true);
-    const { data, error } = await supabase.rpc("recommend_meeting_slots", {
-      p_cohort_id: cohortId,
-      p_duration_min: durationMin,
-      p_attendee_ids: null,
-      p_limit: 6,
-    });
-    if (!error) setSmartRecs((data as any[]) || []);
+    const [recRes, hintRes, patRes] = await Promise.all([
+      supabase.rpc("recommend_meeting_slots", {
+        p_cohort_id: cohortId,
+        p_duration_min: durationMin,
+        p_attendee_ids: null,
+        p_limit: 6,
+      }),
+      supabase.rpc("calendar_awareness_hints", { p_cohort_id: cohortId }),
+      supabase.rpc("detect_cohort_meeting_pattern", { p_cohort_id: cohortId }),
+    ]);
+    if (!recRes.error) setSmartRecs((recRes.data as any[]) || []);
+    if (!hintRes.error) setHints((hintRes.data as any[]) || []);
+    if (!patRes.error) setPattern(((patRes.data as any[]) || [])[0] || null);
     setLoadingRecs(false);
   };
 
@@ -277,14 +287,33 @@ export default function Scheduling() {
   // Compute a rank label for the top 3 recs (best overall / lowest conflict / best for leads)
   const labeledRecs = useMemo(() => {
     if (smartRecs.length === 0) return [];
-    const arr = smartRecs.map((r) => ({ ...r }));
-    if (arr[0]) arr[0].rank_label = "Best overall";
+    // Compute confidence per rec from data completeness + lead coverage
+    const arr = smartRecs.map((r) => {
+      const dataPct = r.total_count > 0 ? r.available_count / r.total_count : 0;
+      const matchesPattern = pattern &&
+        r.day_of_week === pattern.day_of_week &&
+        r.start_hour === pattern.start_hour;
+      let confidence: "high" | "medium" | "low" = "low";
+      if (dataPct >= 0.8 && r.total_count >= 3) confidence = "high";
+      else if (dataPct >= 0.6 && r.total_count >= 2) confidence = "medium";
+      if (matchesPattern && pattern?.stability === "strong") confidence = "high";
+      return { ...r, confidence, matches_pattern: !!matchesPattern };
+    });
+    // Float pattern-matching rec to the top
+    arr.sort((a, b) => {
+      if (a.matches_pattern && !b.matches_pattern) return -1;
+      if (!a.matches_pattern && b.matches_pattern) return 1;
+      return (b.score ?? 0) - (a.score ?? 0);
+    });
+    if (arr[0]) {
+      arr[0].rank_label = arr[0].matches_pattern ? "Your usual cadence" : "Best overall";
+    }
     const lowest = [...arr].sort((a, b) => a.conflict_count - b.conflict_count)[0];
     if (lowest && lowest !== arr[0]) lowest.rank_label = "Lowest conflict";
     const bestLead = [...arr].sort((a, b) => b.lead_count - a.lead_count || b.score - a.score)[0];
     if (bestLead && !bestLead.rank_label) bestLead.rank_label = "Best lead coverage";
     return arr;
-  }, [smartRecs]);
+  }, [smartRecs, pattern]);
 
   // -------- header --------
   return (
@@ -300,11 +329,38 @@ export default function Scheduling() {
         <TabsList>
           <TabsTrigger value="calendar" className="gap-1.5"><CalendarRange className="h-3.5 w-3.5" /> Calendar</TabsTrigger>
           <TabsTrigger value="availability" className="gap-1.5"><Clock className="h-3.5 w-3.5" /> Availability</TabsTrigger>
-          <TabsTrigger value="proposals" className="gap-1.5"><Zap className="h-3.5 w-3.5" /> Proposals {proposals.length > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px]">{proposals.length}</Badge>}</TabsTrigger>
         </TabsList>
 
         {/* ============= CALENDAR ============= */}
         <TabsContent value="calendar" className="mt-4 space-y-4">
+          {/* Awareness hints (passive mode) */}
+          {!planMode && hints.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {hints.slice(0, 3).map((h, i) => {
+                const tone = h.tone === "warning"
+                  ? "border-warning/30 bg-warning/5 text-warning"
+                  : h.tone === "positive"
+                  ? "border-success/30 bg-success/5 text-success"
+                  : "border-border bg-muted/30 text-muted-foreground";
+                const Icon = h.hint_type === "usual_slot" ? Repeat
+                  : h.hint_type === "high_conflict" ? AlertCircle
+                  : h.hint_type === "no_meeting_this_week" ? Lightbulb
+                  : Lightbulb;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => isLeadOrPM && setPlanMode(true)}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] ${tone} ${isLeadOrPM ? "hover:opacity-80 cursor-pointer" : "cursor-default"}`}
+                    title={isLeadOrPM ? "Open Plan a meeting" : undefined}
+                  >
+                    <Icon className="h-3 w-3" />
+                    <span>{h.message}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           <div className={`grid gap-4 ${planMode && isLeadOrPM ? "lg:grid-cols-[1fr_320px]" : "grid-cols-1"}`}>
           <div className="space-y-4 min-w-0">
           <Card>
@@ -403,10 +459,15 @@ export default function Scheduling() {
                   {labeledRecs.length > 0 ? (
                     <div className="space-y-1.5">
                       {labeledRecs.slice(0, 4).map((rec, i) => (
-                        <SmartRecRow key={i} rec={rec} memberNames={memberNames} onPropose={() => createSmartProposal(rec)} />
+                        <SmartRecRow
+                          key={i}
+                          rec={rec}
+                          memberNames={memberNames}
+                          onPropose={async () => { await createSmartProposal(rec); setPickedRec(rec); }}
+                        />
                       ))}
                       <p className="text-[9px] font-mono text-muted-foreground pt-1">
-                        Ranked by attendance · lead coverage · preference
+                        Ranked by attendance · lead coverage · preference{pattern?.stability === "strong" ? " · pattern-aware" : ""}
                       </p>
                     </div>
                   ) : (
@@ -422,6 +483,59 @@ export default function Scheduling() {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Decision feedback after picking a slot */}
+              {pickedRec && (
+                <Card className="border-success/30 bg-success/5">
+                  <CardHeader className="py-2.5 px-4 flex flex-row items-center justify-between">
+                    <CardTitle className="text-xs font-sans font-semibold flex items-center gap-2">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+                      Good choice
+                    </CardTitle>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setPickedRec(null)}>
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-3 pt-0 space-y-1.5">
+                    <p className="text-[11px]">
+                      <span className="font-medium">{pickedRec.available_count}/{pickedRec.total_count}</span> available
+                      {pickedRec.lead_count > 0 && <> · includes {pickedRec.lead_count} lead{pickedRec.lead_count === 1 ? "" : "s"}</>}
+                      {pickedRec.matches_pattern && <> · matches your usual cadence</>}
+                    </p>
+                    {pickedRec.conflict_count > 0 && (
+                      <p className="text-[10px] text-muted-foreground">
+                        Tradeoff: {pickedRec.conflict_count} member{pickedRec.conflict_count === 1 ? "" : "s"} unavailable
+                        {(() => {
+                          const missing = (pickedRec.missing_user_ids || []).map((id: string) => memberNames[id]).filter(Boolean);
+                          return missing.length > 0 ? ` (${missing.slice(0, 3).join(", ")}${missing.length > 3 ? "…" : ""})` : "";
+                        })()}
+                      </p>
+                    )}
+                    <p className="text-[10px] text-muted-foreground font-mono pt-1">Proposal created. Members will see it on their dashboard.</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Active proposals (merged from Proposals tab) */}
+              {proposals.length > 0 && (
+                <Card>
+                  <CardHeader className="py-2.5 px-4">
+                    <CardTitle className="text-xs font-sans font-semibold flex items-center gap-2">
+                      <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+                      Active proposals
+                      <Badge variant="outline" className="ml-1 h-4 min-w-4 px-1 text-[9px]">{proposals.length}</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-3 pt-0 space-y-1.5">
+                    {proposals.slice(0, 4).map((p) => (
+                      <div key={p.id} className="rounded-md border p-2 text-[11px] space-y-0.5">
+                        <p className="font-medium leading-tight">{format(new Date(p.candidate_time), "EEE MMM d 'at' h:mm a")}</p>
+                        <p className="text-[10px] text-muted-foreground font-mono leading-tight">{p.explanation}</p>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
             </aside>
           )}
           </div>
@@ -538,68 +652,6 @@ export default function Scheduling() {
           )}
         </TabsContent>
 
-        {/* ============= PROPOSALS ============= */}
-        <TabsContent value="proposals" className="mt-4 space-y-4">
-          {labeledRecs.length > 0 && (
-            <Card className="border-accent/20">
-              <CardHeader className="py-3 px-5 flex flex-row items-center justify-between">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Sparkles className="h-3.5 w-3.5 text-accent-foreground" />
-                  Recommended Times
-                  <span className="text-[10px] font-mono text-muted-foreground font-normal">· ranked by attendance, lead coverage, preference</span>
-                </CardTitle>
-                <Select value={String(recDuration)} onValueChange={async (v) => {
-                  const d = parseInt(v);
-                  setRecDuration(d);
-                  if (cohort?.cohort_id) await loadRecommendations(cohort.cohort_id, d);
-                }}>
-                  <SelectTrigger className="h-7 w-[100px] text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="30">30 min</SelectItem>
-                    <SelectItem value="60">60 min</SelectItem>
-                    <SelectItem value="90">90 min</SelectItem>
-                    <SelectItem value="120">2 hours</SelectItem>
-                  </SelectContent>
-                </Select>
-              </CardHeader>
-              <CardContent className="pt-0 px-5 pb-4 space-y-2">
-                {labeledRecs.map((rec, i) => (
-                  <SmartRecRow key={i} rec={rec} memberNames={memberNames} expanded onPropose={isLeadOrPM ? () => createSmartProposal(rec) : undefined} />
-                ))}
-              </CardContent>
-            </Card>
-          )}
-          {labeledRecs.length === 0 && !loadingRecs && (
-            <Card className="border-dashed">
-              <CardContent className="py-6 px-5 text-center">
-                <Clock className="h-6 w-6 text-muted-foreground/40 mx-auto mb-2" />
-                <p className="text-sm font-medium">No recommendations yet</p>
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  Recommendations need cohort availability data. Have members upload schedules or set availability windows.
-                </p>
-                <Button variant="outline" size="sm" className="h-7 text-[10px] mt-3" onClick={() => setTab("availability")}>Set availability</Button>
-              </CardContent>
-            </Card>
-          )}
-
-          <Card>
-            <CardHeader className="py-3 px-5"><CardTitle className="text-sm flex items-center gap-2"><CalendarDays className="h-3.5 w-3.5 text-accent-foreground" />Active Proposals</CardTitle></CardHeader>
-            <CardContent className="pt-0 px-5 pb-4 space-y-2">
-              {proposals.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-6 text-center">No active proposals. Leads can propose meeting times from the recommended slots above.</p>
-              ) : proposals.map((p) => (
-                <div key={p.id} className="flex items-center gap-3 p-3 rounded-lg border">
-                  <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{format(new Date(p.candidate_time), "EEEE, MMM d 'at' h:mm a")}</p>
-                    <p className="text-[10px] text-muted-foreground font-mono">{p.explanation}</p>
-                  </div>
-                  <Badge variant="outline" className="text-[9px] font-mono capitalize">{p.status}</Badge>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
 
       {/* Day-detail sheet */}
@@ -862,6 +914,21 @@ function SmartRecRow({
             <p className="text-sm font-medium">{dayName} {fmtHour(rec.start_hour)}–{fmtHour(rec.end_hour)}</p>
             {rec.rank_label && (
               <Badge variant="outline" className="text-[9px] font-mono py-0">{rec.rank_label}</Badge>
+            )}
+            {rec.confidence && (
+              <span
+                className={`inline-flex items-center gap-1 text-[9px] font-mono uppercase tracking-wider ${
+                  rec.confidence === "high" ? "text-success" :
+                  rec.confidence === "medium" ? "text-warning" : "text-muted-foreground"
+                }`}
+                title={`${rec.confidence} confidence — based on data completeness and pattern stability`}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${
+                  rec.confidence === "high" ? "bg-success" :
+                  rec.confidence === "medium" ? "bg-warning" : "bg-muted-foreground"
+                }`} />
+                {rec.confidence}
+              </span>
             )}
           </div>
           <div className="flex items-center gap-3 mt-0.5 text-[10px] font-mono text-muted-foreground">

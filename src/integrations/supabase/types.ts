@@ -4418,6 +4418,15 @@ export type Database = {
       auto_flag_stale_reviews: { Args: never; Returns: number }
       auto_join_missing_channels: { Args: never; Returns: number }
       auto_resync_unmatched_users: { Args: never; Returns: number }
+      calendar_awareness_hints: {
+        Args: { p_cohort_id: string }
+        Returns: {
+          hint_type: string
+          message: string
+          metadata: Json
+          tone: string
+        }[]
+      }
       compute_momentum_risk: { Args: { _project_id: string }; Returns: Json }
       create_assignment_bundle: {
         Args: {
@@ -4462,6 +4471,15 @@ export type Database = {
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
+      }
+      detect_cohort_meeting_pattern: {
+        Args: { p_cohort_id: string }
+        Returns: {
+          day_of_week: number
+          occurrences: number
+          stability: string
+          start_hour: number
+        }[]
       }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
