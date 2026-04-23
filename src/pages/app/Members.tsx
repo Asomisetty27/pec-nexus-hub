@@ -17,11 +17,18 @@ export default function Members() {
 
   useEffect(() => {
     const load = async () => {
-      const [profRes, cmRes] = await Promise.all([
-        supabase.from("profiles").select("*, user_roles(role)").order("full_name"),
+      // No FK between profiles.user_id and user_roles.user_id, so PostgREST embed fails.
+      // Fetch roles separately and stitch on the client.
+      const [profRes, rolesRes, cmRes] = await Promise.all([
+        supabase.from("profiles").select("*").order("full_name"),
+        supabase.from("user_roles").select("user_id, role"),
         supabase.from("cohort_memberships").select("user_id, role, cohorts(name)"),
       ]);
-      setMembers(profRes.data || []);
+      const rolesByUser: Record<string, { role: string }[]> = {};
+      (rolesRes.data || []).forEach((r: any) => {
+        (rolesByUser[r.user_id] ||= []).push({ role: r.role });
+      });
+      setMembers((profRes.data || []).map((p: any) => ({ ...p, user_roles: rolesByUser[p.user_id] || [] })));
       const map: Record<string, string> = {};
       (cmRes.data || []).forEach((cm: any) => {
         map[cm.user_id] = (cm.cohorts as any)?.name || "";
