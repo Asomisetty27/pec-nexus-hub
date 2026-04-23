@@ -103,13 +103,19 @@ export default function Scheduling() {
 
   const loadRecommendations = async (cohortId: string, durationMin: number) => {
     setLoadingRecs(true);
-    const { data, error } = await supabase.rpc("recommend_meeting_slots", {
-      p_cohort_id: cohortId,
-      p_duration_min: durationMin,
-      p_attendee_ids: null,
-      p_limit: 6,
-    });
-    if (!error) setSmartRecs((data as any[]) || []);
+    const [recRes, hintRes, patRes] = await Promise.all([
+      supabase.rpc("recommend_meeting_slots", {
+        p_cohort_id: cohortId,
+        p_duration_min: durationMin,
+        p_attendee_ids: null,
+        p_limit: 6,
+      }),
+      supabase.rpc("calendar_awareness_hints", { p_cohort_id: cohortId }),
+      supabase.rpc("detect_cohort_meeting_pattern", { p_cohort_id: cohortId }),
+    ]);
+    if (!recRes.error) setSmartRecs((recRes.data as any[]) || []);
+    if (!hintRes.error) setHints((hintRes.data as any[]) || []);
+    if (!patRes.error) setPattern(((patRes.data as any[]) || [])[0] || null);
     setLoadingRecs(false);
   };
 
