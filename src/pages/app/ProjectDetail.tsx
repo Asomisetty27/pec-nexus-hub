@@ -243,6 +243,14 @@ export default function ProjectDetail() {
             {project.organizations?.name && (
               <Badge variant="outline" className="text-[10px]">{project.organizations.name}</Badge>
             )}
+            {momentum && MOMENTUM_META[momentum.level] && (() => {
+              const M = MOMENTUM_META[momentum.level];
+              return (
+                <Badge variant="outline" className={`gap-1 text-[10px] ${M.tone}`} title={`Momentum score ${momentum.score}/100`}>
+                  <M.Icon className="h-3 w-3" /> {M.label}
+                </Badge>
+              );
+            })()}
           </div>
           <h1 className="font-display text-2xl font-bold truncate mt-1">{project.name}</h1>
         </div>
