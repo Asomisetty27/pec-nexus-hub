@@ -459,10 +459,15 @@ export default function Scheduling() {
                   {labeledRecs.length > 0 ? (
                     <div className="space-y-1.5">
                       {labeledRecs.slice(0, 4).map((rec, i) => (
-                        <SmartRecRow key={i} rec={rec} memberNames={memberNames} onPropose={() => createSmartProposal(rec)} />
+                        <SmartRecRow
+                          key={i}
+                          rec={rec}
+                          memberNames={memberNames}
+                          onPropose={async () => { await createSmartProposal(rec); setPickedRec(rec); }}
+                        />
                       ))}
                       <p className="text-[9px] font-mono text-muted-foreground pt-1">
-                        Ranked by attendance · lead coverage · preference
+                        Ranked by attendance · lead coverage · preference{pattern?.stability === "strong" ? " · pattern-aware" : ""}
                       </p>
                     </div>
                   ) : (
@@ -478,6 +483,59 @@ export default function Scheduling() {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Decision feedback after picking a slot */}
+              {pickedRec && (
+                <Card className="border-success/30 bg-success/5">
+                  <CardHeader className="py-2.5 px-4 flex flex-row items-center justify-between">
+                    <CardTitle className="text-xs font-sans font-semibold flex items-center gap-2">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+                      Good choice
+                    </CardTitle>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setPickedRec(null)}>
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-3 pt-0 space-y-1.5">
+                    <p className="text-[11px]">
+                      <span className="font-medium">{pickedRec.available_count}/{pickedRec.total_count}</span> available
+                      {pickedRec.lead_count > 0 && <> · includes {pickedRec.lead_count} lead{pickedRec.lead_count === 1 ? "" : "s"}</>}
+                      {pickedRec.matches_pattern && <> · matches your usual cadence</>}
+                    </p>
+                    {pickedRec.conflict_count > 0 && (
+                      <p className="text-[10px] text-muted-foreground">
+                        Tradeoff: {pickedRec.conflict_count} member{pickedRec.conflict_count === 1 ? "" : "s"} unavailable
+                        {(() => {
+                          const missing = (pickedRec.missing_user_ids || []).map((id: string) => memberNames[id]).filter(Boolean);
+                          return missing.length > 0 ? ` (${missing.slice(0, 3).join(", ")}${missing.length > 3 ? "…" : ""})` : "";
+                        })()}
+                      </p>
+                    )}
+                    <p className="text-[10px] text-muted-foreground font-mono pt-1">Proposal created. Members will see it on their dashboard.</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Active proposals (merged from Proposals tab) */}
+              {proposals.length > 0 && (
+                <Card>
+                  <CardHeader className="py-2.5 px-4">
+                    <CardTitle className="text-xs font-sans font-semibold flex items-center gap-2">
+                      <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+                      Active proposals
+                      <Badge variant="outline" className="ml-1 h-4 min-w-4 px-1 text-[9px]">{proposals.length}</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-3 pt-0 space-y-1.5">
+                    {proposals.slice(0, 4).map((p) => (
+                      <div key={p.id} className="rounded-md border p-2 text-[11px] space-y-0.5">
+                        <p className="font-medium leading-tight">{format(new Date(p.candidate_time), "EEE MMM d 'at' h:mm a")}</p>
+                        <p className="text-[10px] text-muted-foreground font-mono leading-tight">{p.explanation}</p>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
             </aside>
           )}
           </div>
