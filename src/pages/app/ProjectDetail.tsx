@@ -316,29 +316,32 @@ export default function ProjectDetail() {
           {/* Highest-priority action */}
           <div className="space-y-1 min-w-0">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Top action</p>
-            {stageIsBlocked ? (
-              <Button size="sm" className="w-full justify-between" onClick={() => setSubmitTarget(stageBlockers[0])}>
-                <span className="truncate">Unblock: {stageBlockers[0].title}</span>
-                <ChevronRight className="h-3 w-3 shrink-0" />
-              </Button>
-            ) : myMoves[0] ? (
-              <Button size="sm" className="w-full justify-between" variant={myMoves[0].tone === "danger" ? "destructive" : "default"} onClick={() => setSubmitTarget(myMoves[0].deliverable)}>
-                <span className="truncate">{myMoves[0].label}</span>
-                <ChevronRight className="h-3 w-3 shrink-0" />
-              </Button>
-            ) : reviewQueue[0] ? (
-              <Button size="sm" className="w-full justify-between" variant="default" onClick={async () => {
-                setApproving(reviewQueue[0].id);
-                const res = await approveDeliverable(reviewQueue[0].id);
-                setApproving(null);
-                if (res.ok === false) return toast.error(res.error);
-                toast.success("Approved"); fetchAll();
-              }}>
-                <span className="truncate">Review: {reviewQueue[0].title}</span>
-                <ChevronRight className="h-3 w-3 shrink-0" />
-              </Button>
+            {topAction ? (
+              <>
+                <Button
+                  size="sm"
+                  className="w-full justify-between"
+                  variant={topAction.variant}
+                  onClick={() => {
+                    if (topAction.kind === "review") {
+                      // jump to review queue card via deliverables tab focus
+                      setSubmitTarget(null);
+                      const el = document.querySelector(`[data-deliverable-id="${topAction.deliverable.id}"]`);
+                      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                    } else {
+                      setSubmitTarget(topAction.deliverable);
+                    }
+                  }}
+                >
+                  <span className="truncate flex items-center gap-1.5">
+                    <Zap className="h-3 w-3 shrink-0" />{topAction.label}
+                  </span>
+                  <ChevronRight className="h-3 w-3 shrink-0" />
+                </Button>
+                <p className="text-[10px] text-muted-foreground italic truncate">{topAction.hint}</p>
+              </>
             ) : (
-              <p className="text-xs text-muted-foreground italic">All clear</p>
+              <p className="text-xs text-muted-foreground italic">All clear · nothing blocking</p>
             )}
           </div>
         </CardContent>
