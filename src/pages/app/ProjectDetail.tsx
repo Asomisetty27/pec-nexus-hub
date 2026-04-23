@@ -561,7 +561,7 @@ export default function ProjectDetail() {
                   file_url: d.file_url, due_date: d.due_date, required: d.required,
                 });
                 return (
-                  <Card key={d.id} className={blocking ? "border-destructive/30" : ""}>
+                  <Card key={d.id} data-deliverable-id={d.id} className={blocking ? "border-destructive/30" : ""}>
                     <CardContent className="flex items-center gap-4 p-4">
                       <FileOutput className="h-5 w-5 text-primary shrink-0" />
                       <div className="flex-1 min-w-0">
@@ -577,7 +577,28 @@ export default function ProjectDetail() {
                             approvalRequired={d.approval_required}
                             blockingStage={blocking}
                           />
-                          <span className="text-[10px] text-muted-foreground">Owner: {ownerName(d)}</span>
+                          {isProjectLead ? (
+                            <Select
+                              value={d.owner_id || "__unassigned"}
+                              onValueChange={(v) => reassignOwner(d.id, v === "__unassigned" ? null : v)}
+                              disabled={reassigning === d.id}
+                            >
+                              <SelectTrigger className="h-6 px-2 text-[10px] w-auto gap-1 border-dashed">
+                                <UserPlus className="h-2.5 w-2.5" />
+                                <SelectValue>{ownerName(d)}</SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__unassigned">Unassigned</SelectItem>
+                                {members.map((m: any) => (
+                                  <SelectItem key={m.user_id} value={m.user_id}>
+                                    {m.profiles?.full_name || "Member"}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground">Owner: {ownerName(d)}</span>
+                          )}
                           {milestone && <span className="text-[10px] text-muted-foreground">· {milestone.title}</span>}
                           {d.due_date && <span className="text-[10px] text-muted-foreground">· Due {new Date(d.due_date).toLocaleDateString()}</span>}
                           {d.client_visible && <Badge variant="outline" className="text-[10px]">Client visible</Badge>}
