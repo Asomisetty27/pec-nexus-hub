@@ -51,13 +51,15 @@ export default function ProjectDetail() {
   const [taskDialog, setTaskDialog] = useState(false);
   const [submitTarget, setSubmitTarget] = useState<any>(null);
   const [approving, setApproving] = useState<string | null>(null);
+  const [momentum, setMomentum] = useState<{ level: string; score: number } | null>(null);
+  const [reassigning, setReassigning] = useState<string | null>(null);
 
   const isProjectLead = members.some((m: any) => m.user_id === user?.id && m.role_on_project === "lead") || isAdmin;
 
   const fetchAll = async () => {
     if (!id) return;
     setLoading(true);
-    const [pRes, tRes, mRes, dRes, memRes, rRes, decRes, uRes, evRes] = await Promise.all([
+    const [pRes, tRes, mRes, dRes, memRes, rRes, decRes, uRes, evRes, momRes] = await Promise.all([
       supabase.from("projects").select("*, organizations(name)").eq("id", id).single(),
       supabase.from("tasks").select("*, profiles:assignee_id(full_name)").eq("project_id", id).order("created_at", { ascending: false }),
       supabase.from("milestones").select("*").eq("project_id", id).order("due_date"),
@@ -67,6 +69,7 @@ export default function ProjectDetail() {
       supabase.from("decisions").select("*").eq("project_id", id).order("decided_at", { ascending: false }),
       supabase.from("project_updates").select("*").eq("project_id", id).order("created_at", { ascending: false }).limit(5),
       supabase.from("deliverable_review_events").select("*").eq("project_id", id).order("created_at", { ascending: false }).limit(8),
+      supabase.from("momentum_signals").select("risk_level, risk_score").eq("project_id", id).order("computed_at", { ascending: false }).limit(1).maybeSingle(),
     ]);
     setProject(pRes.data);
     setTasks(tRes.data || []);
@@ -77,6 +80,7 @@ export default function ProjectDetail() {
     setDecisions(decRes.data || []);
     setUpdates(uRes.data || []);
     setReviewEvents(evRes.data || []);
+    setMomentum(momRes.data ? { level: momRes.data.risk_level, score: momRes.data.risk_score } : null);
     setLoading(false);
   };
 
