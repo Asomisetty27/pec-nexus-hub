@@ -608,6 +608,18 @@ export default function Scheduling() {
 
           <AvailabilityChips />
 
+          {windows.length === 0 && (
+            <Card className="border-dashed">
+              <CardContent className="py-8 text-center space-y-2">
+                <Clock className="h-6 w-6 mx-auto text-muted-foreground/50" />
+                <p className="text-sm font-medium">No availability set yet</p>
+                <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                  Tap the chips above to mark times you're free, or use "Add Window" / "Upload schedule" for finer control. Your availability powers cohort meeting recommendations.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
           {windows.length > 0 && (
             <Card>
               <CardHeader className="py-3 px-5"><CardTitle className="text-sm">Saved Windows</CardTitle></CardHeader>
