@@ -4761,6 +4761,9 @@ export type Database = {
         | "social"
         | "presentation"
         | "other"
+        | "cohort_meeting"
+        | "all_hands"
+        | "project_meeting"
       lead_stage:
         | "new"
         | "contacted"
@@ -4973,6 +4976,9 @@ export const Constants = {
         "social",
         "presentation",
         "other",
+        "cohort_meeting",
+        "all_hands",
+        "project_meeting",
       ],
       lead_stage: [
         "new",
