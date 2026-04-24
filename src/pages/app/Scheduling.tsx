@@ -137,6 +137,11 @@ export default function Scheduling() {
         supabase.from("milestones").select("id,title,due_date,project_id,status").not("due_date", "is", null),
         supabase.from("deliverables").select("id,title,due_date,project_id,required,approval_required,approval_status").not("due_date", "is", null),
       ]);
+      if (winRes.error) toast.error(`Availability: ${winRes.error.message}`);
+      if (evRes.error) toast.error(`Events: ${evRes.error.message}`);
+      if (msRes.error) console.warn("milestones:", msRes.error.message);
+      if (delRes.error) console.warn("deliverables:", delRes.error.message);
+      if (cohortRes.error) console.warn("cohort:", cohortRes.error.message);
       setWindows((winRes.data as any[]) || []);
       setCohort(cohortRes.data);
       setEvents(evRes.data || []);
