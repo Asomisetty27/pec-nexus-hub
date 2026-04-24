@@ -1327,6 +1327,50 @@ export type Database = {
         }
         Relationships: []
       }
+      event_attendance: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          marked_at: string | null
+          marked_by: string | null
+          note: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          marked_at?: string | null
+          marked_by?: string | null
+          note?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          marked_at?: string | null
+          marked_by?: string | null
+          note?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_attendance_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_notifications: {
         Row: {
           audience_scope: string | null
@@ -4427,6 +4471,10 @@ export type Database = {
           tone: string
         }[]
       }
+      can_host_event: {
+        Args: { _event_id: string; _user_id: string }
+        Returns: boolean
+      }
       compute_momentum_risk: { Args: { _project_id: string }; Returns: Json }
       create_assignment_bundle: {
         Args: {
@@ -4484,6 +4532,13 @@ export type Database = {
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      event_expected_attendees: {
+        Args: { p_event_id: string }
+        Returns: {
+          full_name: string
+          user_id: string
+        }[]
       }
       feedback_summary: {
         Args: { p_days?: number }
@@ -4556,6 +4611,10 @@ export type Database = {
       is_board_or_admin: { Args: { _user_id: string }; Returns: boolean }
       is_channel_member: {
         Args: { _channel_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_cohort_host: {
+        Args: { _cohort_id: string; _user_id: string }
         Returns: boolean
       }
       is_project_lead: {
