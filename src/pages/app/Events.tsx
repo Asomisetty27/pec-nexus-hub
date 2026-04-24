@@ -385,7 +385,11 @@ export default function Events() {
                     <div className="flex items-start justify-between">
                       <CardTitle className="text-sm font-sans">{ev.title}</CardTitle>
                       <div className="flex flex-col items-end gap-1">
-                        <Badge variant="outline" className="text-[9px] font-mono">{ev.event_type}</Badge>
+                        <Badge variant="outline" className={`text-[9px] font-mono ${ev.event_type === "cohort_meeting" ? "border-primary/40 text-primary" : ev.event_type === "all_hands" ? "border-accent/40 text-accent" : ""}`}>
+                          {ev.event_type === "cohort_meeting"
+                            ? `cohort · ${cohorts.find(c => c.id === ev.audience_target_id)?.name?.split(" ")[0] || "meeting"}`
+                            : ev.event_type}
+                        </Badge>
                         {isCancelled && <Badge variant="destructive" className="text-[9px]">CANCELLED</Badge>}
                       </div>
                     </div>
@@ -424,6 +428,11 @@ export default function Events() {
                     {!isCancelled && (
                       <Button variant="outline" size="sm" className="w-full h-7 text-[11px] gap-1" onClick={() => setBriefEvent(ev)}>
                         <Sparkles className="h-3 w-3" /> Pre-meeting brief
+                      </Button>
+                    )}
+                    {isPast && !isCancelled && canMarkAttendance(ev) && (
+                      <Button variant="default" size="sm" className="w-full h-7 text-[11px] gap-1" onClick={() => setAttendanceEvent(ev)}>
+                        <ClipboardCheck className="h-3 w-3" /> Record attendance
                       </Button>
                     )}
                   </CardContent>
@@ -474,6 +483,15 @@ export default function Events() {
           onOpenChange={(o) => !o && setBriefEvent(null)}
           eventId={briefEvent.id}
           eventTitle={briefEvent.title}
+        />
+      )}
+
+      {attendanceEvent && (
+        <EventAttendanceDrawer
+          open={!!attendanceEvent}
+          onOpenChange={(o) => !o && setAttendanceEvent(null)}
+          eventId={attendanceEvent.id}
+          eventTitle={attendanceEvent.title}
         />
       )}
     </motion.div>
