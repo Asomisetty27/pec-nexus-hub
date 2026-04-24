@@ -60,6 +60,7 @@ const mainNav: NavItem[] = [
   { title: "Projects", url: "/app/projects", icon: FolderKanban, hideForApplicants: true },
   { title: "Messages", url: "/app/messages", icon: MessageSquare, hideForApplicants: true },
   { title: "Events", url: "/app/events", icon: CalendarDays },
+  { title: "Scheduling", url: "/app/scheduling", icon: CalendarDays, hideForApplicants: true },
   { title: "Training", url: "/app/training", icon: GraduationCap, hideForApplicants: true },
   { title: "Ask Nexus", url: "/app/ask", icon: Sparkles, hideForApplicants: true },
   {

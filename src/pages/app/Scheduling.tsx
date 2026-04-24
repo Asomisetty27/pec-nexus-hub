@@ -103,20 +103,28 @@ export default function Scheduling() {
 
   const loadRecommendations = async (cohortId: string, durationMin: number) => {
     setLoadingRecs(true);
-    const [recRes, hintRes, patRes] = await Promise.all([
-      supabase.rpc("recommend_meeting_slots", {
-        p_cohort_id: cohortId,
-        p_duration_min: durationMin,
-        p_attendee_ids: null,
-        p_limit: 6,
-      }),
-      supabase.rpc("calendar_awareness_hints", { p_cohort_id: cohortId }),
-      supabase.rpc("detect_cohort_meeting_pattern", { p_cohort_id: cohortId }),
-    ]);
-    if (!recRes.error) setSmartRecs((recRes.data as any[]) || []);
-    if (!hintRes.error) setHints((hintRes.data as any[]) || []);
-    if (!patRes.error) setPattern(((patRes.data as any[]) || [])[0] || null);
-    setLoadingRecs(false);
+    try {
+      const [recRes, hintRes, patRes] = await Promise.all([
+        supabase.rpc("recommend_meeting_slots", {
+          p_cohort_id: cohortId,
+          p_duration_min: durationMin,
+          p_attendee_ids: null,
+          p_limit: 6,
+        }),
+        supabase.rpc("calendar_awareness_hints", { p_cohort_id: cohortId }),
+        supabase.rpc("detect_cohort_meeting_pattern", { p_cohort_id: cohortId }),
+      ]);
+      if (recRes.error) console.warn("recommend_meeting_slots:", recRes.error.message);
+      if (hintRes.error) console.warn("calendar_awareness_hints:", hintRes.error.message);
+      if (patRes.error) console.warn("detect_cohort_meeting_pattern:", patRes.error.message);
+      setSmartRecs((recRes.data as any[]) || []);
+      setHints((hintRes.data as any[]) || []);
+      setPattern(((patRes.data as any[]) || [])[0] || null);
+    } catch (err: any) {
+      console.error("loadRecommendations failed", err);
+    } finally {
+      setLoadingRecs(false);
+    }
   };
 
   useEffect(() => {
@@ -129,6 +137,11 @@ export default function Scheduling() {
         supabase.from("milestones").select("id,title,due_date,project_id,status").not("due_date", "is", null),
         supabase.from("deliverables").select("id,title,due_date,project_id,required,approval_required,approval_status").not("due_date", "is", null),
       ]);
+      if (winRes.error) toast.error(`Availability: ${winRes.error.message}`);
+      if (evRes.error) toast.error(`Events: ${evRes.error.message}`);
+      if (msRes.error) console.warn("milestones:", msRes.error.message);
+      if (delRes.error) console.warn("deliverables:", delRes.error.message);
+      if (cohortRes.error) console.warn("cohort:", cohortRes.error.message);
       setWindows((winRes.data as any[]) || []);
       setCohort(cohortRes.data);
       setEvents(evRes.data || []);
@@ -594,6 +607,18 @@ export default function Scheduling() {
           </div>
 
           <AvailabilityChips />
+
+          {windows.length === 0 && (
+            <Card className="border-dashed">
+              <CardContent className="py-8 text-center space-y-2">
+                <Clock className="h-6 w-6 mx-auto text-muted-foreground/50" />
+                <p className="text-sm font-medium">No availability set yet</p>
+                <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                  Tap the chips above to mark times you're free, or use "Add Window" / "Upload schedule" for finer control. Your availability powers cohort meeting recommendations.
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {windows.length > 0 && (
             <Card>
