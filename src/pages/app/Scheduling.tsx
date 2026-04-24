@@ -103,20 +103,28 @@ export default function Scheduling() {
 
   const loadRecommendations = async (cohortId: string, durationMin: number) => {
     setLoadingRecs(true);
-    const [recRes, hintRes, patRes] = await Promise.all([
-      supabase.rpc("recommend_meeting_slots", {
-        p_cohort_id: cohortId,
-        p_duration_min: durationMin,
-        p_attendee_ids: null,
-        p_limit: 6,
-      }),
-      supabase.rpc("calendar_awareness_hints", { p_cohort_id: cohortId }),
-      supabase.rpc("detect_cohort_meeting_pattern", { p_cohort_id: cohortId }),
-    ]);
-    if (!recRes.error) setSmartRecs((recRes.data as any[]) || []);
-    if (!hintRes.error) setHints((hintRes.data as any[]) || []);
-    if (!patRes.error) setPattern(((patRes.data as any[]) || [])[0] || null);
-    setLoadingRecs(false);
+    try {
+      const [recRes, hintRes, patRes] = await Promise.all([
+        supabase.rpc("recommend_meeting_slots", {
+          p_cohort_id: cohortId,
+          p_duration_min: durationMin,
+          p_attendee_ids: null,
+          p_limit: 6,
+        }),
+        supabase.rpc("calendar_awareness_hints", { p_cohort_id: cohortId }),
+        supabase.rpc("detect_cohort_meeting_pattern", { p_cohort_id: cohortId }),
+      ]);
+      if (recRes.error) console.warn("recommend_meeting_slots:", recRes.error.message);
+      if (hintRes.error) console.warn("calendar_awareness_hints:", hintRes.error.message);
+      if (patRes.error) console.warn("detect_cohort_meeting_pattern:", patRes.error.message);
+      setSmartRecs((recRes.data as any[]) || []);
+      setHints((hintRes.data as any[]) || []);
+      setPattern(((patRes.data as any[]) || [])[0] || null);
+    } catch (err: any) {
+      console.error("loadRecommendations failed", err);
+    } finally {
+      setLoadingRecs(false);
+    }
   };
 
   useEffect(() => {
