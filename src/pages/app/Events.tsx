@@ -269,8 +269,10 @@ export default function Events() {
           <h1 className="font-display text-2xl font-bold">Events</h1>
           <p className="text-xs text-muted-foreground font-mono">{upcoming.length} upcoming · {past.length} past</p>
         </div>
-        {isAdmin && (
-          <Button size="sm" className="gap-2" onClick={openCreate}><Plus className="h-3.5 w-3.5" /> New Event</Button>
+        {canCreateEvents && (
+          <Button size="sm" className="gap-2" onClick={openCreate}>
+            <Plus className="h-3.5 w-3.5" /> {isAdmin ? "New Event" : "New cohort meeting"}
+          </Button>
         )}
       </motion.div>
 
@@ -296,14 +298,20 @@ export default function Events() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Type</Label>
-                <Select name="type" defaultValue={editing?.event_type || "other"}>
+                <Select value={eventType} onValueChange={(v) => {
+                  setEventType(v);
+                  if (v === "cohort_meeting") {
+                    setAudience("cohort");
+                    if (!isAdmin) setAudienceTarget(myLeadCohortIds[0] || "");
+                  } else if (v === "all_hands") {
+                    setAudience("all_members");
+                  }
+                }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="workshop">Workshop</SelectItem>
-                    <SelectItem value="meeting">Meeting</SelectItem>
-                    <SelectItem value="social">Social</SelectItem>
-                    <SelectItem value="presentation">Presentation</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    {EVENT_TYPES.filter(t => isAdmin || t.value !== "all_hands").map(t => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -318,7 +326,7 @@ export default function Events() {
 
             <div className="space-y-2">
               <Label>Audience</Label>
-              <Select value={audience} onValueChange={setAudience}>
+              <Select value={audience} onValueChange={setAudience} disabled={!isAdmin && eventType === "cohort_meeting"}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {AUDIENCE_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
@@ -327,7 +335,11 @@ export default function Events() {
               {audience === "cohort" && (
                 <Select value={audienceTarget} onValueChange={setAudienceTarget}>
                   <SelectTrigger><SelectValue placeholder="Select cohort" /></SelectTrigger>
-                  <SelectContent>{cohorts.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                  <SelectContent>
+                    {(isAdmin ? cohorts : cohorts.filter(c => myLeadCohortIds.includes(c.id))).map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               )}
               {audience === "project" && (
@@ -335,6 +347,9 @@ export default function Events() {
                   <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
                   <SelectContent>{projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
                 </Select>
+              )}
+              {!isAdmin && eventType === "cohort_meeting" && (
+                <p className="text-[10px] text-muted-foreground">Audience locked to a cohort you lead.</p>
               )}
             </div>
 
