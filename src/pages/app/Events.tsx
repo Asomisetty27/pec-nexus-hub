@@ -68,6 +68,7 @@ export default function Events() {
   const [attendanceEvent, setAttendanceEvent] = useState<any | null>(null);
   const [myCohorts, setMyCohorts] = useState<{ cohort_id: string; role: string; name: string }[]>([]);
   const [eventType, setEventType] = useState<string>("meeting");
+  const [meetingStatus, setMeetingStatus] = useState<{ has_meeting_this_week: boolean; lead_attending_next: boolean; next_event_at: string | null } | null>(null);
 
   const fetchEvents = async () => {
     const { data } = await supabase.from("events").select("*").order("start_time", { ascending: true });
@@ -78,6 +79,11 @@ export default function Events() {
       rsvpData?.forEach(r => { map[r.event_id] = true; });
       setRsvps(map);
     }
+  };
+
+  const fetchMeetingStatus = async (cohortId: string) => {
+    const { data, error } = await supabase.rpc("cohort_meeting_status", { p_cohort_id: cohortId });
+    if (!error && data) setMeetingStatus(data as any);
   };
 
   useEffect(() => {
@@ -92,6 +98,7 @@ export default function Events() {
         .then(({ data }) => {
           const rows = (data || []).map((r: any) => ({ cohort_id: r.cohort_id, role: r.role, name: r.cohorts?.name || "" }));
           setMyCohorts(rows);
+          if (rows[0]?.cohort_id) fetchMeetingStatus(rows[0].cohort_id);
         });
     }
   }, [user]);
@@ -287,6 +294,19 @@ export default function Events() {
           ]}
           onClose={() => setEventCreatedFlag(false)}
         />
+      )}
+
+      {meetingStatus && (!meetingStatus.has_meeting_this_week || !meetingStatus.lead_attending_next) && (
+        <motion.div variants={item} className="rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-xs flex flex-wrap items-center gap-2">
+          <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />
+          {!meetingStatus.has_meeting_this_week && (
+            <span><span className="font-medium">No cohort meeting scheduled this week.</span> Consider adding one.</span>
+          )}
+          {meetingStatus.has_meeting_this_week && !meetingStatus.lead_attending_next && (
+            <span><span className="font-medium">No tech lead has RSVPed</span> to the next cohort meeting.</span>
+          )}
+          <span className="text-[10px] text-muted-foreground ml-auto">Advisory only — not blocking.</span>
+        </motion.div>
       )}
 
       <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditing(null); }}>
