@@ -70,6 +70,11 @@ export default function Dashboard() {
   const [stats, setStats] = useState({ activeProjects: 0, overdueDeliverables: 0, upcomingEvents: 0, totalMembers: 0 });
   const [changes, setChanges] = useState<any | null>(null);
   const [lastVisit, setLastVisit] = useState<string | null>(null);
+  const [needsAvailability, setNeedsAvailability] = useState(false);
+  const [availabilityDismissed, setAvailabilityDismissed] = useState<boolean>(() =>
+    typeof window !== "undefined" && sessionStorage.getItem("avail_nudge_dismissed") === "1"
+  );
+  const [cohortScore, setCohortScore] = useState<{ score: number; attendance_pct: number; deliverable_pct: number; training_pct: number } | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -94,6 +99,9 @@ export default function Dashboard() {
       if (cohortRes.data) {
         setCohort(cohortRes.data);
         const cohortId = cohortRes.data.cohort_id;
+        supabase.rpc("cohort_performance", { p_cohort_id: cohortId }).then(({ data }) => {
+          if (data) setCohortScore(data as any);
+        });
         const [manualRes, mpRes, ptRes, capRes, oppRes] = await Promise.all([
           supabase.from("lab_manuals").select("*").eq("cohort_id", cohortId).limit(1).maybeSingle(),
           supabase.from("mock_projects").select("*").eq("cohort_id", cohortId).eq("status", "active").limit(1).maybeSingle(),
@@ -111,6 +119,14 @@ export default function Dashboard() {
           setCurrentStage(stage);
         }
       }
+
+      // Availability nudge: surface a dismissible banner until profiles.availability_set_at is stamped.
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("availability_set_at")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      setNeedsAvailability(!prof?.availability_set_at);
 
       // Real deliverable review queue: deliverables I lead, awaiting my review.
       // (Falls back to admin: every awaiting_review row capped at 5 for the dashboard preview.)
