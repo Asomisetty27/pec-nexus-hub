@@ -314,33 +314,46 @@ export type Database = {
       }
       channels: {
         Row: {
+          channel_kind: string
           created_at: string
           created_by: string | null
           description: string | null
           id: string
           is_org_wide: boolean
           name: string
+          project_group_id: string | null
           project_id: string | null
         }
         Insert: {
+          channel_kind?: string
           created_at?: string
           created_by?: string | null
           description?: string | null
           id?: string
           is_org_wide?: boolean
           name: string
+          project_group_id?: string | null
           project_id?: string | null
         }
         Update: {
+          channel_kind?: string
           created_at?: string
           created_by?: string | null
           description?: string | null
           id?: string
           is_org_wide?: boolean
           name?: string
+          project_group_id?: string | null
           project_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "channels_project_group_id_fkey"
+            columns: ["project_group_id"]
+            isOneToOne: false
+            referencedRelation: "project_groups"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "channels_project_id_fkey"
             columns: ["project_id"]
@@ -823,6 +836,7 @@ export type Database = {
           project_id: string
           required: boolean
           stage_id: string | null
+          submitter_group_id: string | null
           title: string
           updated_at: string
           version: number
@@ -847,6 +861,7 @@ export type Database = {
           project_id: string
           required?: boolean
           stage_id?: string | null
+          submitter_group_id?: string | null
           title: string
           updated_at?: string
           version?: number
@@ -871,6 +886,7 @@ export type Database = {
           project_id?: string
           required?: boolean
           stage_id?: string | null
+          submitter_group_id?: string | null
           title?: string
           updated_at?: string
           version?: number
@@ -902,6 +918,13 @@ export type Database = {
             columns: ["stage_id"]
             isOneToOne: false
             referencedRelation: "project_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deliverables_submitter_group_id_fkey"
+            columns: ["submitter_group_id"]
+            isOneToOne: false
+            referencedRelation: "project_groups"
             referencedColumns: ["id"]
           },
         ]
@@ -3110,6 +3133,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          availability_set_at: string | null
           avatar_url: string | null
           bio: string | null
           cal_poly_email: string | null
@@ -3130,6 +3154,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          availability_set_at?: string | null
           avatar_url?: string | null
           bio?: string | null
           cal_poly_email?: string | null
@@ -3150,6 +3175,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          availability_set_at?: string | null
           avatar_url?: string | null
           bio?: string | null
           cal_poly_email?: string | null
@@ -3175,6 +3201,79 @@ export type Database = {
             columns: ["chapter_id"]
             isOneToOne: false
             referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_group_members: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "project_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_groups: {
+        Row: {
+          archived: boolean
+          archived_at: string | null
+          created_at: string
+          created_by: string
+          id: string
+          lead_user_id: string | null
+          name: string
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          archived?: boolean
+          archived_at?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          lead_user_id?: string | null
+          name: string
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          archived?: boolean
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          lead_user_id?: string | null
+          name?: string
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_groups_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -4475,6 +4574,8 @@ export type Database = {
         Args: { _event_id: string; _user_id: string }
         Returns: boolean
       }
+      cohort_meeting_status: { Args: { p_cohort_id: string }; Returns: Json }
+      cohort_performance: { Args: { p_cohort_id: string }; Returns: Json }
       compute_momentum_risk: { Args: { _project_id: string }; Returns: Json }
       create_assignment_bundle: {
         Args: {
