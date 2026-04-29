@@ -323,6 +323,35 @@ export default function Dashboard() {
         </div>
       </motion.div>
 
+      {/* Availability nudge — dismissible per session, reappears next login until set */}
+      {needsAvailability && !availabilityDismissed && (
+        <motion.div variants={item} className="rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-xs flex items-center gap-2">
+          <Clock className="h-3.5 w-3.5 text-warning shrink-0" />
+          <span className="flex-1">
+            <span className="font-medium">Set your weekly availability</span> so leads can schedule meetings that work for you.
+          </span>
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => navigate("/app/scheduling")}>Set now</Button>
+          <Button size="sm" variant="ghost" className="h-6 text-[10px]" onClick={() => { sessionStorage.setItem("avail_nudge_dismissed","1"); setAvailabilityDismissed(true); }}>Later</Button>
+        </motion.div>
+      )}
+
+      {/* Cohort performance mini-widget */}
+      {cohortScore && cohort && (
+        <motion.div variants={item} className="rounded-lg border bg-card px-3 py-2 text-xs flex items-center gap-3">
+          <BarChart3 className="h-3.5 w-3.5 text-accent-foreground shrink-0" />
+          <span className="font-medium">{(cohort as any)?.cohorts?.name || "Your cohort"} score</span>
+          <span className="font-mono text-base font-semibold">{cohortScore.score}</span>
+          <span className="text-[10px] text-muted-foreground hidden sm:inline">/ 100</span>
+          <span className="ml-auto flex items-center gap-2 text-[10px] text-muted-foreground font-mono">
+            <span>att {cohortScore.attendance_pct}%</span>
+            <span>·</span>
+            <span>deliv {cohortScore.deliverable_pct}%</span>
+            <span>·</span>
+            <span>train {cohortScore.training_pct}%</span>
+          </span>
+        </motion.div>
+      )}
+
       {/* HERO + 1. NEXT MOVE (max 3) */}
       <motion.div variants={item} className="relative overflow-hidden rounded-2xl border bg-card">
         <div className="absolute inset-0 bg-grid-animate pointer-events-none" />
