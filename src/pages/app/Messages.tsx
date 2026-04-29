@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   MessageSquare, Send, Hash, AlertTriangle, CheckCircle2,
-  Lightbulb, Zap, HelpCircle, Globe, Lock,
+  Lightbulb, Zap, HelpCircle, Globe, Lock, SmilePlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -24,6 +25,62 @@ const typeConfig: Record<string, { icon: any; bg: string; border: string; label:
   fyi: { icon: Lightbulb, bg: "bg-muted/30", border: "border-l-muted-foreground", label: "FYI" },
   message: { icon: MessageSquare, bg: "", border: "border-l-transparent", label: "Message" },
 };
+
+const QUICK_EMOJI = ["👍", "❤️", "🎉", "✅", "🚀", "👀", "🙏", "🔥"];
+
+function ReactionRow({
+  msg, userId, onToggle,
+}: { msg: any; userId?: string; onToggle: (msg: any, emoji: string) => void }) {
+  const reactions = (msg.reactions && typeof msg.reactions === "object") ? msg.reactions : {};
+  const entries = Object.entries(reactions) as [string, string[]][];
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-1">
+      {entries.map(([emoji, users]) => {
+        const count = Array.isArray(users) ? users.length : 0;
+        if (count === 0) return null;
+        const mine = !!userId && users.includes(userId);
+        return (
+          <button
+            key={emoji}
+            type="button"
+            onClick={() => onToggle(msg, emoji)}
+            className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[11px] transition-colors ${
+              mine ? "bg-accent/15 border-accent/40 text-foreground" : "bg-muted/40 border-border hover:bg-muted/70"
+            }`}
+          >
+            <span>{emoji}</span>
+            <span className="font-mono text-[10px]">{count}</span>
+          </button>
+        );
+      })}
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="inline-flex items-center justify-center rounded-full border border-dashed border-border/60 px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-muted/40"
+            aria-label="Add reaction"
+          >
+            <SmilePlus className="h-3 w-3" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-1.5">
+          <div className="flex gap-0.5">
+            {QUICK_EMOJI.map(e => (
+              <button
+                key={e}
+                type="button"
+                onClick={() => onToggle(msg, e)}
+                className="rounded p-1 text-base hover:bg-muted/70"
+              >
+                {e}
+              </button>
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
 
 export default function Messages() {
   const { user } = useAuth();
@@ -87,6 +144,26 @@ export default function Messages() {
     });
     if (error) { toast.error(error.message); return; }
     setNewMessage("");
+  };
+
+  // Toggle a single emoji reaction for the current user on a message.
+  // reactions shape: { "👍": ["uid1","uid2"], "🎉": ["uid3"] }
+  const toggleReaction = async (msg: any, emoji: string) => {
+    if (!user) return;
+    const current = (msg.reactions && typeof msg.reactions === "object") ? { ...msg.reactions } : {};
+    const list: string[] = Array.isArray(current[emoji]) ? [...current[emoji]] : [];
+    const idx = list.indexOf(user.id);
+    if (idx >= 0) list.splice(idx, 1); else list.push(user.id);
+    if (list.length === 0) delete current[emoji]; else current[emoji] = list;
+
+    // Optimistic update
+    setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, reactions: current } : m));
+    const { error } = await supabase.from("messages").update({ reactions: current }).eq("id", msg.id);
+    if (error) {
+      toast.error(error.message);
+      // revert
+      setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, reactions: msg.reactions } : m));
+    }
   };
 
   const selectedChannelData = channels.find(c => c.id === selectedChannel);
@@ -194,6 +271,7 @@ export default function Messages() {
                       </span>
                     </div>
                     <p className="text-sm leading-relaxed">{msg.content}</p>
+                    <ReactionRow msg={msg} userId={user?.id} onToggle={toggleReaction} />
                   </motion.div>
                 );
               })}

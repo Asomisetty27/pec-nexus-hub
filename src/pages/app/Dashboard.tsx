@@ -70,6 +70,11 @@ export default function Dashboard() {
   const [stats, setStats] = useState({ activeProjects: 0, overdueDeliverables: 0, upcomingEvents: 0, totalMembers: 0 });
   const [changes, setChanges] = useState<any | null>(null);
   const [lastVisit, setLastVisit] = useState<string | null>(null);
+  const [needsAvailability, setNeedsAvailability] = useState(false);
+  const [availabilityDismissed, setAvailabilityDismissed] = useState<boolean>(() =>
+    typeof window !== "undefined" && sessionStorage.getItem("avail_nudge_dismissed") === "1"
+  );
+  const [cohortScore, setCohortScore] = useState<{ score: number; attendance_pct: number; deliverable_pct: number; training_pct: number } | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -94,6 +99,9 @@ export default function Dashboard() {
       if (cohortRes.data) {
         setCohort(cohortRes.data);
         const cohortId = cohortRes.data.cohort_id;
+        supabase.rpc("cohort_performance", { p_cohort_id: cohortId }).then(({ data }) => {
+          if (data) setCohortScore(data as any);
+        });
         const [manualRes, mpRes, ptRes, capRes, oppRes] = await Promise.all([
           supabase.from("lab_manuals").select("*").eq("cohort_id", cohortId).limit(1).maybeSingle(),
           supabase.from("mock_projects").select("*").eq("cohort_id", cohortId).eq("status", "active").limit(1).maybeSingle(),
@@ -111,6 +119,14 @@ export default function Dashboard() {
           setCurrentStage(stage);
         }
       }
+
+      // Availability nudge: surface a dismissible banner until profiles.availability_set_at is stamped.
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("availability_set_at")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      setNeedsAvailability(!prof?.availability_set_at);
 
       // Real deliverable review queue: deliverables I lead, awaiting my review.
       // (Falls back to admin: every awaiting_review row capped at 5 for the dashboard preview.)
@@ -306,6 +322,35 @@ export default function Dashboard() {
           )}
         </div>
       </motion.div>
+
+      {/* Availability nudge — dismissible per session, reappears next login until set */}
+      {needsAvailability && !availabilityDismissed && (
+        <motion.div variants={item} className="rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-xs flex items-center gap-2">
+          <Clock className="h-3.5 w-3.5 text-warning shrink-0" />
+          <span className="flex-1">
+            <span className="font-medium">Set your weekly availability</span> so leads can schedule meetings that work for you.
+          </span>
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => navigate("/app/scheduling")}>Set now</Button>
+          <Button size="sm" variant="ghost" className="h-6 text-[10px]" onClick={() => { sessionStorage.setItem("avail_nudge_dismissed","1"); setAvailabilityDismissed(true); }}>Later</Button>
+        </motion.div>
+      )}
+
+      {/* Cohort performance mini-widget */}
+      {cohortScore && cohort && (
+        <motion.div variants={item} className="rounded-lg border bg-card px-3 py-2 text-xs flex items-center gap-3">
+          <BarChart3 className="h-3.5 w-3.5 text-accent-foreground shrink-0" />
+          <span className="font-medium">{(cohort as any)?.cohorts?.name || "Your cohort"} score</span>
+          <span className="font-mono text-base font-semibold">{cohortScore.score}</span>
+          <span className="text-[10px] text-muted-foreground hidden sm:inline">/ 100</span>
+          <span className="ml-auto flex items-center gap-2 text-[10px] text-muted-foreground font-mono">
+            <span>att {cohortScore.attendance_pct}%</span>
+            <span>·</span>
+            <span>deliv {cohortScore.deliverable_pct}%</span>
+            <span>·</span>
+            <span>train {cohortScore.training_pct}%</span>
+          </span>
+        </motion.div>
+      )}
 
       {/* HERO + 1. NEXT MOVE (max 3) */}
       <motion.div variants={item} className="relative overflow-hidden rounded-2xl border bg-card">

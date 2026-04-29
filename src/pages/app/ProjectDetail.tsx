@@ -22,6 +22,7 @@ import DeliverableStatusBadge from "@/components/DeliverableStatusBadge";
 import { AssignmentBundleDialog } from "@/components/AssignmentBundleDialog";
 import { useRecentItems } from "@/hooks/useRecentItems";
 import { DecisionMemoryWidget } from "@/components/decision/DecisionMemoryWidget";
+import { ProjectGroupsPanel } from "@/components/ProjectGroupsPanel";
 import { approveDeliverable, requestDeliverableChanges } from "@/lib/reviewActions";
 import { getUnifiedStatus, isBlockingStage } from "@/lib/deliverableStatus";
 
@@ -750,6 +751,15 @@ export default function ProjectDetail() {
                   </div>
                 )}
                 {members.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">No members assigned.</p>}
+                <div className="pt-4 border-t border-border/60">
+                  <ProjectGroupsPanel
+                    projectId={id!}
+                    projectName={project?.name || ""}
+                    members={members}
+                    canManage={isProjectLead}
+                    currentUserId={user?.id}
+                  />
+                </div>
               </div>
             );
           })()}
