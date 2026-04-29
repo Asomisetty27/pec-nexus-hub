@@ -68,6 +68,14 @@ export default function Projects() {
       toast.success("Project created from template — stages and deliverables auto-generated.");
       setDialogOpen(false);
       fetchProjects();
+      // Fire-and-forget AI description generation. Failure here doesn't block project use.
+      if (data) {
+        supabase.functions.invoke("generate-deliverable-descriptions", { body: { projectId: data } })
+          .then(({ data: d, error: fnErr }) => {
+            if (fnErr) console.warn("AI description gen failed:", fnErr.message);
+            else if ((d as any)?.updated > 0) toast.message(`AI wrote ${(d as any).updated} deliverable descriptions.`);
+          });
+      }
       if (data) navigate(`/app/projects/${data}`);
       return;
     }
