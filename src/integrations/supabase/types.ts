@@ -868,6 +868,45 @@ export type Database = {
         }
         Relationships: []
       }
+      cohort_score_snapshots: {
+        Row: {
+          components: Json
+          computed_at: string
+          confidence: string
+          id: string
+          scope: string
+          score: number
+          target_id: string
+          window_days: number
+          window_end: string
+          window_start: string
+        }
+        Insert: {
+          components?: Json
+          computed_at?: string
+          confidence: string
+          id?: string
+          scope: string
+          score: number
+          target_id: string
+          window_days: number
+          window_end: string
+          window_start: string
+        }
+        Update: {
+          components?: Json
+          computed_at?: string
+          confidence?: string
+          id?: string
+          scope?: string
+          score?: number
+          target_id?: string
+          window_days?: number
+          window_end?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       cohorts: {
         Row: {
           chapter_id: string | null
@@ -5349,6 +5388,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _compute_score_window: {
+        Args: {
+          _scope: string
+          _target_id: string
+          _window_end: string
+          _window_start: string
+        }
+        Returns: Json
+      }
       advance_applicant_stage: {
         Args: {
           _applicant_id: string
@@ -5419,6 +5467,10 @@ export type Database = {
       cohort_meeting_status: { Args: { p_cohort_id: string }; Returns: Json }
       cohort_performance: { Args: { p_cohort_id: string }; Returns: Json }
       compute_momentum_risk: { Args: { _project_id: string }; Returns: Json }
+      compute_score: {
+        Args: { p_scope: string; p_target_id: string; p_window_days?: number }
+        Returns: Json
+      }
       create_assignment_bundle: {
         Args: {
           p_description?: string
@@ -5746,6 +5798,10 @@ export type Database = {
           p_stage: Database["public"]["Enums"]["deliverable_stage"]
         }
         Returns: undefined
+      }
+      snapshot_score: {
+        Args: { p_scope: string; p_target_id: string; p_window_days?: number }
+        Returns: string
       }
       submit_applicant_review: {
         Args: {
