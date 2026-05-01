@@ -4968,6 +4968,11 @@ export type Database = {
       auto_flag_stale_reviews: { Args: never; Returns: number }
       auto_join_missing_channels: { Args: never; Returns: number }
       auto_resync_unmatched_users: { Args: never; Returns: number }
+      cadence_overview: { Args: never; Returns: Json }
+      cadence_signals: {
+        Args: { p_scope: string; p_target_id: string }
+        Returns: Json
+      }
       calendar_awareness_hints: {
         Args: { p_cohort_id: string }
         Returns: {
@@ -5121,6 +5126,7 @@ export type Database = {
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_advisor: { Args: { _user_id: string }; Returns: boolean }
       is_board_or_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_cadence_leadership: { Args: { _uid: string }; Returns: boolean }
       is_channel_member: {
         Args: { _channel_id: string; _user_id: string }
         Returns: boolean
