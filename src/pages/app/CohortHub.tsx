@@ -16,6 +16,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { SectionExplainer, InfoDot } from "@/components/ui/SectionExplainer";
+import { CadenceHealthCard } from "@/components/CadenceHealthCard";
 
 const cohortIcons: Record<string, any> = { cpu: Cpu, wrench: Wrench, code: Code, briefcase: Briefcase };
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
@@ -246,6 +247,11 @@ export default function CohortHub() {
             </div>
           </CardContent>
         </Card>
+      </motion.div>
+
+      {/* Cadence health (Phase 5) — compact, non-blocking */}
+      <motion.div variants={item}>
+        <CadenceHealthCard scope="cohort" targetId={cohort.id} />
       </motion.div>
 
       {/* Lifecycle Timeline */}
