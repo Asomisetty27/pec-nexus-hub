@@ -13,6 +13,9 @@ import Intake from "./pages/Intake";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import Unsubscribe from "./pages/Unsubscribe";
+import ApplyLanding from "./pages/apply/ApplyLanding";
+import ApplyForm from "./pages/apply/ApplyForm";
+import ApplyConfirmation from "./pages/apply/ApplyConfirmation";
 import Dashboard from "./pages/app/Dashboard";
 import Projects from "./pages/app/Projects";
 import ProjectDetail from "./pages/app/ProjectDetail";
@@ -66,6 +69,9 @@ const App = () => (
               <Route path="/services" element={<Services />} />
               <Route path="/sponsors" element={<Sponsors />} />
               <Route path="/intake" element={<Intake />} />
+              <Route path="/apply" element={<ApplyLanding />} />
+              <Route path="/apply/form" element={<ApplyForm />} />
+              <Route path="/apply/confirmation" element={<ApplyConfirmation />} />
               <Route path="/login" element={<Login />} />
               <Route path="/invite/:token" element={<Login />} />
               <Route path="/unsubscribe" element={<Unsubscribe />} />
