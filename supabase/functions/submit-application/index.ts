@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
     const { count } = await admin
       .from("submission_rate_limit")
       .select("id", { count: "exact", head: true })
-      .eq("ip_address", ip)
+      .eq("ip", ip)
       .gte("created_at", since);
     if ((count ?? 0) >= 3) {
       return json(429, { error: "Too many submissions. Please try again later." });
@@ -237,7 +237,7 @@ Deno.serve(async (req) => {
 
   // Rate limit row
   try {
-    await admin.from("submission_rate_limit").insert({ ip_address: ip });
+    await admin.from("submission_rate_limit").insert({ ip, email: emailNorm });
   } catch (_) {}
 
   // Audit
