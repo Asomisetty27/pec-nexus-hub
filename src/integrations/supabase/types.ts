@@ -110,6 +110,280 @@ export type Database = {
         }
         Relationships: []
       }
+      applicant_resume_access_log: {
+        Row: {
+          accessed_at: string
+          accessed_by: string
+          applicant_id: string
+          expires_at: string
+          id: string
+        }
+        Insert: {
+          accessed_at?: string
+          accessed_by: string
+          applicant_id: string
+          expires_at: string
+          id?: string
+        }
+        Update: {
+          accessed_at?: string
+          accessed_by?: string
+          applicant_id?: string
+          expires_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applicant_resume_access_log_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "applicants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      applicant_reviews: {
+        Row: {
+          applicant_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          rating: number | null
+          recommendation: Database["public"]["Enums"]["applicant_decision"]
+          reviewer_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          applicant_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          rating?: number | null
+          recommendation: Database["public"]["Enums"]["applicant_decision"]
+          reviewer_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          applicant_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          rating?: number | null
+          recommendation?: Database["public"]["Enums"]["applicant_decision"]
+          reviewer_user_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applicant_reviews_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "applicants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      applicant_stage_history: {
+        Row: {
+          applicant_id: string
+          changed_by: string | null
+          created_at: string
+          from_stage: Database["public"]["Enums"]["applicant_stage"] | null
+          id: string
+          reason: string | null
+          to_stage: Database["public"]["Enums"]["applicant_stage"]
+        }
+        Insert: {
+          applicant_id: string
+          changed_by?: string | null
+          created_at?: string
+          from_stage?: Database["public"]["Enums"]["applicant_stage"] | null
+          id?: string
+          reason?: string | null
+          to_stage: Database["public"]["Enums"]["applicant_stage"]
+        }
+        Update: {
+          applicant_id?: string
+          changed_by?: string | null
+          created_at?: string
+          from_stage?: Database["public"]["Enums"]["applicant_stage"] | null
+          id?: string
+          reason?: string | null
+          to_stage?: Database["public"]["Enums"]["applicant_stage"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applicant_stage_history_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "applicants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      applicants: {
+        Row: {
+          created_at: string
+          current_stage: Database["public"]["Enums"]["applicant_stage"]
+          cycle_id: string | null
+          decision_at: string | null
+          decision_by_user_id: string | null
+          email: string
+          experience: string | null
+          final_decision:
+            | Database["public"]["Enums"]["applicant_decision"]
+            | null
+          full_name: string
+          gpa: number | null
+          graduation_year: number | null
+          id: string
+          links: Json
+          major: string | null
+          phone: string | null
+          preferred_cohort_id: string | null
+          primary_reviewer_user_id: string | null
+          pronouns: string | null
+          resume_storage_path: string
+          resume_uploaded_at: string | null
+          routed_cohort_id: string | null
+          routing_resolved: boolean
+          source: Database["public"]["Enums"]["applicant_source"] | null
+          source_detail: string | null
+          submission_ip: unknown
+          submission_user_agent: string | null
+          submitted_at: string | null
+          updated_at: string
+          why_join: string | null
+          withdrawn_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          current_stage?: Database["public"]["Enums"]["applicant_stage"]
+          cycle_id?: string | null
+          decision_at?: string | null
+          decision_by_user_id?: string | null
+          email: string
+          experience?: string | null
+          final_decision?:
+            | Database["public"]["Enums"]["applicant_decision"]
+            | null
+          full_name: string
+          gpa?: number | null
+          graduation_year?: number | null
+          id?: string
+          links?: Json
+          major?: string | null
+          phone?: string | null
+          preferred_cohort_id?: string | null
+          primary_reviewer_user_id?: string | null
+          pronouns?: string | null
+          resume_storage_path: string
+          resume_uploaded_at?: string | null
+          routed_cohort_id?: string | null
+          routing_resolved?: boolean
+          source?: Database["public"]["Enums"]["applicant_source"] | null
+          source_detail?: string | null
+          submission_ip?: unknown
+          submission_user_agent?: string | null
+          submitted_at?: string | null
+          updated_at?: string
+          why_join?: string | null
+          withdrawn_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          current_stage?: Database["public"]["Enums"]["applicant_stage"]
+          cycle_id?: string | null
+          decision_at?: string | null
+          decision_by_user_id?: string | null
+          email?: string
+          experience?: string | null
+          final_decision?:
+            | Database["public"]["Enums"]["applicant_decision"]
+            | null
+          full_name?: string
+          gpa?: number | null
+          graduation_year?: number | null
+          id?: string
+          links?: Json
+          major?: string | null
+          phone?: string | null
+          preferred_cohort_id?: string | null
+          primary_reviewer_user_id?: string | null
+          pronouns?: string | null
+          resume_storage_path?: string
+          resume_uploaded_at?: string | null
+          routed_cohort_id?: string | null
+          routing_resolved?: boolean
+          source?: Database["public"]["Enums"]["applicant_source"] | null
+          source_detail?: string | null
+          submission_ip?: unknown
+          submission_user_agent?: string | null
+          submitted_at?: string | null
+          updated_at?: string
+          why_join?: string | null
+          withdrawn_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applicants_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "application_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applicants_preferred_cohort_id_fkey"
+            columns: ["preferred_cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applicants_routed_cohort_id_fkey"
+            columns: ["routed_cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      application_cycles: {
+        Row: {
+          closes_at: string
+          created_at: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          opens_at: string
+          season: Database["public"]["Enums"]["application_cycle_season"]
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          closes_at: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          opens_at: string
+          season: Database["public"]["Enums"]["application_cycle_season"]
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          closes_at?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          opens_at?: string
+          season?: Database["public"]["Enums"]["application_cycle_season"]
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
       ask_nexus_query_log: {
         Row: {
           created_at: string
@@ -2639,6 +2913,41 @@ export type Database = {
           },
         ]
       }
+      major_cohort_routing: {
+        Row: {
+          cohort_id: string
+          created_at: string
+          id: string
+          major: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          cohort_id: string
+          created_at?: string
+          id?: string
+          major: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cohort_id?: string
+          created_at?: string
+          id?: string
+          major?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "major_cohort_routing_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_briefs: {
         Row: {
           brief_markdown: string
@@ -4465,6 +4774,36 @@ export type Database = {
           },
         ]
       }
+      submission_rate_limit: {
+        Row: {
+          attempts: number
+          created_at: string
+          email: string | null
+          id: string
+          ip: unknown
+          updated_at: string
+          window_start: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          email?: string | null
+          id?: string
+          ip?: unknown
+          updated_at?: string
+          window_start?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          email?: string | null
+          id?: string
+          ip?: unknown
+          updated_at?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       submissions: {
         Row: {
           content: string | null
@@ -4990,6 +5329,10 @@ export type Database = {
         Args: { _deliverable_id: string; _user_id: string }
         Returns: boolean
       }
+      can_view_applicant: {
+        Args: { _applicant_id: string; _uid: string }
+        Returns: boolean
+      }
       cohort_meeting_status: { Args: { p_cohort_id: string }; Returns: Json }
       cohort_performance: { Args: { p_cohort_id: string }; Returns: Json }
       compute_momentum_risk: { Args: { _project_id: string }; Returns: Json }
@@ -5099,6 +5442,10 @@ export type Database = {
           version: number
         }[]
       }
+      get_resume_signed_url: {
+        Args: { _applicant_id: string; _expires_in_seconds?: number }
+        Returns: string
+      }
       get_user_cohort_id: { Args: { _user_id: string }; Returns: string }
       grind_leaderboard: {
         Args: {
@@ -5135,6 +5482,10 @@ export type Database = {
         Args: { _cohort_id: string; _user_id: string }
         Returns: boolean
       }
+      is_cohort_reviewer: {
+        Args: { _cohort_id: string; _uid: string }
+        Returns: boolean
+      }
       is_crm_leadership: { Args: { _uid: string }; Returns: boolean }
       is_ops_crm_user: { Args: { _uid: string }; Returns: boolean }
       is_project_lead: {
@@ -5149,6 +5500,7 @@ export type Database = {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean
       }
+      is_recruitment_lead: { Args: { _uid: string }; Returns: boolean }
       join_user_to_default_channels: {
         Args: { p_cohort_name: string; p_role: string; p_user_id: string }
         Returns: undefined
@@ -5350,6 +5702,32 @@ export type Database = {
         | "president"
         | "director_of_projects"
         | "outreach_lead"
+      applicant_decision:
+        | "advance"
+        | "hold"
+        | "reject"
+        | "accept"
+        | "waitlist"
+        | "request_more_info"
+      applicant_source:
+        | "website"
+        | "flyer"
+        | "referral"
+        | "event"
+        | "info_session"
+        | "social_media"
+        | "other"
+      applicant_stage:
+        | "applied"
+        | "under_review"
+        | "resume_screen"
+        | "interview"
+        | "decision_pending"
+        | "accepted"
+        | "rejected"
+        | "waitlisted"
+        | "withdrawn"
+      application_cycle_season: "fall" | "spring"
       approval_status:
         | "pending"
         | "approved"
@@ -5614,6 +5992,35 @@ export const Constants = {
         "director_of_projects",
         "outreach_lead",
       ],
+      applicant_decision: [
+        "advance",
+        "hold",
+        "reject",
+        "accept",
+        "waitlist",
+        "request_more_info",
+      ],
+      applicant_source: [
+        "website",
+        "flyer",
+        "referral",
+        "event",
+        "info_session",
+        "social_media",
+        "other",
+      ],
+      applicant_stage: [
+        "applied",
+        "under_review",
+        "resume_screen",
+        "interview",
+        "decision_pending",
+        "accepted",
+        "rejected",
+        "waitlisted",
+        "withdrawn",
+      ],
+      application_cycle_season: ["fall", "spring"],
       approval_status: [
         "pending",
         "approved",
