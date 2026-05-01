@@ -21,6 +21,7 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "@/lib/auth";
+import { useCrmAccess } from "@/hooks/useCrmAccess";
 import { NavLink } from "@/components/NavLink";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
@@ -48,6 +49,7 @@ interface NavItem {
   requiresBoardOrAdmin?: boolean;
   requiresLeadAccess?: boolean;
   requiresAdvisorAccess?: boolean;
+  requiresCrmAccess?: boolean;
   hideForApplicants?: boolean;
 }
 
@@ -73,7 +75,7 @@ const mainNav: NavItem[] = [
 
 const orgNav: NavItem[] = [
   { title: "Members", url: "/app/members", icon: Users, hideForApplicants: true },
-  { title: "Sponsors & CRM", url: "/app/crm", icon: Building2, requiresBoardOrAdmin: true },
+  { title: "Company Relations", url: "/app/crm", icon: Building2, requiresCrmAccess: true },
   { title: "Documents", url: "/app/docs", icon: FileText, hideForApplicants: true },
 ];
 
@@ -116,6 +118,7 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { profile, highestRole, signOut, isAdmin, isBoardOrAdmin } = useAuth();
   const { hasRole } = useAuth();
+  const { canAccess: hasCrmAccess } = useCrmAccess();
 
   const initials = getInitials(profile?.full_name);
 
@@ -134,6 +137,7 @@ export function AppSidebar() {
     if (item.requiresBoardOrAdmin && !isBoardOrAdmin && !isAdmin) return false;
     if (item.requiresLeadAccess && !hasLeadAccess) return false;
     if (item.requiresAdvisorAccess && !hasAdvisorAccess) return false;
+    if (item.requiresCrmAccess && !hasCrmAccess) return false;
     if (item.hideForApplicants && isApplicant) return false;
     return true;
   };

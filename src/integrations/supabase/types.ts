@@ -3288,6 +3288,9 @@ export type Database = {
           owner_user_id: string | null
           prestige_score: number | null
           project_fit_score: number | null
+          relationship_goal:
+            | Database["public"]["Enums"]["relationship_goal"]
+            | null
           response_likelihood_score: number | null
           secondary_owner_user_id: string | null
           sponsor_fit_score: number | null
@@ -3322,6 +3325,9 @@ export type Database = {
           owner_user_id?: string | null
           prestige_score?: number | null
           project_fit_score?: number | null
+          relationship_goal?:
+            | Database["public"]["Enums"]["relationship_goal"]
+            | null
           response_likelihood_score?: number | null
           secondary_owner_user_id?: string | null
           sponsor_fit_score?: number | null
@@ -3358,6 +3364,9 @@ export type Database = {
           owner_user_id?: string | null
           prestige_score?: number | null
           project_fit_score?: number | null
+          relationship_goal?:
+            | Database["public"]["Enums"]["relationship_goal"]
+            | null
           response_likelihood_score?: number | null
           secondary_owner_user_id?: string | null
           sponsor_fit_score?: number | null
@@ -5338,6 +5347,13 @@ export type Database = {
         | "validation"
         | "knowledge_transfer"
         | "roadmap_update"
+      relationship_goal:
+        | "project"
+        | "sponsorship"
+        | "speaker"
+        | "judge"
+        | "recruiting"
+        | "general_partnership"
       role_request_status: "pending" | "approved" | "rejected"
       task_priority: "low" | "medium" | "high" | "urgent"
       task_status: "todo" | "in_progress" | "review" | "done"
@@ -5596,6 +5612,14 @@ export const Constants = {
         "validation",
         "knowledge_transfer",
         "roadmap_update",
+      ],
+      relationship_goal: [
+        "project",
+        "sponsorship",
+        "speaker",
+        "judge",
+        "recruiting",
+        "general_partnership",
       ],
       role_request_status: ["pending", "approved", "rejected"],
       task_priority: ["low", "medium", "high", "urgent"],

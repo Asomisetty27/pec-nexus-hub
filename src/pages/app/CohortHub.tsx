@@ -323,7 +323,7 @@ export default function CohortHub() {
                 ) : (
                   <div className="space-y-2">
                     {mockProjects.map((p: any) => (
-                      <motion.div key={p.id} whileHover={{ x: 2 }} className="rounded-xl border p-4 cursor-pointer card-hover group" onClick={() => navigate(`/app/mock-project/${p.id}`)}>
+                      <motion.div key={p.id} whileHover={{ x: 2 }} className="rounded-xl border p-4 cursor-pointer card-hover group" onClick={() => navigate(cohort?.name === "Ops / PM" ? "/app/crm/dashboard" : `/app/mock-project/${p.id}`)}>
                         <div className="flex items-start justify-between">
                           <div>
                             <h3 className="text-sm font-semibold leading-tight">{p.title}</h3>
