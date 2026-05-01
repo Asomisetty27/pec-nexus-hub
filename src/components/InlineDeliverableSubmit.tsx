@@ -8,10 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter } from "@/components/ui/drawer";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Upload, Link as LinkIcon, CheckCircle2, AlertCircle, Loader2, RefreshCw } from "lucide-react";
+import { Upload, Link as LinkIcon, CheckCircle2, AlertCircle, Loader2, RefreshCw, Users } from "lucide-react";
 import { toast } from "sonner";
 import { logAuditAction } from "@/lib/audit";
 import { FeedbackPrompt } from "@/components/FeedbackPrompt";
+import { submitDeliverable } from "@/lib/reviewActions";
 
 interface Deliverable {
   id: string;
@@ -23,6 +24,9 @@ interface Deliverable {
   approval_required: boolean;
   due_date?: string | null;
   engagement_type?: string | null;
+  owner_type?: "individual" | "group" | null;
+  owning_group_id?: string | null;
+  owner_id?: string | null;
 }
 
 interface Props {
@@ -31,10 +35,16 @@ interface Props {
   deliverable: Deliverable | null;
   projectName: string;
   milestoneName?: string;
+  /** When deliverable.owner_type === "group", display this name in the "on behalf of" copy. */
+  groupName?: string | null;
+  /** Whether the current user is eligible to submit this deliverable. Defaults to true. */
+  eligible?: boolean;
   onSubmitted: () => void;
 }
 
-export default function InlineDeliverableSubmit({ open, onOpenChange, deliverable, projectName, milestoneName, onSubmitted }: Props) {
+export default function InlineDeliverableSubmit({
+  open, onOpenChange, deliverable, projectName, milestoneName, groupName, eligible = true, onSubmitted,
+}: Props) {
   const { user } = useAuth();
   const [mode, setMode] = useState<"file" | "link">("link");
   const [file, setFile] = useState<File | null>(null);
@@ -48,6 +58,7 @@ export default function InlineDeliverableSubmit({ open, onOpenChange, deliverabl
 
   const isRevision = ["revision_requested", "rejected"].includes(deliverable.approval_status) || deliverable.version > 1;
   const nextVersion = isRevision ? deliverable.version + 1 : 1;
+  const isGroupOwned = deliverable.owner_type === "group";
 
   const reset = () => {
     setFile(null); setLinkUrl(""); setNotes(""); setError(null); setMode("link"); setJustSubmitted(false);
@@ -55,6 +66,7 @@ export default function InlineDeliverableSubmit({ open, onOpenChange, deliverabl
 
   const handleSubmit = async () => {
     setError(null);
+    if (!eligible) { setError("You are not eligible to submit this deliverable."); return; }
     if (mode === "file" && !file) { setError("Choose a file to upload."); return; }
     if (mode === "link" && !linkUrl.trim()) { setError("Paste a link to the artifact."); return; }
     if (mode === "link") {
@@ -76,38 +88,21 @@ export default function InlineDeliverableSubmit({ open, onOpenChange, deliverabl
         fileUrl = linkUrl.trim();
       }
 
-      const { error: updErr } = await supabase.from("deliverables").update({
-        file_url: fileUrl,
-        version: nextVersion,
-        approval_status: deliverable.approval_required ? "pending" : "approved",
-        approved: !deliverable.approval_required,
-        approved_at: deliverable.approval_required ? null : new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }).eq("id", deliverable.id);
-
-      if (updErr) throw new Error(`Save failed: ${updErr.message}`);
-
-      // Record real review-history event (truthful submission log).
-      // Failure here is non-fatal but surfaced quietly.
-      const { error: evErr } = await supabase.from("deliverable_review_events").insert({
-        deliverable_id: deliverable.id,
-        project_id: deliverable.project_id,
-        actor_id: user!.id,
-        event_type: isRevision ? "revised" : "submitted",
-        from_status: deliverable.approval_status,
-        to_status: deliverable.approval_required ? "pending" : "approved",
-        version: nextVersion,
-        reason: notes.trim() || null,
-        file_url: fileUrl,
-      });
-      if (evErr) console.warn("review event log failed", evErr.message);
+      // Route through RPC: enforces eligibility, attributes submitter, logs review event.
+      const res = await submitDeliverable(deliverable.id, fileUrl!, notes);
+      if (res.ok === false) throw new Error(res.error);
 
       // Audit (non-blocking)
       logAuditAction(
         isRevision ? "deliverable.revised" : "deliverable.submitted",
         "deliverable",
         deliverable.id,
-        { project_id: deliverable.project_id, version: nextVersion, mode, notes: notes || undefined }
+        {
+          project_id: deliverable.project_id, version: nextVersion, mode,
+          notes: notes || undefined,
+          owner_type: deliverable.owner_type || "individual",
+          owning_group_id: deliverable.owning_group_id || undefined,
+        }
       );
 
       // Optional: also create a project_update row to give visibility
@@ -144,6 +139,9 @@ export default function InlineDeliverableSubmit({ open, onOpenChange, deliverabl
             {deliverable.engagement_type && (
               <Badge variant="outline" className="text-[10px] capitalize">{deliverable.engagement_type}</Badge>
             )}
+            {isGroupOwned && (
+              <Badge variant="outline" className="gap-1 text-[10px]"><Users className="h-3 w-3" /> Group</Badge>
+            )}
           </div>
           <DrawerTitle className="text-left">{isRevision ? "Resubmit" : "Submit"}: {deliverable.title}</DrawerTitle>
           <DrawerDescription className="text-left text-xs">
@@ -151,6 +149,18 @@ export default function InlineDeliverableSubmit({ open, onOpenChange, deliverabl
             {milestoneName && <> · Stage: <span className="font-medium text-foreground">{milestoneName}</span></>}
             {deliverable.due_date && <> · Due {new Date(deliverable.due_date).toLocaleDateString()}</>}
           </DrawerDescription>
+          {isGroupOwned && (
+            <p className="text-left text-[11px] text-muted-foreground mt-1">
+              <Users className="inline h-3 w-3 mr-1 -mt-0.5" />
+              Submitting on behalf of <span className="font-medium text-foreground">{groupName || "your group"}</span>.
+              You'll be credited as the submitter; the group remains the execution owner.
+            </p>
+          )}
+          {!eligible && (
+            <p className="text-left text-[11px] text-destructive mt-1">
+              You are not eligible to submit this deliverable.
+            </p>
+          )}
         </DrawerHeader>
 
         <div className="px-4 pb-2 space-y-4">

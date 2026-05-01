@@ -23,8 +23,10 @@ import { AssignmentBundleDialog } from "@/components/AssignmentBundleDialog";
 import { useRecentItems } from "@/hooks/useRecentItems";
 import { DecisionMemoryWidget } from "@/components/decision/DecisionMemoryWidget";
 import { ProjectGroupsPanel } from "@/components/ProjectGroupsPanel";
-import { approveDeliverable, requestDeliverableChanges } from "@/lib/reviewActions";
-import { getUnifiedStatus, isBlockingStage } from "@/lib/deliverableStatus";
+import { approveDeliverable, requestDeliverableChanges, approveWithOverride, validateTechnical, markDeliverableStarted, setDeliverableStage, archiveDeliverable } from "@/lib/reviewActions";
+import { getUnifiedStatus, isBlockingStage, isOverdue, getValidationState, stageLabel, CANONICAL_STAGES } from "@/lib/deliverableStatus";
+import { canApprove as canApproveD, canTechValidate, canMarkStarted, canSetStage, requiresOverride } from "@/lib/deliverablePermissions";
+import { DeliverableOwnerBadge } from "@/components/DeliverableOwnerBadge";
 
 const MODE_META: Record<string, { label: string; Icon: any; tone: string }> = {
   purpose_track: { label: "Purpose", Icon: FlaskConical, tone: "bg-primary/10 text-primary border-primary/20" },
@@ -54,8 +56,13 @@ export default function ProjectDetail() {
   const [approving, setApproving] = useState<string | null>(null);
   const [momentum, setMomentum] = useState<{ level: string; score: number } | null>(null);
   const [reassigning, setReassigning] = useState<string | null>(null);
+  const [myGroupIds, setMyGroupIds] = useState<string[]>([]);
+  const [groupsById, setGroupsById] = useState<Record<string, { name: string; member_count: number }>>({});
+  const [overrideFor, setOverrideFor] = useState<any | null>(null);
+  const [overrideReason, setOverrideReason] = useState("");
 
   const isProjectLead = members.some((m: any) => m.user_id === user?.id && m.role_on_project === "lead") || isAdmin;
+  const isProjectTechLead = members.some((m: any) => m.user_id === user?.id && (m.role_on_project === "tech_lead" || m.role_on_project === "lead")) || isAdmin;
 
   const fetchAll = async () => {
     if (!id) return;
@@ -86,6 +93,28 @@ export default function ProjectDetail() {
   };
 
   useEffect(() => { fetchAll(); }, [id]);
+
+  // Resolve project groups + my membership in them (for group-owned deliverable visibility).
+  useEffect(() => {
+    const loadGroups = async () => {
+      if (!id) return;
+      const { data: groups } = await supabase.from("project_groups").select("id, name").eq("project_id", id);
+      const ids = (groups || []).map((g: any) => g.id);
+      if (!ids.length) { setMyGroupIds([]); setGroupsById({}); return; }
+      const { data: gms } = await supabase.from("project_group_members").select("group_id, user_id").in("group_id", ids);
+      const counts: Record<string, number> = {};
+      const mine: string[] = [];
+      (gms || []).forEach((gm: any) => {
+        counts[gm.group_id] = (counts[gm.group_id] || 0) + 1;
+        if (user && gm.user_id === user.id) mine.push(gm.group_id);
+      });
+      const map: Record<string, { name: string; member_count: number }> = {};
+      (groups || []).forEach((g: any) => { map[g.id] = { name: g.name, member_count: counts[g.id] || 0 }; });
+      setMyGroupIds(mine);
+      setGroupsById(map);
+    };
+    loadGroups();
+  }, [id, user]);
 
   useEffect(() => {
     if (project?.id && project?.name) {
@@ -123,21 +152,30 @@ export default function ProjectDetail() {
     return upcoming[0] || null;
   }, [deliverables]);
 
-  // Personal next moves (member-centric)
+  // Personal next moves (member-centric). Includes group-owned deliverables where I am a group member.
   const myMoves = useMemo(() => {
     if (!user) return [] as any[];
     const moves: { id: string; label: string; deliverable: any; tone: "danger" | "warn" | "default" }[] = [];
     deliverables.forEach((d) => {
-      const mine = d.owner_id === user.id;
+      const mineIndividual = d.owner_type !== "group" && d.owner_id === user.id;
+      const mineGroup = d.owner_type === "group" && (myGroupIds || []).includes(d.owning_group_id);
+      const mine = mineIndividual || mineGroup;
+      if (!mine) return;
       const status = getUnifiedStatus(d);
-      if (mine && (status === "not_started" || status === "overdue")) {
-        moves.push({ id: d.id, label: status === "overdue" ? "Overdue — submit now" : "Submit", deliverable: d, tone: status === "overdue" ? "danger" : "default" });
-      } else if (mine && status === "revision_requested") {
+      const overdue = isOverdue(d);
+      if (status === "drafted" || status === "assigned" || status === "in_progress") {
+        moves.push({
+          id: d.id,
+          label: overdue ? "Overdue — submit now" : status === "in_progress" ? "Submit" : "Start & submit",
+          deliverable: d,
+          tone: overdue ? "danger" : "default",
+        });
+      } else if (status === "needs_revision") {
         moves.push({ id: d.id, label: "Resubmit revision", deliverable: d, tone: "warn" });
       }
     });
     return moves.slice(0, 3);
-  }, [deliverables, user]);
+  }, [deliverables, user, myGroupIds]);
 
   // Lead review queue (lead-centric)
   const reviewQueue = useMemo(() => {
