@@ -53,6 +53,11 @@ import AskNexus from "./pages/app/AskNexus";
 import Grind from "./pages/app/Grind";
 import GrindAdmin from "./pages/app/GrindAdmin";
 import SkillDashboard from "./pages/app/SkillDashboard";
+import RecruitmentLayout from "./pages/app/recruitment/RecruitmentLayout";
+import RecruitmentOverviewPage from "./pages/app/recruitment/RecruitmentOverviewPage";
+import RecruitmentInbox from "./pages/app/recruitment/RecruitmentInbox";
+import RecruitmentPipeline from "./pages/app/recruitment/RecruitmentPipeline";
+import ApplicantDetail from "./pages/app/recruitment/ApplicantDetail";
 
 const queryClient = new QueryClient();
 
@@ -124,6 +129,12 @@ const App = () => (
               <Route path="grind" element={<Grind />} />
               <Route path="grind/admin" element={<GrindAdmin />} />
               <Route path="skills" element={<SkillDashboard />} />
+              <Route path="recruitment" element={<RecruitmentLayout />}>
+                <Route index element={<RecruitmentOverviewPage />} />
+                <Route path="inbox" element={<RecruitmentInbox />} />
+                <Route path="pipeline" element={<RecruitmentPipeline />} />
+                <Route path="c/:id" element={<ApplicantDetail />} />
+              </Route>
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

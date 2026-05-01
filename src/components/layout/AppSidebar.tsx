@@ -17,11 +17,13 @@ import {
   ShieldCheck,
   Sparkles,
   Users,
+  UserPlus,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "@/lib/auth";
 import { useCrmAccess } from "@/hooks/useCrmAccess";
+import { useRecruitmentAccess } from "@/hooks/useRecruitmentAccess";
 import { NavLink } from "@/components/NavLink";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
@@ -50,6 +52,7 @@ interface NavItem {
   requiresLeadAccess?: boolean;
   requiresAdvisorAccess?: boolean;
   requiresCrmAccess?: boolean;
+  requiresRecruitmentAccess?: boolean;
   hideForApplicants?: boolean;
 }
 
@@ -70,6 +73,12 @@ const mainNav: NavItem[] = [
     url: "/app/lead",
     icon: Briefcase,
     requiresLeadAccess: true,
+  },
+  {
+    title: "Recruitment",
+    url: "/app/recruitment",
+    icon: UserPlus,
+    requiresRecruitmentAccess: true,
   },
 ];
 
@@ -119,6 +128,7 @@ export function AppSidebar() {
   const { profile, highestRole, signOut, isAdmin, isBoardOrAdmin } = useAuth();
   const { hasRole } = useAuth();
   const { canAccess: hasCrmAccess } = useCrmAccess();
+  const { canSeeRecruitment } = useRecruitmentAccess();
 
   const initials = getInitials(profile?.full_name);
 
@@ -138,6 +148,7 @@ export function AppSidebar() {
     if (item.requiresLeadAccess && !hasLeadAccess) return false;
     if (item.requiresAdvisorAccess && !hasAdvisorAccess) return false;
     if (item.requiresCrmAccess && !hasCrmAccess) return false;
+    if (item.requiresRecruitmentAccess && !canSeeRecruitment) return false;
     if (item.hideForApplicants && isApplicant) return false;
     return true;
   };

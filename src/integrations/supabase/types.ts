@@ -110,6 +110,41 @@ export type Database = {
         }
         Relationships: []
       }
+      applicant_notes: {
+        Row: {
+          applicant_id: string
+          author_user_id: string
+          body: string
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          applicant_id: string
+          author_user_id: string
+          body: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          applicant_id?: string
+          author_user_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applicant_notes_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "applicants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       applicant_resume_access_log: {
         Row: {
           accessed_at: string
@@ -5286,6 +5321,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      advance_applicant_stage: {
+        Args: {
+          _applicant_id: string
+          _reason?: string
+          _to_stage: Database["public"]["Enums"]["applicant_stage"]
+        }
+        Returns: undefined
+      }
+      applicant_stage_order: {
+        Args: { _s: Database["public"]["Enums"]["applicant_stage"] }
+        Returns: number
+      }
       approve_deliverable: {
         Args: { p_deliverable_id: string }
         Returns: undefined
@@ -5301,6 +5348,10 @@ export type Database = {
       array_overlap_count: {
         Args: { a: string[]; b: string[] }
         Returns: number
+      }
+      assign_primary_reviewer: {
+        Args: { _applicant_id: string; _user_id: string }
+        Returns: undefined
       }
       auto_backfill_project_memberships: { Args: never; Returns: number }
       auto_close_stale_help_requests: { Args: never; Returns: number }
@@ -5323,6 +5374,10 @@ export type Database = {
       }
       can_host_event: {
         Args: { _event_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_review_applicant: {
+        Args: { _applicant_id: string; _uid: string }
         Returns: boolean
       }
       can_submit_deliverable: {
@@ -5640,6 +5695,10 @@ export type Database = {
         Args: { p_deliverable_id: string; p_reason: string }
         Returns: undefined
       }
+      reroute_applicant: {
+        Args: { _applicant_id: string; _cohort_id: string; _reason?: string }
+        Returns: undefined
+      }
       resolve_designated_ops_lead: { Args: never; Returns: string }
       resync_user_from_roster: { Args: { p_user_id: string }; Returns: Json }
       run_escalation_scan: { Args: never; Returns: Json }
@@ -5655,6 +5714,15 @@ export type Database = {
           p_stage: Database["public"]["Enums"]["deliverable_stage"]
         }
         Returns: undefined
+      }
+      submit_applicant_review: {
+        Args: {
+          _applicant_id: string
+          _notes?: string
+          _rating?: number
+          _recommendation: Database["public"]["Enums"]["applicant_decision"]
+        }
+        Returns: string
       }
       submit_deliverable: {
         Args: { p_deliverable_id: string; p_file_url: string; p_notes?: string }
