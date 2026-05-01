@@ -27,6 +27,9 @@ import { approveDeliverable, requestDeliverableChanges, approveWithOverride, val
 import { getUnifiedStatus, isBlockingStage, isOverdue, getValidationState, stageLabel, CANONICAL_STAGES } from "@/lib/deliverableStatus";
 import { canApprove as canApproveD, canTechValidate, canMarkStarted, canSetStage, requiresOverride } from "@/lib/deliverablePermissions";
 import { DeliverableOwnerBadge } from "@/components/DeliverableOwnerBadge";
+import { MarkStartedButton } from "@/components/MarkStartedButton";
+import { reviewEventLabel } from "@/lib/reviewEvents";
+import { ShieldCheck, ShieldAlert, Layers, Archive } from "lucide-react";
 
 const MODE_META: Record<string, { label: string; Icon: any; tone: string }> = {
   purpose_track: { label: "Purpose", Icon: FlaskConical, tone: "bg-primary/10 text-primary border-primary/20" },
@@ -524,8 +527,8 @@ export default function ProjectDetail() {
                     {reviewEvents.slice(0, 5).map((e) => (
                       <li key={e.id} className="flex items-start gap-2">
                         <span className="text-[10px] text-muted-foreground mt-0.5 w-14 shrink-0">{new Date(e.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
-                        <span className="capitalize text-foreground">
-                          {e.event_type.replace("_", " ")}
+                        <span className="text-foreground">
+                          {reviewEventLabel(e.event_type)}
                           {e.version && <span className="text-muted-foreground"> · v{e.version}</span>}
                         </span>
                       </li>
