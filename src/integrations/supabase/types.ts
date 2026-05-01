@@ -569,6 +569,226 @@ export type Database = {
           },
         ]
       }
+      company_activities: {
+        Row: {
+          activity_type: Database["public"]["Enums"]["crm_activity_type"]
+          body: string | null
+          contact_id: string | null
+          created_at: string
+          id: string
+          occurred_at: string
+          organization_id: string
+          performed_by: string
+          subject: string | null
+        }
+        Insert: {
+          activity_type: Database["public"]["Enums"]["crm_activity_type"]
+          body?: string | null
+          contact_id?: string | null
+          created_at?: string
+          id?: string
+          occurred_at?: string
+          organization_id: string
+          performed_by: string
+          subject?: string | null
+        }
+        Update: {
+          activity_type?: Database["public"]["Enums"]["crm_activity_type"]
+          body?: string | null
+          contact_id?: string | null
+          created_at?: string
+          id?: string
+          occurred_at?: string
+          organization_id?: string
+          performed_by?: string
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_activities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "company_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_activities_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_activities_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      company_contacts: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          is_primary: boolean
+          linkedin_url: string | null
+          notes: string | null
+          organization_id: string
+          phone: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          is_primary?: boolean
+          linkedin_url?: string | null
+          notes?: string | null
+          organization_id: string
+          phone?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          is_primary?: boolean
+          linkedin_url?: string | null
+          notes?: string | null
+          organization_id?: string
+          phone?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_contacts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_conversions: {
+        Row: {
+          conversion_type: Database["public"]["Enums"]["crm_conversion_type"]
+          converted_at: string
+          converted_by: string
+          created_at: string
+          id: string
+          notes: string | null
+          organization_id: string
+          target_ref: string | null
+        }
+        Insert: {
+          conversion_type: Database["public"]["Enums"]["crm_conversion_type"]
+          converted_at?: string
+          converted_by: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          organization_id: string
+          target_ref?: string | null
+        }
+        Update: {
+          conversion_type?: Database["public"]["Enums"]["crm_conversion_type"]
+          converted_at?: string
+          converted_by?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          target_ref?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_conversions_converted_by_fkey"
+            columns: ["converted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "company_conversions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_tasks: {
+        Row: {
+          assigned_to: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          due_at: string | null
+          id: string
+          organization_id: string
+          status: Database["public"]["Enums"]["crm_task_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          organization_id: string
+          status?: Database["public"]["Enums"]["crm_task_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          organization_id?: string
+          status?: Database["public"]["Enums"]["crm_task_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "company_tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "company_tasks_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       competition_applications: {
         Row: {
           applicant_email: string
@@ -3015,6 +3235,35 @@ export type Database = {
           },
         ]
       }
+      org_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           contact_email: string | null
@@ -3022,14 +3271,33 @@ export type Database = {
           contact_phone: string | null
           created_at: string
           created_by: string | null
+          crm_status: Database["public"]["Enums"]["crm_status"]
           description: string | null
+          hq_location: string | null
           id: string
+          industry: string | null
+          is_active: boolean
+          is_company_relation: boolean
+          last_contacted_at: string | null
+          linkedin_url: string | null
           logo_url: string | null
           name: string
+          next_action_at: string | null
+          notes: string | null
+          overseeing_lead_user_id: string | null
+          owner_user_id: string | null
+          prestige_score: number | null
+          project_fit_score: number | null
+          response_likelihood_score: number | null
+          secondary_owner_user_id: string | null
+          sponsor_fit_score: number | null
           tier: string | null
+          tier_priority: Database["public"]["Enums"]["crm_tier_priority"] | null
           type: string
           updated_at: string
+          warmth_score: Database["public"]["Enums"]["crm_warmth"]
           website: string | null
+          website_url: string | null
         }
         Insert: {
           contact_email?: string | null
@@ -3037,14 +3305,35 @@ export type Database = {
           contact_phone?: string | null
           created_at?: string
           created_by?: string | null
+          crm_status?: Database["public"]["Enums"]["crm_status"]
           description?: string | null
+          hq_location?: string | null
           id?: string
+          industry?: string | null
+          is_active?: boolean
+          is_company_relation?: boolean
+          last_contacted_at?: string | null
+          linkedin_url?: string | null
           logo_url?: string | null
           name: string
+          next_action_at?: string | null
+          notes?: string | null
+          overseeing_lead_user_id?: string | null
+          owner_user_id?: string | null
+          prestige_score?: number | null
+          project_fit_score?: number | null
+          response_likelihood_score?: number | null
+          secondary_owner_user_id?: string | null
+          sponsor_fit_score?: number | null
           tier?: string | null
+          tier_priority?:
+            | Database["public"]["Enums"]["crm_tier_priority"]
+            | null
           type?: string
           updated_at?: string
+          warmth_score?: Database["public"]["Enums"]["crm_warmth"]
           website?: string | null
+          website_url?: string | null
         }
         Update: {
           contact_email?: string | null
@@ -3052,16 +3341,59 @@ export type Database = {
           contact_phone?: string | null
           created_at?: string
           created_by?: string | null
+          crm_status?: Database["public"]["Enums"]["crm_status"]
           description?: string | null
+          hq_location?: string | null
           id?: string
+          industry?: string | null
+          is_active?: boolean
+          is_company_relation?: boolean
+          last_contacted_at?: string | null
+          linkedin_url?: string | null
           logo_url?: string | null
           name?: string
+          next_action_at?: string | null
+          notes?: string | null
+          overseeing_lead_user_id?: string | null
+          owner_user_id?: string | null
+          prestige_score?: number | null
+          project_fit_score?: number | null
+          response_likelihood_score?: number | null
+          secondary_owner_user_id?: string | null
+          sponsor_fit_score?: number | null
           tier?: string | null
+          tier_priority?:
+            | Database["public"]["Enums"]["crm_tier_priority"]
+            | null
           type?: string
           updated_at?: string
+          warmth_score?: Database["public"]["Enums"]["crm_warmth"]
           website?: string | null
+          website_url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "organizations_overseeing_lead_user_id_fkey"
+            columns: ["overseeing_lead_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "organizations_owner_user_id_fkey"
+            columns: ["owner_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "organizations_secondary_owner_user_id_fkey"
+            columns: ["secondary_owner_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       peer_evaluations: {
         Row: {
@@ -4718,6 +5050,8 @@ export type Database = {
         Args: { _cohort_id: string; _user_id: string }
         Returns: boolean
       }
+      is_crm_leadership: { Args: { _uid: string }; Returns: boolean }
+      is_ops_crm_user: { Args: { _uid: string }; Returns: boolean }
       is_project_lead: {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean
@@ -4851,6 +5185,7 @@ export type Database = {
         Args: { p_deliverable_id: string; p_reason: string }
         Returns: undefined
       }
+      resolve_designated_ops_lead: { Args: never; Returns: string }
       resync_user_from_roster: { Args: { p_user_id: string }; Returns: Json }
       run_escalation_scan: { Args: never; Returns: Json }
       run_momentum_scan: { Args: never; Returns: Json }
