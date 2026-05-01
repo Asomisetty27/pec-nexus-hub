@@ -44,6 +44,7 @@ export default function CohortHub() {
   const [createLabDialog, setCreateLabDialog] = useState(false);
 
   const isLeader = membership?.role === "pm" || membership?.role === "lead" || membership?.role === "integration_lead";
+  const isOpsCohort = cohort?.name === "Ops / PM";
 
   useEffect(() => {
     if (!user) return;
