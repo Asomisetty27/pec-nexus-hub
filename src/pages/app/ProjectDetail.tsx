@@ -596,12 +596,20 @@ export default function ProjectDetail() {
             <div className="space-y-2">
               {deliverables.map(d => {
                 const milestone = milestones.find((m: any) => m.id === d.milestone_id);
-                const isOwnerOrLead = d.owner_id === user?.id || !d.owner_id || isProjectLead;
-                const canApprove = isProjectLead && d.file_url && d.approval_status === "pending" && d.approval_required;
+                const ownedIndividually = d.owner_type !== "group" && d.owner_id === user?.id;
+                const ownedViaGroup = d.owner_type === "group" && (myGroupIds || []).includes(d.owning_group_id);
+                const isOwnerOrLead = ownedIndividually || ownedViaGroup || !d.owner_id || isProjectLead;
+                const ctx = { userId: user?.id, isAdmin, isProjectLead, isProjectTechLead, groupMemberIds: myGroupIds };
+                const canTechValidateNow = canTechValidate(d, ctx);
+                const canApproveNow = canApproveD(d, ctx);
+                const canMarkStartedNow = canMarkStarted(d, ctx);
+                const needsOverride = requiresOverride(d);
+                const validation = getValidationState(d);
                 const blocking = isBlockingStage({
                   approval_status: d.approval_status, approval_required: d.approval_required,
                   file_url: d.file_url, due_date: d.due_date, required: d.required,
                 });
+                const groupInfo = d.owning_group_id ? groupsById[d.owning_group_id] : undefined;
                 return (
                   <Card key={d.id} data-deliverable-id={d.id} className={blocking ? "border-destructive/30" : ""}>
                     <CardContent className="flex items-center gap-4 p-4">
@@ -610,16 +618,27 @@ export default function ProjectDetail() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-medium text-sm truncate">{d.title}</p>
                           <span className="text-[10px] text-muted-foreground font-mono">v{d.version}</span>
+                          {d.is_technical && (
+                            <Badge variant="outline" className="text-[10px] gap-1 border-primary/30 text-primary">
+                              <ShieldCheck className="h-2.5 w-2.5" /> Technical
+                            </Badge>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 flex-wrap mt-1">
                           <DeliverableStatusBadge
-                            status={d.approval_status}
-                            fileUrl={d.file_url}
-                            dueDate={d.due_date}
-                            approvalRequired={d.approval_required}
+                            deliverable={d}
                             blockingStage={blocking}
+                            showValidation
+                            showStage
                           />
-                          {isProjectLead ? (
+                          <DeliverableOwnerBadge
+                            ownerType={d.owner_type}
+                            ownerName={d.owner?.full_name}
+                            groupName={groupInfo?.name}
+                            groupMemberCount={groupInfo?.member_count}
+                          />
+                          {/* Inline reassignment is only meaningful for individual ownership */}
+                          {isProjectLead && d.owner_type !== "group" && (
                             <Select
                               value={d.owner_id || "__unassigned"}
                               onValueChange={(v) => reassignOwner(d.id, v === "__unassigned" ? null : v)}
@@ -627,7 +646,7 @@ export default function ProjectDetail() {
                             >
                               <SelectTrigger className="h-6 px-2 text-[10px] w-auto gap-1 border-dashed">
                                 <UserPlus className="h-2.5 w-2.5" />
-                                <SelectValue>{ownerName(d)}</SelectValue>
+                                <SelectValue>Reassign</SelectValue>
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="__unassigned">Unassigned</SelectItem>
@@ -638,13 +657,39 @@ export default function ProjectDetail() {
                                 ))}
                               </SelectContent>
                             </Select>
-                          ) : (
-                            <span className="text-[10px] text-muted-foreground">Owner: {ownerName(d)}</span>
                           )}
-                          {milestone && <span className="text-[10px] text-muted-foreground">· {milestone.title}</span>}
-                          {d.due_date && <span className="text-[10px] text-muted-foreground">· Due {new Date(d.due_date).toLocaleDateString()}</span>}
+                          {milestone && <span className="text-[10px] text-muted-foreground">{milestone.title}</span>}
+                          {d.due_date && <span className="text-[10px] text-muted-foreground">Due {new Date(d.due_date).toLocaleDateString()}</span>}
                           {d.client_visible && <Badge variant="outline" className="text-[10px]">Client visible</Badge>}
+                          {/* Inline canonical stage picker (lead only) */}
+                          {canSetStage(d, ctx) && (
+                            <Select
+                              value={d.canonical_stage || "__unset"}
+                              onValueChange={async (v) => {
+                                if (v === "__unset") return;
+                                const res = await setDeliverableStage(d.id, v as any);
+                                if (res.ok === false) return toast.error(res.error);
+                                toast.success("Stage set"); fetchAll();
+                              }}
+                            >
+                              <SelectTrigger className="h-6 px-2 text-[10px] w-auto gap-1 border-dashed">
+                                <Layers className="h-2.5 w-2.5" />
+                                <SelectValue>{stageLabel(d.canonical_stage)}</SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                {CANONICAL_STAGES.map(s => (
+                                  <SelectItem key={s} value={s}>{stageLabel(s)}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
                         </div>
+                        {d.pm_override_at && d.pm_override_reason && (
+                          <p className="text-[11px] text-warning mt-1.5 flex items-start gap-1">
+                            <ShieldAlert className="h-3 w-3 shrink-0 mt-0.5" />
+                            <span><span className="font-medium">PM override:</span> {d.pm_override_reason}</span>
+                          </p>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         {d.file_url && (
@@ -652,24 +697,46 @@ export default function ProjectDetail() {
                             <a href={d.file_url} target="_blank" rel="noreferrer"><ExternalLink className="h-3 w-3" /> Open</a>
                           </Button>
                         )}
+                        {canMarkStartedNow && (
+                          <MarkStartedButton deliverableId={d.id} onStarted={fetchAll} />
+                        )}
                         {isOwnerOrLead && d.approval_status !== "approved" && (
                           <Button size="sm" variant={d.file_url ? "outline" : "default"} className="h-8 gap-1" onClick={() => setSubmitTarget(d)}>
                             <Upload className="h-3 w-3" />
                             {d.file_url ? (d.approval_status === "revision_requested" ? "Resubmit" : "Replace") : "Submit"}
                           </Button>
                         )}
-                        {canApprove && (
+                        {canTechValidateNow && validation === "awaiting_tech_validation" && (
+                          <Button size="sm" variant="outline" className="h-8 gap-1" disabled={approving === d.id}
+                            onClick={async () => {
+                              setApproving(d.id);
+                              const res = await validateTechnical(d.id);
+                              setApproving(null);
+                              if (res.ok === false) return toast.error(res.error);
+                              toast.success("Tech validated"); fetchAll();
+                            }}>
+                            <ShieldCheck className="h-3 w-3" /> Tech validate
+                          </Button>
+                        )}
+                        {canApproveNow && (
                           <>
-                            <Button size="sm" variant="default" className="h-8 gap-1" disabled={approving === d.id}
-                              onClick={async () => {
-                                setApproving(d.id);
-                                const res = await approveDeliverable(d.id);
-                                setApproving(null);
-                                if (res.ok === false) { toast.error(`Approve failed: ${res.error}`); return; }
-                                toast.success("Approved"); fetchAll();
-                              }}>
-                              <CheckCircle2 className="h-3 w-3" /> Approve
-                            </Button>
+                            {needsOverride ? (
+                              <Button size="sm" variant="outline" className="h-8 gap-1 border-warning/40 text-warning hover:text-warning"
+                                onClick={() => { setOverrideFor(d); setOverrideReason(""); }}>
+                                <ShieldAlert className="h-3 w-3" /> Approve (override)
+                              </Button>
+                            ) : (
+                              <Button size="sm" variant="default" className="h-8 gap-1" disabled={approving === d.id}
+                                onClick={async () => {
+                                  setApproving(d.id);
+                                  const res = await approveDeliverable(d.id);
+                                  setApproving(null);
+                                  if (res.ok === false) { toast.error(`Approve failed: ${res.error}`); return; }
+                                  toast.success("Approved"); fetchAll();
+                                }}>
+                                <CheckCircle2 className="h-3 w-3" /> Approve
+                              </Button>
+                            )}
                             <Button size="sm" variant="outline" className="h-8" disabled={approving === d.id}
                               onClick={async () => {
                                 const reason = window.prompt("What needs to change? (will be visible to owner)");
