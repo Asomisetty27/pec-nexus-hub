@@ -109,12 +109,15 @@ export default function Dashboard() {
       if (cohortRes.data) {
         setCohort(cohortRes.data);
         const cohortId = cohortRes.data.cohort_id;
+        const isOpsCohort = (cohortRes.data as any)?.cohorts?.name === "Ops / PM";
         supabase.rpc("cohort_performance", { p_cohort_id: cohortId }).then(({ data }) => {
           if (data) setCohortScore(data as any);
         });
         const [manualRes, mpRes, ptRes, capRes, oppRes] = await Promise.all([
           supabase.from("lab_manuals").select("*").eq("cohort_id", cohortId).limit(1).maybeSingle(),
-          supabase.from("mock_projects").select("*").eq("cohort_id", cohortId).eq("status", "active").limit(1).maybeSingle(),
+          isOpsCohort
+            ? Promise.resolve({ data: null } as any)
+            : supabase.from("mock_projects").select("*").eq("cohort_id", cohortId).eq("status", "active").limit(1).maybeSingle(),
           supabase.from("purpose_tracks").select("*").eq("cohort_id", cohortId).eq("status", "active").limit(1).maybeSingle(),
           supabase.from("capacity_allocations").select("*").eq("cohort_id", cohortId).order("effective_date", { ascending: false }).limit(1).maybeSingle(),
           supabase.from("opportunities").select("*").eq("assigned_cohort_id", cohortId).in("status", ["approved", "active"]),
