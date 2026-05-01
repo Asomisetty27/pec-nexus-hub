@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useMemo } from "react";
+import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
-import { loadRecruitmentAccess, type RecruitmentAccess } from "@/lib/recruitment";
-import { Loader2, ShieldOff } from "lucide-react";
+import { useRecruitmentAccess } from "@/hooks/useRecruitmentAccess";
+import type { RecruitmentAccess } from "@/lib/recruitment";
+import { ShieldOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type RecruitmentCtx = {
@@ -11,35 +12,16 @@ export type RecruitmentCtx = {
 };
 
 export default function RecruitmentLayout() {
-  const { user, isAdmin } = useAuth();
-  const navigate = useNavigate();
-  const [access, setAccess] = useState<RecruitmentAccess | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    if (!user) { setAccess({ canSeeRecruitment: false, isLead: false }); return; }
-    (async () => {
-      const a = await loadRecruitmentAccess(user.id, isAdmin);
-      if (!cancelled) setAccess(a);
-    })();
-    return () => { cancelled = true; };
-  }, [user, isAdmin]);
+  const { user } = useAuth();
+  const access = useRecruitmentAccess();
 
   const tabs = useMemo(() => [
     { to: "/app/recruitment", label: "Overview", end: true },
     { to: "/app/recruitment/inbox", label: "Inbox" },
     { to: "/app/recruitment/pipeline", label: "Pipeline" },
-    ...(access?.isLead ? [{ to: "/app/recruitment/leadership", label: "Leadership" }] : []),
+    ...(access.isLead ? [{ to: "/app/recruitment/leadership", label: "Leadership" }] : []),
     { to: "/app/recruitment/talent", label: "Talent" },
-  ], [access?.isLead]);
-
-  if (!access) {
-    return (
-      <div className="flex items-center justify-center py-20 text-sm text-muted-foreground">
-        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading recruitment workspace…
-      </div>
-    );
-  }
+  ], [access.isLead]);
 
   if (!access.canSeeRecruitment) {
     return (
@@ -53,7 +35,7 @@ export default function RecruitmentLayout() {
     );
   }
 
-  const ctx: RecruitmentCtx = { access, userId: user!.id };
+  const ctx: RecruitmentCtx = { access: access as RecruitmentAccess, userId: user!.id };
 
   return (
     <div className="container max-w-7xl py-6">
