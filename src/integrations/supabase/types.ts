@@ -4896,11 +4896,46 @@ export type Database = {
         | "admin"
         | "superadmin"
         | "advisor"
+        | "president"
+        | "director_of_projects"
+        | "outreach_lead"
       approval_status:
         | "pending"
         | "approved"
         | "rejected"
         | "revision_requested"
+      crm_activity_type:
+        | "email_sent"
+        | "follow_up_sent"
+        | "linkedin_message"
+        | "phone_call"
+        | "meeting"
+        | "research_note"
+        | "internal_note"
+        | "status_change"
+        | "task_completed"
+      crm_conversion_type:
+        | "project_inquiry"
+        | "sponsor_interest"
+        | "speaker_interest"
+        | "judge_interest"
+        | "recruiting_relationship"
+        | "not_a_fit"
+      crm_status:
+        | "not_started"
+        | "researching"
+        | "queued_for_outreach"
+        | "contacted"
+        | "in_conversation"
+        | "meeting_scheduled"
+        | "proposal_sent"
+        | "won"
+        | "lost"
+        | "dormant"
+        | "do_not_contact"
+      crm_task_status: "open" | "in_progress" | "done" | "cancelled"
+      crm_tier_priority: "tier_1" | "tier_2" | "tier_3"
+      crm_warmth: "cold" | "warm" | "hot"
       doc_visibility: "public" | "members" | "board" | "admin"
       drill_cohort: "software" | "hardware" | "mechanical" | "ops"
       drill_difficulty: "easy" | "medium" | "hard" | "expert"
@@ -5108,6 +5143,9 @@ export const Constants = {
         "admin",
         "superadmin",
         "advisor",
+        "president",
+        "director_of_projects",
+        "outreach_lead",
       ],
       approval_status: [
         "pending",
@@ -5115,6 +5153,41 @@ export const Constants = {
         "rejected",
         "revision_requested",
       ],
+      crm_activity_type: [
+        "email_sent",
+        "follow_up_sent",
+        "linkedin_message",
+        "phone_call",
+        "meeting",
+        "research_note",
+        "internal_note",
+        "status_change",
+        "task_completed",
+      ],
+      crm_conversion_type: [
+        "project_inquiry",
+        "sponsor_interest",
+        "speaker_interest",
+        "judge_interest",
+        "recruiting_relationship",
+        "not_a_fit",
+      ],
+      crm_status: [
+        "not_started",
+        "researching",
+        "queued_for_outreach",
+        "contacted",
+        "in_conversation",
+        "meeting_scheduled",
+        "proposal_sent",
+        "won",
+        "lost",
+        "dormant",
+        "do_not_contact",
+      ],
+      crm_task_status: ["open", "in_progress", "done", "cancelled"],
+      crm_tier_priority: ["tier_1", "tier_2", "tier_3"],
+      crm_warmth: ["cold", "warm", "hot"],
       doc_visibility: ["public", "members", "board", "admin"],
       drill_cohort: ["software", "hardware", "mechanical", "ops"],
       drill_difficulty: ["easy", "medium", "hard", "expert"],
