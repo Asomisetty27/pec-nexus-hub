@@ -19,7 +19,16 @@ import ProjectDetail from "./pages/app/ProjectDetail";
 import Messages from "./pages/app/Messages";
 import Events from "./pages/app/Events";
 import Members from "./pages/app/Members";
-import CRM from "./pages/app/CRM";
+import CrmLayout from "./components/crm/CrmLayout";
+import CrmDashboard from "./pages/app/crm/CrmDashboard";
+import CrmPipeline from "./pages/app/crm/CrmPipeline";
+import CrmMyCompanies from "./pages/app/crm/CrmMyCompanies";
+import CrmTable from "./pages/app/crm/CrmTable";
+import CrmContacts from "./pages/app/crm/CrmContacts";
+import CrmQualified from "./pages/app/crm/CrmQualified";
+import CrmAnalytics from "./pages/app/crm/CrmAnalytics";
+import CrmLegacy from "./pages/app/crm/CrmLegacy";
+import CompanyDetail from "./pages/app/crm/CompanyDetail";
 import Competitions from "./pages/app/Competitions";
 import Academy from "./pages/app/Academy";
 import Training from "./pages/app/Training";
@@ -70,7 +79,18 @@ const App = () => (
               <Route path="messages" element={<Messages />} />
               <Route path="events" element={<Events />} />
               <Route path="members" element={<Members />} />
-              <Route path="crm" element={<CRM />} />
+              <Route path="crm" element={<CrmLayout />}>
+                <Route index element={<Navigate to="/app/crm/dashboard" replace />} />
+                <Route path="dashboard" element={<CrmDashboard />} />
+                <Route path="pipeline" element={<CrmPipeline />} />
+                <Route path="my" element={<CrmMyCompanies />} />
+                <Route path="table" element={<CrmTable />} />
+                <Route path="contacts" element={<CrmContacts />} />
+                <Route path="qualified" element={<CrmQualified />} />
+                <Route path="analytics" element={<CrmAnalytics />} />
+                <Route path="legacy" element={<CrmLegacy />} />
+                <Route path="c/:id" element={<CompanyDetail />} />
+              </Route>
               <Route path="competitions" element={<Competitions />} />
               <Route path="training" element={<Training />} />
               <Route path="academy" element={<Navigate to="/app/training?tab=learn" replace />} />
