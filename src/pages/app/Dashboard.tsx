@@ -18,6 +18,7 @@ import { motion } from "framer-motion";
 import { SectionExplainer, InfoDot } from "@/components/ui/SectionExplainer";
 import DeliverableStatusBadge from "@/components/DeliverableStatusBadge";
 import { ResumeStrip } from "@/components/ResumeStrip";
+import { useMyDeliverableOwnership } from "@/hooks/useMyDeliverableOwnership";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
 const item = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: 0.22 } } };
@@ -56,6 +57,7 @@ const PHASE_LABELS: Record<string, string> = {
 export default function Dashboard() {
   const { user, profile, highestRole, isAdmin, isBoardOrAdmin, isAdvisor } = useAuth();
   const navigate = useNavigate();
+  const { groupIds: myGroupIds, ready: ownershipReady } = useMyDeliverableOwnership();
   const [deliverables, setDeliverables] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [cohort, setCohort] = useState<any>(null);
@@ -77,7 +79,7 @@ export default function Dashboard() {
   const [cohortScore, setCohortScore] = useState<{ score: number; attendance_pct: number; deliverable_pct: number; training_pct: number } | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !ownershipReady) return;
     const load = async () => {
       // Read prior visit timestamp first, then compute "what changed since".
       // touch_dashboard_visit returns the previous value and stamps a new one atomically.
@@ -86,8 +88,16 @@ export default function Dashboard() {
       const sinceIso = (prev as any) || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       supabase.rpc("dashboard_changes_since", { p_since: sinceIso }).then(({ data }) => setChanges(data));
 
+      // "Owned by me" = individual ownership OR member of the owning group.
+      const groupFilter = myGroupIds.length
+        ? `,and(owner_type.eq.group,owning_group_id.in.(${myGroupIds.join(",")}))`
+        : "";
+      const orFilter = `and(owner_type.neq.group,owner_id.eq.${user.id})${groupFilter}`;
       const [delRes, annRes, cohortRes, helpRes] = await Promise.all([
-        supabase.from("deliverables").select("*, projects(name)").eq("owner_id", user.id).in("approval_status", ["pending", "revision_requested"]).order("due_date", { ascending: true }).limit(10),
+        supabase.from("deliverables").select("*, projects(name)")
+          .or(orFilter)
+          .in("approval_status", ["pending", "revision_requested"])
+          .order("due_date", { ascending: true }).limit(10),
         supabase.from("announcements").select("*").order("created_at", { ascending: false }).limit(3),
         supabase.from("cohort_memberships").select("*, cohorts(*)").eq("user_id", user.id).limit(1).maybeSingle(),
         supabase.from("help_requests").select("*").eq("requester_id", user.id).eq("status", "open").limit(5),
@@ -164,7 +174,7 @@ export default function Dashboard() {
       });
     };
     load();
-  }, [user]);
+  }, [user, ownershipReady, myGroupIds.join(",")]);
 
   const isApplicant = highestRole === "applicant";
   const firstName = profile?.full_name?.split(" ")[0] || "Operator";

@@ -22,6 +22,8 @@ import { displayName } from "@/lib/utils";
 import { AssignmentBundleDialog } from "@/components/AssignmentBundleDialog";
 import DeliverableReviewHistory from "@/components/DeliverableReviewHistory";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
+import { getUnifiedStatus, getValidationState, stageLabel } from "@/lib/deliverableStatus";
+import { ShieldAlert, ShieldCheck, Layers } from "lucide-react";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } };
@@ -53,9 +55,31 @@ export default function LeadWorkspace() {
 
       const memberIds = (await supabase.from("cohort_memberships").select("user_id").eq("cohort_id", cohortId)).data?.map((m: any) => m.user_id) || [];
 
+      // Resolve project_groups whose membership intersects this cohort, so we
+      // also surface group-owned deliverables. One shared "ownership" lens.
+      let cohortGroupIds: string[] = [];
+      if (memberIds.length > 0) {
+        const { data: gms } = await supabase
+          .from("project_group_members")
+          .select("group_id")
+          .in("user_id", memberIds);
+        cohortGroupIds = Array.from(new Set((gms || []).map((g: any) => g.group_id)));
+      }
+      const groupOrFilter = cohortGroupIds.length
+        ? `,and(owner_type.eq.group,owning_group_id.in.(${cohortGroupIds.join(",")}))`
+        : "";
+      const ownerOrFilter = memberIds.length
+        ? `or=and(owner_type.neq.group,owner_id.in.(${memberIds.join(",")}))${groupOrFilter}`
+        : "";
+
       const [projRes, delRes, helpRes, memRes] = await Promise.all([
         supabase.from("mock_projects").select("*").eq("cohort_id", cohortId).order("created_at", { ascending: false }),
-        supabase.from("deliverables").select("*, projects(name), profiles:owner_id(full_name)").in("owner_id", memberIds).order("due_date", { ascending: true }).limit(50),
+        memberIds.length === 0
+          ? Promise.resolve({ data: [] as any[] })
+          : supabase.from("deliverables")
+              .select("*, projects(name), profiles:owner_id(full_name)")
+              .or(`and(owner_type.neq.group,owner_id.in.(${memberIds.join(",")}))${groupOrFilter}`)
+              .order("due_date", { ascending: true }).limit(80),
         supabase.from("help_requests").select("*, profiles:requester_id(full_name)").eq("cohort_id", cohortId).eq("status", "open").order("created_at"),
         supabase.from("cohort_memberships").select("*, profiles:user_id(full_name, cal_poly_email)").eq("cohort_id", cohortId).order("role"),
       ]);
@@ -81,6 +105,23 @@ export default function LeadWorkspace() {
 
   const overdueDeliverables = deliverables.filter(d => d.due_date && new Date(d.due_date) < new Date() && d.approval_status !== "approved");
   const pendingReview = deliverables.filter(d => d.approval_status === "pending" && d.approval_required);
+
+  // ---- Phase 4 doctrine prompt rows (high-signal, compact) ----
+  const unstagedRows = deliverables.filter(d =>
+    !d.archived && !d.canonical_stage && d.approval_status !== "approved"
+  );
+  const awaitingTechValidationRows = deliverables.filter(d => {
+    const v = getValidationState(d);
+    return v === "awaiting_tech_validation";
+  });
+  const awaitingPmApprovalRows = deliverables.filter(d => {
+    const v = getValidationState(d);
+    return v === "awaiting_pm_approval" || (
+      // also surface plain pending-with-file when no tech-validation gating exists
+      d.approval_status === "pending" && d.approval_required && d.file_url && !d.tech_validation_required
+    );
+  });
+
   const cohortName = (cohort?.cohorts as any)?.name || "Your Cohort";
 
   const approveDeliverable = async (id: string) => {
@@ -160,6 +201,46 @@ export default function LeadWorkspace() {
           title="Momentum Risk · Your Projects"
         />
       </motion.div>
+
+      {/* Doctrine prompt rows — show only when actionable, keep compact */}
+      {(unstagedRows.length > 0 || awaitingTechValidationRows.length > 0 || awaitingPmApprovalRows.length > 0) && (
+        <motion.div variants={item} className="space-y-2">
+          {unstagedRows.length > 0 && (
+            <DoctrinePromptRow
+              icon={Layers}
+              tone="muted"
+              title="Unstaged deliverables"
+              count={unstagedRows.length}
+              hint="Set a canonical stage so progress can be tracked."
+              items={unstagedRows.slice(0, 4)}
+              onItemClick={(d) => navigate(`/app/projects/${d.project_id}`)}
+            />
+          )}
+          {awaitingTechValidationRows.length > 0 && (
+            <DoctrinePromptRow
+              icon={ShieldAlert}
+              tone="warning"
+              title="Awaiting tech validation"
+              count={awaitingTechValidationRows.length}
+              hint="Tech Lead review is gating PM approval."
+              items={awaitingTechValidationRows.slice(0, 4)}
+              onItemClick={(d) => navigate(`/app/projects/${d.project_id}`)}
+            />
+          )}
+          {awaitingPmApprovalRows.length > 0 && (
+            <DoctrinePromptRow
+              icon={ShieldCheck}
+              tone="primary"
+              title="Awaiting PM approval"
+              count={awaitingPmApprovalRows.length}
+              hint="Tech-validated work ready for your final sign-off."
+              items={awaitingPmApprovalRows.slice(0, 4)}
+              showOverrideWarning
+              onItemClick={(d) => navigate(`/app/projects/${d.project_id}`)}
+            />
+          )}
+        </motion.div>
+      )}
 
       <Tabs defaultValue="review">
         <TabsList>
@@ -369,6 +450,65 @@ function SummaryCard({ icon: Icon, label, value, variant = "default" }: { icon: 
         <div>
           <p className="text-xl font-bold font-mono leading-none">{value}</p>
           <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider mt-0.5">{label}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function DoctrinePromptRow({
+  icon: Icon, tone, title, count, hint, items, onItemClick, showOverrideWarning,
+}: {
+  icon: any;
+  tone: "muted" | "warning" | "primary";
+  title: string;
+  count: number;
+  hint: string;
+  items: any[];
+  onItemClick: (d: any) => void;
+  showOverrideWarning?: boolean;
+}) {
+  const toneClasses =
+    tone === "warning" ? "border-warning/30 bg-warning/[0.04]" :
+    tone === "primary" ? "border-primary/30 bg-primary/[0.04]" :
+    "border-border bg-muted/30";
+  const iconTone =
+    tone === "warning" ? "text-warning" :
+    tone === "primary" ? "text-primary" :
+    "text-muted-foreground";
+  return (
+    <Card className={toneClasses}>
+      <CardContent className="p-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Icon className={`h-3.5 w-3.5 ${iconTone}`} />
+          <p className="text-xs font-medium">{title}</p>
+          <Badge variant="outline" className="h-4 text-[10px]">{count}</Badge>
+          <p className="text-[11px] text-muted-foreground hidden sm:block">· {hint}</p>
+        </div>
+        <div className="mt-2 grid gap-1">
+          {items.map((d) => {
+            const overrideRequired = showOverrideWarning && d.tech_validation_required && !d.tech_validated_at;
+            return (
+              <button key={d.id} onClick={() => onItemClick(d)}
+                className="flex items-center justify-between gap-2 rounded-md border bg-card px-2.5 py-1.5 text-left text-xs hover:border-primary/40">
+                <span className="truncate flex items-center gap-1.5 min-w-0">
+                  <span className="truncate">{d.title}</span>
+                  {d.canonical_stage && <span className="text-[10px] text-muted-foreground">· {stageLabel(d.canonical_stage)}</span>}
+                  {overrideRequired && (
+                    <Badge variant="outline" className="text-[9px] gap-1 border-warning/40 text-warning shrink-0">
+                      <ShieldAlert className="h-2.5 w-2.5" /> Override needed
+                    </Badge>
+                  )}
+                </span>
+                <span className="text-[10px] text-muted-foreground shrink-0 truncate max-w-[35%]">
+                  {(d.projects as any)?.name}
+                </span>
+              </button>
+            );
+          })}
+          {count > items.length && (
+            <p className="text-[10px] text-muted-foreground px-1">+{count - items.length} more</p>
+          )}
         </div>
       </CardContent>
     </Card>

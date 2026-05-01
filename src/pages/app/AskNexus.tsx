@@ -55,10 +55,17 @@ const QUERIES: QueryDef[] = [
       if (!cohortId) return { headline: "Pick a cohort.", rows: [] };
       const { data: members } = await supabase.from("cohort_memberships").select("user_id").eq("cohort_id", cohortId);
       const ids = (members || []).map((m: any) => m.user_id);
+      // Include group-owned deliverables where any group member is in this cohort.
+      let groupIds: string[] = [];
+      if (ids.length) {
+        const { data: gms } = await supabase.from("project_group_members").select("group_id").in("user_id", ids);
+        groupIds = Array.from(new Set((gms || []).map((g: any) => g.group_id)));
+      }
+      const groupOr = groupIds.length ? `,and(owner_type.eq.group,owning_group_id.in.(${groupIds.join(",")}))` : "";
       const [overdue, help, blocked] = await Promise.all([
         ids.length === 0 ? { data: [] as any[] } : supabase.from("deliverables")
           .select("id, title, due_date, project_id, projects(name)")
-          .in("owner_id", ids)
+          .or(`and(owner_type.neq.group,owner_id.in.(${ids.join(",")}))${groupOr}`)
           .lt("due_date", new Date().toISOString().slice(0, 10))
           .neq("approval_status", "approved")
           .order("due_date").limit(10),
