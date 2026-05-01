@@ -433,3 +433,62 @@ function SummaryCard({ icon: Icon, label, value, variant = "default" }: { icon: 
     </Card>
   );
 }
+
+function DoctrinePromptRow({
+  icon: Icon, tone, title, count, hint, items, onItemClick, showOverrideWarning,
+}: {
+  icon: any;
+  tone: "muted" | "warning" | "primary";
+  title: string;
+  count: number;
+  hint: string;
+  items: any[];
+  onItemClick: (d: any) => void;
+  showOverrideWarning?: boolean;
+}) {
+  const toneClasses =
+    tone === "warning" ? "border-warning/30 bg-warning/[0.04]" :
+    tone === "primary" ? "border-primary/30 bg-primary/[0.04]" :
+    "border-border bg-muted/30";
+  const iconTone =
+    tone === "warning" ? "text-warning" :
+    tone === "primary" ? "text-primary" :
+    "text-muted-foreground";
+  return (
+    <Card className={toneClasses}>
+      <CardContent className="p-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Icon className={`h-3.5 w-3.5 ${iconTone}`} />
+          <p className="text-xs font-medium">{title}</p>
+          <Badge variant="outline" className="h-4 text-[10px]">{count}</Badge>
+          <p className="text-[11px] text-muted-foreground hidden sm:block">· {hint}</p>
+        </div>
+        <div className="mt-2 grid gap-1">
+          {items.map((d) => {
+            const overrideRequired = showOverrideWarning && d.tech_validation_required && !d.tech_validated_at;
+            return (
+              <button key={d.id} onClick={() => onItemClick(d)}
+                className="flex items-center justify-between gap-2 rounded-md border bg-card px-2.5 py-1.5 text-left text-xs hover:border-primary/40">
+                <span className="truncate flex items-center gap-1.5 min-w-0">
+                  <span className="truncate">{d.title}</span>
+                  {d.canonical_stage && <span className="text-[10px] text-muted-foreground">· {stageLabel(d.canonical_stage)}</span>}
+                  {overrideRequired && (
+                    <Badge variant="outline" className="text-[9px] gap-1 border-warning/40 text-warning shrink-0">
+                      <ShieldAlert className="h-2.5 w-2.5" /> Override needed
+                    </Badge>
+                  )}
+                </span>
+                <span className="text-[10px] text-muted-foreground shrink-0 truncate max-w-[35%]">
+                  {(d.projects as any)?.name}
+                </span>
+              </button>
+            );
+          })}
+          {count > items.length && (
+            <p className="text-[10px] text-muted-foreground px-1">+{count - items.length} more</p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
