@@ -258,6 +258,9 @@ export type Database = {
       }
       applicants: {
         Row: {
+          archived_at: string | null
+          converted_at: string | null
+          converted_member_user_id: string | null
           created_at: string
           current_stage: Database["public"]["Enums"]["applicant_stage"]
           cycle_id: string | null
@@ -274,6 +277,9 @@ export type Database = {
           id: string
           links: Json
           major: string | null
+          onboarding_invite_token_id: string | null
+          onboarding_sent_at: string | null
+          onboarding_state: Database["public"]["Enums"]["applicant_onboarding_state"]
           phone: string | null
           preferred_cohort_id: string | null
           primary_reviewer_user_id: string | null
@@ -287,11 +293,15 @@ export type Database = {
           submission_ip: unknown
           submission_user_agent: string | null
           submitted_at: string | null
+          tags: string[]
           updated_at: string
           why_join: string | null
           withdrawn_at: string | null
         }
         Insert: {
+          archived_at?: string | null
+          converted_at?: string | null
+          converted_member_user_id?: string | null
           created_at?: string
           current_stage?: Database["public"]["Enums"]["applicant_stage"]
           cycle_id?: string | null
@@ -308,6 +318,9 @@ export type Database = {
           id?: string
           links?: Json
           major?: string | null
+          onboarding_invite_token_id?: string | null
+          onboarding_sent_at?: string | null
+          onboarding_state?: Database["public"]["Enums"]["applicant_onboarding_state"]
           phone?: string | null
           preferred_cohort_id?: string | null
           primary_reviewer_user_id?: string | null
@@ -321,11 +334,15 @@ export type Database = {
           submission_ip?: unknown
           submission_user_agent?: string | null
           submitted_at?: string | null
+          tags?: string[]
           updated_at?: string
           why_join?: string | null
           withdrawn_at?: string | null
         }
         Update: {
+          archived_at?: string | null
+          converted_at?: string | null
+          converted_member_user_id?: string | null
           created_at?: string
           current_stage?: Database["public"]["Enums"]["applicant_stage"]
           cycle_id?: string | null
@@ -342,6 +359,9 @@ export type Database = {
           id?: string
           links?: Json
           major?: string | null
+          onboarding_invite_token_id?: string | null
+          onboarding_sent_at?: string | null
+          onboarding_state?: Database["public"]["Enums"]["applicant_onboarding_state"]
           phone?: string | null
           preferred_cohort_id?: string | null
           primary_reviewer_user_id?: string | null
@@ -355,6 +375,7 @@ export type Database = {
           submission_ip?: unknown
           submission_user_agent?: string | null
           submitted_at?: string | null
+          tags?: string[]
           updated_at?: string
           why_join?: string | null
           withdrawn_at?: string | null
@@ -365,6 +386,13 @@ export type Database = {
             columns: ["cycle_id"]
             isOneToOne: false
             referencedRelation: "application_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applicants_onboarding_invite_token_id_fkey"
+            columns: ["onboarding_invite_token_id"]
+            isOneToOne: false
+            referencedRelation: "invite_tokens"
             referencedColumns: ["id"]
           },
           {
@@ -5584,6 +5612,10 @@ export type Database = {
         }
         Returns: number
       }
+      onboard_accepted_applicant: {
+        Args: { _applicant_id: string }
+        Returns: Json
+      }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
@@ -5787,6 +5819,7 @@ export type Database = {
         | "accept"
         | "waitlist"
         | "request_more_info"
+      applicant_onboarding_state: "not_started" | "invite_sent" | "joined"
       applicant_source:
         | "website"
         | "flyer"
@@ -6078,6 +6111,7 @@ export const Constants = {
         "waitlist",
         "request_more_info",
       ],
+      applicant_onboarding_state: ["not_started", "invite_sent", "joined"],
       applicant_source: [
         "website",
         "flyer",
