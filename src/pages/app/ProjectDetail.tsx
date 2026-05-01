@@ -882,6 +882,45 @@ export default function ProjectDetail() {
         milestoneName={milestones.find((m: any) => m.id === submitTarget?.milestone_id)?.title}
         onSubmitted={fetchAll}
       />
+
+      {/* PM override approval dialog */}
+      <Dialog open={!!overrideFor} onOpenChange={(v) => { if (!v) { setOverrideFor(null); setOverrideReason(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <ShieldAlert className="h-4 w-4 text-warning" /> Approve via PM override
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Tech validation is required for this deliverable but hasn't been completed.
+              Approving via override will be logged and visible in review history.
+            </p>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Reason (≥10 characters) *</Label>
+              <Textarea rows={3} value={overrideReason} onChange={e => setOverrideReason(e.target.value)}
+                placeholder="Why are you bypassing tech validation right now?" />
+              <p className="text-[10px] text-muted-foreground">{overrideReason.trim().length}/10</p>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => { setOverrideFor(null); setOverrideReason(""); }}>Cancel</Button>
+              <Button className="flex-1" disabled={overrideReason.trim().length < 10 || approving === overrideFor?.id}
+                onClick={async () => {
+                  if (!overrideFor) return;
+                  setApproving(overrideFor.id);
+                  const res = await approveWithOverride(overrideFor.id, overrideReason);
+                  setApproving(null);
+                  if (res.ok === false) return toast.error(res.error);
+                  toast.success("Approved via override");
+                  setOverrideFor(null); setOverrideReason("");
+                  fetchAll();
+                }}>
+                Approve via override
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
