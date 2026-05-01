@@ -17,6 +17,7 @@ import { logAuditAction } from "@/lib/audit";
 import { SectionExplainer } from "@/components/ui/SectionExplainer";
 import { MomentumRiskPanel } from "@/components/momentum/MomentumRiskPanel";
 import { CadenceOverviewCard } from "@/components/CadenceOverviewCard";
+import { CohortScoreLeaderboard } from "@/components/CohortScoreLeaderboard";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } };
@@ -164,6 +165,10 @@ export default function CommandCenter() {
       {/* Cadence Overview (Phase 5) — leadership-only */}
       <motion.div variants={item}>
         <CadenceOverviewCard />
+      </motion.div>
+
+      <motion.div variants={item}>
+        <CohortScoreLeaderboard />
       </motion.div>
 
       <Tabs defaultValue="strategy">

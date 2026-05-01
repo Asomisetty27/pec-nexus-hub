@@ -29,6 +29,7 @@ import { canApprove as canApproveD, canTechValidate, canMarkStarted, canSetStage
 import { DeliverableOwnerBadge } from "@/components/DeliverableOwnerBadge";
 import { MarkStartedButton } from "@/components/MarkStartedButton";
 import { CadenceHealthCard } from "@/components/CadenceHealthCard";
+import { ScoreCard } from "@/components/ScoreCard";
 import { reviewEventLabel } from "@/lib/reviewEvents";
 import { ShieldCheck, ShieldAlert, Layers, Archive } from "lucide-react";
 
@@ -403,6 +404,7 @@ export default function ProjectDetail() {
         <TabsContent value="hub" className="space-y-5">
           {/* Cadence health (Phase 5) — compact, non-blocking */}
           <CadenceHealthCard scope="project" targetId={id!} />
+          <ScoreCard scope="project" targetId={id!} compact className="mt-3" />
 
           {/* Personal & lead next moves */}
           {(myMoves.length > 0 || reviewQueue.length > 0) && (
