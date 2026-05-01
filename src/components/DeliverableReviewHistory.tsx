@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, RefreshCw, Ban, Upload, History, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { reviewEventMeta } from "@/lib/reviewEvents";
 
 interface Event {
   id: string;
@@ -14,24 +15,6 @@ interface Event {
   actor_id: string;
   actor_name?: string;
 }
-
-const ICONS: Record<string, any> = {
-  submitted: Upload,
-  revised: RefreshCw,
-  approved: CheckCircle2,
-  revision_requested: RefreshCw,
-  rejected: Ban,
-  reopened: History,
-};
-
-const COLORS: Record<string, string> = {
-  approved: "text-success",
-  rejected: "text-destructive",
-  revision_requested: "text-destructive",
-  submitted: "text-muted-foreground",
-  revised: "text-muted-foreground",
-  reopened: "text-muted-foreground",
-};
 
 export default function DeliverableReviewHistory({ deliverableId }: { deliverableId: string }) {
   const [events, setEvents] = useState<Event[]>([]);
@@ -65,13 +48,14 @@ export default function DeliverableReviewHistory({ deliverableId }: { deliverabl
   return (
     <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
       {events.map(e => {
-        const Icon = ICONS[e.event_type] || History;
+        const meta = reviewEventMeta(e.event_type);
+        const Icon = meta.icon;
         return (
           <div key={e.id} className="flex gap-3 rounded-md border p-2.5">
-            <Icon className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${COLORS[e.event_type] || "text-muted-foreground"}`} />
+            <Icon className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${meta.tone}`} />
             <div className="flex-1 min-w-0 text-xs">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="font-medium capitalize">{e.event_type.replace("_", " ")}</span>
+                <span className="font-medium">{meta.label}</span>
                 {e.version != null && <Badge variant="outline" className="text-[9px] h-4">v{e.version}</Badge>}
                 <span className="text-muted-foreground">· by {e.actor_name}</span>
                 <span className="text-muted-foreground">· {new Date(e.created_at).toLocaleString()}</span>
