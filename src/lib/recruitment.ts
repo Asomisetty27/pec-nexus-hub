@@ -133,6 +133,55 @@ export async function rerouteApplicant(args: {
 }
 
 /**
+ * Onboarding action: convert an accepted applicant into either a linked
+ * existing member or an issued invite (which will then be sent via the
+ * existing send-invite-email edge function).
+ *
+ * The RPC is idempotent — calling it twice on the same applicant returns
+ * either the existing invite token or the existing member link.
+ */
+export type OnboardResult = {
+  state: "joined" | "invite_sent";
+  already_member: boolean;
+  email: string;
+  full_name: string;
+  cohort_id: string;
+  invite_token_id?: string;
+  invite_token?: string;
+  converted_member_user_id?: string;
+  reissued?: boolean;
+};
+
+export async function onboardAcceptedApplicant(applicantId: string): Promise<{ data: OnboardResult | null; error: any }> {
+  const { data, error } = await supabase.rpc("onboard_accepted_applicant", {
+    _applicant_id: applicantId,
+  });
+  if (error) return { data: null, error };
+  return { data: data as unknown as OnboardResult, error: null };
+}
+
+/**
+ * After an invite token is issued by the onboarding RPC, dispatch the
+ * existing send-invite-email edge function so leadership doesn't need to
+ * trigger it manually.
+ */
+export async function sendOnboardingInviteEmail(args: {
+  email: string;
+  fullName: string;
+  token: string;
+  tokenId: string;
+}) {
+  return supabase.functions.invoke("send-invite-email", {
+    body: {
+      email: args.email,
+      token: args.token,
+      fullName: args.fullName,
+      tokenId: args.tokenId,
+    },
+  });
+}
+
+/**
  * Permission booleans derived from auth context. We rely on RLS for hard
  * enforcement — these only drive UI visibility.
  */
