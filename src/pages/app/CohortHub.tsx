@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   Users, BookOpen, Target, ChevronRight, Cpu, Wrench, Code, Briefcase,
-  Plus, Compass, Trophy, Activity, Rocket,
+  Plus, Compass, Trophy, Activity, Rocket, Building2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
