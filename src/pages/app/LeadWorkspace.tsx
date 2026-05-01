@@ -55,9 +55,31 @@ export default function LeadWorkspace() {
 
       const memberIds = (await supabase.from("cohort_memberships").select("user_id").eq("cohort_id", cohortId)).data?.map((m: any) => m.user_id) || [];
 
+      // Resolve project_groups whose membership intersects this cohort, so we
+      // also surface group-owned deliverables. One shared "ownership" lens.
+      let cohortGroupIds: string[] = [];
+      if (memberIds.length > 0) {
+        const { data: gms } = await supabase
+          .from("project_group_members")
+          .select("group_id")
+          .in("user_id", memberIds);
+        cohortGroupIds = Array.from(new Set((gms || []).map((g: any) => g.group_id)));
+      }
+      const groupOrFilter = cohortGroupIds.length
+        ? `,and(owner_type.eq.group,owning_group_id.in.(${cohortGroupIds.join(",")}))`
+        : "";
+      const ownerOrFilter = memberIds.length
+        ? `or=and(owner_type.neq.group,owner_id.in.(${memberIds.join(",")}))${groupOrFilter}`
+        : "";
+
       const [projRes, delRes, helpRes, memRes] = await Promise.all([
         supabase.from("mock_projects").select("*").eq("cohort_id", cohortId).order("created_at", { ascending: false }),
-        supabase.from("deliverables").select("*, projects(name), profiles:owner_id(full_name)").in("owner_id", memberIds).order("due_date", { ascending: true }).limit(50),
+        memberIds.length === 0
+          ? Promise.resolve({ data: [] as any[] })
+          : supabase.from("deliverables")
+              .select("*, projects(name), profiles:owner_id(full_name)")
+              .or(`and(owner_type.neq.group,owner_id.in.(${memberIds.join(",")}))${groupOrFilter}`)
+              .order("due_date", { ascending: true }).limit(80),
         supabase.from("help_requests").select("*, profiles:requester_id(full_name)").eq("cohort_id", cohortId).eq("status", "open").order("created_at"),
         supabase.from("cohort_memberships").select("*, profiles:user_id(full_name, cal_poly_email)").eq("cohort_id", cohortId).order("role"),
       ]);
