@@ -28,6 +28,7 @@ import { getUnifiedStatus, isBlockingStage, isOverdue, getValidationState, stage
 import { canApprove as canApproveD, canTechValidate, canMarkStarted, canSetStage, requiresOverride } from "@/lib/deliverablePermissions";
 import { DeliverableOwnerBadge } from "@/components/DeliverableOwnerBadge";
 import { MarkStartedButton } from "@/components/MarkStartedButton";
+import { CadenceHealthCard } from "@/components/CadenceHealthCard";
 import { reviewEventLabel } from "@/lib/reviewEvents";
 import { ShieldCheck, ShieldAlert, Layers, Archive } from "lucide-react";
 
@@ -400,6 +401,9 @@ export default function ProjectDetail() {
 
         {/* ============ HUB ============ */}
         <TabsContent value="hub" className="space-y-5">
+          {/* Cadence health (Phase 5) — compact, non-blocking */}
+          <CadenceHealthCard scope="project" targetId={id!} />
+
           {/* Personal & lead next moves */}
           {(myMoves.length > 0 || reviewQueue.length > 0) && (
             <div className="grid gap-4 lg:grid-cols-2">
