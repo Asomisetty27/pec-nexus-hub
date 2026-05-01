@@ -5350,6 +5350,32 @@ export type Database = {
         | "president"
         | "director_of_projects"
         | "outreach_lead"
+      applicant_decision:
+        | "advance"
+        | "hold"
+        | "reject"
+        | "accept"
+        | "waitlist"
+        | "request_more_info"
+      applicant_source:
+        | "website"
+        | "flyer"
+        | "referral"
+        | "event"
+        | "info_session"
+        | "social_media"
+        | "other"
+      applicant_stage:
+        | "applied"
+        | "under_review"
+        | "resume_screen"
+        | "interview"
+        | "decision_pending"
+        | "accepted"
+        | "rejected"
+        | "waitlisted"
+        | "withdrawn"
+      application_cycle_season: "fall" | "spring"
       approval_status:
         | "pending"
         | "approved"
@@ -5614,6 +5640,35 @@ export const Constants = {
         "director_of_projects",
         "outreach_lead",
       ],
+      applicant_decision: [
+        "advance",
+        "hold",
+        "reject",
+        "accept",
+        "waitlist",
+        "request_more_info",
+      ],
+      applicant_source: [
+        "website",
+        "flyer",
+        "referral",
+        "event",
+        "info_session",
+        "social_media",
+        "other",
+      ],
+      applicant_stage: [
+        "applied",
+        "under_review",
+        "resume_screen",
+        "interview",
+        "decision_pending",
+        "accepted",
+        "rejected",
+        "waitlisted",
+        "withdrawn",
+      ],
+      application_cycle_season: ["fall", "spring"],
       approval_status: [
         "pending",
         "approved",
