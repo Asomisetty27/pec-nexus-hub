@@ -58,6 +58,8 @@ import RecruitmentOverviewPage from "./pages/app/recruitment/RecruitmentOverview
 import RecruitmentInbox from "./pages/app/recruitment/RecruitmentInbox";
 import RecruitmentPipeline from "./pages/app/recruitment/RecruitmentPipeline";
 import ApplicantDetail from "./pages/app/recruitment/ApplicantDetail";
+import RecruitmentLeadership from "./pages/app/recruitment/RecruitmentLeadership";
+import RecruitmentTalent from "./pages/app/recruitment/RecruitmentTalent";
 
 const queryClient = new QueryClient();
 
@@ -133,6 +135,8 @@ const App = () => (
                 <Route index element={<RecruitmentOverviewPage />} />
                 <Route path="inbox" element={<RecruitmentInbox />} />
                 <Route path="pipeline" element={<RecruitmentPipeline />} />
+                <Route path="leadership" element={<RecruitmentLeadership />} />
+                <Route path="talent" element={<RecruitmentTalent />} />
                 <Route path="c/:id" element={<ApplicantDetail />} />
               </Route>
             </Route>

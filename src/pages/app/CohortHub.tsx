@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   Users, BookOpen, Target, ChevronRight, Cpu, Wrench, Code, Briefcase,
-  Plus, Compass, Trophy, Activity, Rocket,
+  Plus, Compass, Trophy, Activity, Rocket, Building2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -44,6 +44,7 @@ export default function CohortHub() {
   const [createLabDialog, setCreateLabDialog] = useState(false);
 
   const isLeader = membership?.role === "pm" || membership?.role === "lead" || membership?.role === "integration_lead";
+  const isOpsCohort = cohort?.name === "Ops / PM";
 
   useEffect(() => {
     if (!user) return;
@@ -164,7 +165,7 @@ export default function CohortHub() {
             </div>
             {isLeader && (
               <div className="flex flex-wrap gap-2 shrink-0">
-                <Dialog open={createMPDialog} onOpenChange={setCreateMPDialog}>
+                {!isOpsCohort && <Dialog open={createMPDialog} onOpenChange={setCreateMPDialog}>
                   <DialogTrigger asChild><Button size="sm" variant="outline" className="gap-1.5 text-[10px]"><Target className="h-3 w-3" />New Project</Button></DialogTrigger>
                   <DialogContent>
                     <DialogHeader><DialogTitle>Create Mock Project</DialogTitle></DialogHeader>
@@ -176,7 +177,12 @@ export default function CohortHub() {
                       <Button type="submit" className="w-full">Create</Button>
                     </form>
                   </DialogContent>
-                </Dialog>
+                </Dialog>}
+                {isOpsCohort && (
+                  <Button size="sm" variant="outline" className="gap-1.5 text-[10px]" onClick={() => navigate("/app/crm/dashboard")}>
+                    <Building2 className="h-3 w-3" /> Open Company Relations
+                  </Button>
+                )}
                 <Dialog open={createLabDialog} onOpenChange={setCreateLabDialog}>
                   <DialogTrigger asChild><Button size="sm" variant="outline" className="gap-1.5 text-[10px]"><BookOpen className="h-3 w-3" />New Lab</Button></DialogTrigger>
                   <DialogContent>
@@ -317,11 +323,33 @@ export default function CohortHub() {
             <Card>
               <CardHeader className="py-3 px-5 flex-row items-center justify-between">
                 <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
-                  <Target className="h-3.5 w-3.5 text-accent-foreground" /> Projects
+                  <Target className="h-3.5 w-3.5 text-accent-foreground" /> {isOpsCohort ? "Outreach Execution" : "Projects"}
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0 px-5 pb-4">
-                {mockProjects.length === 0 ? (
+                {isOpsCohort ? (
+                  <div className="space-y-2">
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      Ops doesn't run mock projects. The cohort's operating surface is Company Relations + Outreach Execution.
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button onClick={() => navigate("/app/crm/dashboard")} className="rounded-xl border p-3 text-left card-hover">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-3.5 w-3.5 text-accent-foreground" />
+                          <span className="text-xs font-semibold">Company Relations</span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-1">Pipeline, accounts, contacts.</p>
+                      </button>
+                      <button onClick={() => navigate("/app/crm/qualified")} className="rounded-xl border p-3 text-left card-hover">
+                        <div className="flex items-center gap-2">
+                          <Target className="h-3.5 w-3.5 text-accent-foreground" />
+                          <span className="text-xs font-semibold">Qualified Queue</span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-1">Active outreach work.</p>
+                      </button>
+                    </div>
+                  </div>
+                ) : mockProjects.length === 0 ? (
                   <div className="flex flex-col items-center py-8 text-muted-foreground">
                     <Target className="h-8 w-8 mb-2 opacity-20" />
                     <p className="text-[11px]">No projects yet.</p>

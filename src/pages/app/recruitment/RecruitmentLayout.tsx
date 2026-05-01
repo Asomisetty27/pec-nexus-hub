@@ -29,7 +29,9 @@ export default function RecruitmentLayout() {
     { to: "/app/recruitment", label: "Overview", end: true },
     { to: "/app/recruitment/inbox", label: "Inbox" },
     { to: "/app/recruitment/pipeline", label: "Pipeline" },
-  ], []);
+    ...(access?.isLead ? [{ to: "/app/recruitment/leadership", label: "Leadership" }] : []),
+    { to: "/app/recruitment/talent", label: "Talent" },
+  ], [access?.isLead]);
 
   if (!access) {
     return (
