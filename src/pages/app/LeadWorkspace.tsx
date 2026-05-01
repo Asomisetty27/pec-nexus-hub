@@ -22,6 +22,8 @@ import { displayName } from "@/lib/utils";
 import { AssignmentBundleDialog } from "@/components/AssignmentBundleDialog";
 import DeliverableReviewHistory from "@/components/DeliverableReviewHistory";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
+import { getUnifiedStatus, getValidationState, stageLabel } from "@/lib/deliverableStatus";
+import { ShieldAlert, ShieldCheck, Layers } from "lucide-react";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } };
@@ -81,6 +83,23 @@ export default function LeadWorkspace() {
 
   const overdueDeliverables = deliverables.filter(d => d.due_date && new Date(d.due_date) < new Date() && d.approval_status !== "approved");
   const pendingReview = deliverables.filter(d => d.approval_status === "pending" && d.approval_required);
+
+  // ---- Phase 4 doctrine prompt rows (high-signal, compact) ----
+  const unstagedRows = deliverables.filter(d =>
+    !d.archived && !d.canonical_stage && d.approval_status !== "approved"
+  );
+  const awaitingTechValidationRows = deliverables.filter(d => {
+    const v = getValidationState(d);
+    return v === "awaiting_tech_validation";
+  });
+  const awaitingPmApprovalRows = deliverables.filter(d => {
+    const v = getValidationState(d);
+    return v === "awaiting_pm_approval" || (
+      // also surface plain pending-with-file when no tech-validation gating exists
+      d.approval_status === "pending" && d.approval_required && d.file_url && !d.tech_validation_required
+    );
+  });
+
   const cohortName = (cohort?.cohorts as any)?.name || "Your Cohort";
 
   const approveDeliverable = async (id: string) => {
@@ -160,6 +179,46 @@ export default function LeadWorkspace() {
           title="Momentum Risk · Your Projects"
         />
       </motion.div>
+
+      {/* Doctrine prompt rows — show only when actionable, keep compact */}
+      {(unstagedRows.length > 0 || awaitingTechValidationRows.length > 0 || awaitingPmApprovalRows.length > 0) && (
+        <motion.div variants={item} className="space-y-2">
+          {unstagedRows.length > 0 && (
+            <DoctrinePromptRow
+              icon={Layers}
+              tone="muted"
+              title="Unstaged deliverables"
+              count={unstagedRows.length}
+              hint="Set a canonical stage so progress can be tracked."
+              items={unstagedRows.slice(0, 4)}
+              onItemClick={(d) => navigate(`/app/projects/${d.project_id}`)}
+            />
+          )}
+          {awaitingTechValidationRows.length > 0 && (
+            <DoctrinePromptRow
+              icon={ShieldAlert}
+              tone="warning"
+              title="Awaiting tech validation"
+              count={awaitingTechValidationRows.length}
+              hint="Tech Lead review is gating PM approval."
+              items={awaitingTechValidationRows.slice(0, 4)}
+              onItemClick={(d) => navigate(`/app/projects/${d.project_id}`)}
+            />
+          )}
+          {awaitingPmApprovalRows.length > 0 && (
+            <DoctrinePromptRow
+              icon={ShieldCheck}
+              tone="primary"
+              title="Awaiting PM approval"
+              count={awaitingPmApprovalRows.length}
+              hint="Tech-validated work ready for your final sign-off."
+              items={awaitingPmApprovalRows.slice(0, 4)}
+              showOverrideWarning
+              onItemClick={(d) => navigate(`/app/projects/${d.project_id}`)}
+            />
+          )}
+        </motion.div>
+      )}
 
       <Tabs defaultValue="review">
         <TabsList>
