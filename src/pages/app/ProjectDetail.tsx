@@ -123,21 +123,30 @@ export default function ProjectDetail() {
     return upcoming[0] || null;
   }, [deliverables]);
 
-  // Personal next moves (member-centric)
+  // Personal next moves (member-centric). Includes group-owned deliverables where I am a group member.
   const myMoves = useMemo(() => {
     if (!user) return [] as any[];
     const moves: { id: string; label: string; deliverable: any; tone: "danger" | "warn" | "default" }[] = [];
     deliverables.forEach((d) => {
-      const mine = d.owner_id === user.id;
+      const mineIndividual = d.owner_type !== "group" && d.owner_id === user.id;
+      const mineGroup = d.owner_type === "group" && (myGroupIds || []).includes(d.owning_group_id);
+      const mine = mineIndividual || mineGroup;
+      if (!mine) return;
       const status = getUnifiedStatus(d);
-      if (mine && (status === "not_started" || status === "overdue")) {
-        moves.push({ id: d.id, label: status === "overdue" ? "Overdue — submit now" : "Submit", deliverable: d, tone: status === "overdue" ? "danger" : "default" });
-      } else if (mine && status === "revision_requested") {
+      const overdue = isOverdue(d);
+      if (status === "drafted" || status === "assigned" || status === "in_progress") {
+        moves.push({
+          id: d.id,
+          label: overdue ? "Overdue — submit now" : status === "in_progress" ? "Submit" : "Start & submit",
+          deliverable: d,
+          tone: overdue ? "danger" : "default",
+        });
+      } else if (status === "needs_revision") {
         moves.push({ id: d.id, label: "Resubmit revision", deliverable: d, tone: "warn" });
       }
     });
     return moves.slice(0, 3);
-  }, [deliverables, user]);
+  }, [deliverables, user, myGroupIds]);
 
   // Lead review queue (lead-centric)
   const reviewQueue = useMemo(() => {
