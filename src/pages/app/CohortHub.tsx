@@ -165,7 +165,7 @@ export default function CohortHub() {
             </div>
             {isLeader && (
               <div className="flex flex-wrap gap-2 shrink-0">
-                <Dialog open={createMPDialog} onOpenChange={setCreateMPDialog}>
+                {!isOpsCohort && <Dialog open={createMPDialog} onOpenChange={setCreateMPDialog}>
                   <DialogTrigger asChild><Button size="sm" variant="outline" className="gap-1.5 text-[10px]"><Target className="h-3 w-3" />New Project</Button></DialogTrigger>
                   <DialogContent>
                     <DialogHeader><DialogTitle>Create Mock Project</DialogTitle></DialogHeader>
@@ -177,7 +177,12 @@ export default function CohortHub() {
                       <Button type="submit" className="w-full">Create</Button>
                     </form>
                   </DialogContent>
-                </Dialog>
+                </Dialog>}
+                {isOpsCohort && (
+                  <Button size="sm" variant="outline" className="gap-1.5 text-[10px]" onClick={() => navigate("/app/crm/dashboard")}>
+                    <Building2 className="h-3 w-3" /> Open Company Relations
+                  </Button>
+                )}
                 <Dialog open={createLabDialog} onOpenChange={setCreateLabDialog}>
                   <DialogTrigger asChild><Button size="sm" variant="outline" className="gap-1.5 text-[10px]"><BookOpen className="h-3 w-3" />New Lab</Button></DialogTrigger>
                   <DialogContent>
