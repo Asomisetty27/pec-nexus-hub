@@ -21,6 +21,7 @@ import FeedbackDashboard from "@/components/admin/FeedbackDashboard";
 import PermissionInspector from "@/pages/app/PermissionInspector";
 import InviteManagement from "@/pages/app/InviteManagement";
 import Analytics from "@/pages/app/Analytics";
+import RecruitmentOverview from "@/components/admin/RecruitmentOverview";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } };
@@ -37,7 +38,7 @@ export default function Admin() {
   const [sendingInvites, setSendingInvites] = useState(false);
   const [healing, setHealing] = useState(false);
 
-  const validTabs = ["roster", "approvals", "users", "audit", "metrics", "identity", "invites", "analytics", "feedback"];
+  const validTabs = ["roster", "approvals", "users", "audit", "metrics", "identity", "invites", "analytics", "feedback", "recruitment"];
   const initialTab = useMemo(() => {
     const t = searchParams.get("tab");
     return t && validTabs.includes(t) ? t : "roster";
@@ -189,6 +190,7 @@ export default function Admin() {
           <TabsTrigger value="invites" className="gap-1.5"><Mail className="h-3 w-3" /> Invites</TabsTrigger>
           <TabsTrigger value="analytics" className="gap-1.5"><BarChart3 className="h-3 w-3" /> Analytics</TabsTrigger>
           <TabsTrigger value="feedback" className="gap-1.5"><MsgIcon className="h-3 w-3" /> Feedback</TabsTrigger>
+          <TabsTrigger value="recruitment" className="gap-1.5"><UserPlus className="h-3 w-3" /> Recruitment</TabsTrigger>
           <TabsTrigger value="audit">Audit Log</TabsTrigger>
           <TabsTrigger value="metrics" className="gap-1.5"><BarChart3 className="h-3 w-3" /> Public Metrics</TabsTrigger>
         </TabsList>
