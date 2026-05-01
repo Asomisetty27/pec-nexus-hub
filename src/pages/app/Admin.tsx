@@ -337,6 +337,10 @@ export default function Admin() {
         <TabsContent value="feedback" className="mt-4">
           {tab === "feedback" && <FeedbackDashboard />}
         </TabsContent>
+
+        <TabsContent value="recruitment" className="mt-4">
+          {tab === "recruitment" && <RecruitmentOverview />}
+        </TabsContent>
       </Tabs>
     </motion.div>
   );
