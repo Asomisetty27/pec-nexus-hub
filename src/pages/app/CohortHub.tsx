@@ -323,11 +323,33 @@ export default function CohortHub() {
             <Card>
               <CardHeader className="py-3 px-5 flex-row items-center justify-between">
                 <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
-                  <Target className="h-3.5 w-3.5 text-accent-foreground" /> Projects
+                  <Target className="h-3.5 w-3.5 text-accent-foreground" /> {isOpsCohort ? "Outreach Execution" : "Projects"}
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0 px-5 pb-4">
-                {mockProjects.length === 0 ? (
+                {isOpsCohort ? (
+                  <div className="space-y-2">
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      Ops doesn't run mock projects. The cohort's operating surface is Company Relations + Outreach Execution.
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button onClick={() => navigate("/app/crm/dashboard")} className="rounded-xl border p-3 text-left card-hover">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-3.5 w-3.5 text-accent-foreground" />
+                          <span className="text-xs font-semibold">Company Relations</span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-1">Pipeline, accounts, contacts.</p>
+                      </button>
+                      <button onClick={() => navigate("/app/crm/qualified")} className="rounded-xl border p-3 text-left card-hover">
+                        <div className="flex items-center gap-2">
+                          <Target className="h-3.5 w-3.5 text-accent-foreground" />
+                          <span className="text-xs font-semibold">Qualified Queue</span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-1">Active outreach work.</p>
+                      </button>
+                    </div>
+                  </div>
+                ) : mockProjects.length === 0 ? (
                   <div className="flex flex-col items-center py-8 text-muted-foreground">
                     <Target className="h-8 w-8 mb-2 opacity-20" />
                     <p className="text-[11px]">No projects yet.</p>
