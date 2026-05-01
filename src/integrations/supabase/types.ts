@@ -5411,6 +5411,8 @@ export type Database = {
         | "cohort_meeting"
         | "all_hands"
         | "project_meeting"
+        | "leadership_meeting"
+        | "training_session"
       lead_stage:
         | "new"
         | "contacted"
@@ -5673,6 +5675,8 @@ export const Constants = {
         "cohort_meeting",
         "all_hands",
         "project_meeting",
+        "leadership_meeting",
+        "training_session",
       ],
       lead_stage: [
         "new",
