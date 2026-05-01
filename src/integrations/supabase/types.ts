@@ -1043,6 +1043,12 @@ export type Database = {
           approved: boolean
           approved_at: string | null
           approved_by: string | null
+          archived: boolean
+          archived_at: string | null
+          archived_by: string | null
+          canonical_stage:
+            | Database["public"]["Enums"]["deliverable_stage"]
+            | null
           client_visible: boolean
           created_at: string
           created_by: string
@@ -1051,12 +1057,23 @@ export type Database = {
           engagement_type: string | null
           file_url: string | null
           id: string
+          is_technical: boolean
           milestone_id: string | null
           owner_id: string | null
+          owner_type: Database["public"]["Enums"]["deliverable_owner_type"]
+          owning_group_id: string | null
+          pm_override_at: string | null
+          pm_override_by: string | null
+          pm_override_reason: string | null
           project_id: string
           required: boolean
           stage_id: string | null
+          started_at: string | null
+          started_by: string | null
           submitter_group_id: string | null
+          tech_validated_at: string | null
+          tech_validated_by: string | null
+          tech_validation_required: boolean
           title: string
           updated_at: string
           version: number
@@ -1068,6 +1085,12 @@ export type Database = {
           approved?: boolean
           approved_at?: string | null
           approved_by?: string | null
+          archived?: boolean
+          archived_at?: string | null
+          archived_by?: string | null
+          canonical_stage?:
+            | Database["public"]["Enums"]["deliverable_stage"]
+            | null
           client_visible?: boolean
           created_at?: string
           created_by: string
@@ -1076,12 +1099,23 @@ export type Database = {
           engagement_type?: string | null
           file_url?: string | null
           id?: string
+          is_technical?: boolean
           milestone_id?: string | null
           owner_id?: string | null
+          owner_type?: Database["public"]["Enums"]["deliverable_owner_type"]
+          owning_group_id?: string | null
+          pm_override_at?: string | null
+          pm_override_by?: string | null
+          pm_override_reason?: string | null
           project_id: string
           required?: boolean
           stage_id?: string | null
+          started_at?: string | null
+          started_by?: string | null
           submitter_group_id?: string | null
+          tech_validated_at?: string | null
+          tech_validated_by?: string | null
+          tech_validation_required?: boolean
           title: string
           updated_at?: string
           version?: number
@@ -1093,6 +1127,12 @@ export type Database = {
           approved?: boolean
           approved_at?: string | null
           approved_by?: string | null
+          archived?: boolean
+          archived_at?: string | null
+          archived_by?: string | null
+          canonical_stage?:
+            | Database["public"]["Enums"]["deliverable_stage"]
+            | null
           client_visible?: boolean
           created_at?: string
           created_by?: string
@@ -1101,12 +1141,23 @@ export type Database = {
           engagement_type?: string | null
           file_url?: string | null
           id?: string
+          is_technical?: boolean
           milestone_id?: string | null
           owner_id?: string | null
+          owner_type?: Database["public"]["Enums"]["deliverable_owner_type"]
+          owning_group_id?: string | null
+          pm_override_at?: string | null
+          pm_override_by?: string | null
+          pm_override_reason?: string | null
           project_id?: string
           required?: boolean
           stage_id?: string | null
+          started_at?: string | null
+          started_by?: string | null
           submitter_group_id?: string | null
+          tech_validated_at?: string | null
+          tech_validated_by?: string | null
+          tech_validation_required?: boolean
           title?: string
           updated_at?: string
           version?: number
@@ -1125,6 +1176,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "deliverables_owning_group_id_fkey"
+            columns: ["owning_group_id"]
+            isOneToOne: false
+            referencedRelation: "project_groups"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "deliverables_project_id_fkey"
@@ -4893,6 +4951,14 @@ export type Database = {
         Args: { p_deliverable_id: string }
         Returns: undefined
       }
+      approve_deliverable_with_override: {
+        Args: { p_deliverable_id: string; p_reason: string }
+        Returns: undefined
+      }
+      archive_deliverable: {
+        Args: { p_deliverable_id: string; p_reason: string }
+        Returns: undefined
+      }
       array_overlap_count: {
         Args: { a: string[]; b: string[] }
         Returns: number
@@ -4913,6 +4979,10 @@ export type Database = {
       }
       can_host_event: {
         Args: { _event_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_submit_deliverable: {
+        Args: { _deliverable_id: string; _user_id: string }
         Returns: boolean
       }
       cohort_meeting_status: { Args: { p_cohort_id: string }; Returns: Json }
@@ -5069,8 +5139,16 @@ export type Database = {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean
       }
+      is_project_tech_lead: {
+        Args: { _project_id: string; _user_id: string }
+        Returns: boolean
+      }
       join_user_to_default_channels: {
         Args: { p_cohort_name: string; p_role: string; p_user_id: string }
+        Returns: undefined
+      }
+      mark_deliverable_started: {
+        Args: { p_deliverable_id: string }
         Returns: undefined
       }
       mark_notifications_read: { Args: { p_ids?: string[] }; Returns: number }
@@ -5203,6 +5281,17 @@ export type Database = {
         Args: { p_cohort_id: string; p_project_id: string }
         Returns: number
       }
+      set_deliverable_stage: {
+        Args: {
+          p_deliverable_id: string
+          p_stage: Database["public"]["Enums"]["deliverable_stage"]
+        }
+        Returns: undefined
+      }
+      submit_deliverable: {
+        Args: { p_deliverable_id: string; p_file_url: string; p_notes?: string }
+        Returns: undefined
+      }
       submit_drill_attempt: {
         Args: {
           p_drill_id: string
@@ -5228,6 +5317,18 @@ export type Database = {
       training_ai_user_today_count: {
         Args: { p_user: string }
         Returns: number
+      }
+      unarchive_deliverable: {
+        Args: { p_deliverable_id: string }
+        Returns: undefined
+      }
+      unvalidate_deliverable_technical: {
+        Args: { p_deliverable_id: string; p_reason: string }
+        Returns: undefined
+      }
+      validate_deliverable_technical: {
+        Args: { p_deliverable_id: string }
+        Returns: undefined
       }
     }
     Enums: {
@@ -5280,6 +5381,13 @@ export type Database = {
       crm_task_status: "open" | "in_progress" | "done" | "cancelled"
       crm_tier_priority: "tier_1" | "tier_2" | "tier_3"
       crm_warmth: "cold" | "warm" | "hot"
+      deliverable_owner_type: "individual" | "group"
+      deliverable_stage:
+        | "kickoff"
+        | "discovery"
+        | "midpoint"
+        | "final"
+        | "retro"
       doc_visibility: "public" | "members" | "board" | "admin"
       drill_cohort: "software" | "hardware" | "mechanical" | "ops"
       drill_difficulty: "easy" | "medium" | "hard" | "expert"
@@ -5539,6 +5647,8 @@ export const Constants = {
       crm_task_status: ["open", "in_progress", "done", "cancelled"],
       crm_tier_priority: ["tier_1", "tier_2", "tier_3"],
       crm_warmth: ["cold", "warm", "hot"],
+      deliverable_owner_type: ["individual", "group"],
+      deliverable_stage: ["kickoff", "discovery", "midpoint", "final", "retro"],
       doc_visibility: ["public", "members", "board", "admin"],
       drill_cohort: ["software", "hardware", "mechanical", "ops"],
       drill_difficulty: ["easy", "medium", "hard", "expert"],
