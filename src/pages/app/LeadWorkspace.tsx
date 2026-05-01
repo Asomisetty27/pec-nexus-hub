@@ -185,6 +185,27 @@ export default function LeadWorkspace() {
         <SectionExplainer text="You manage progress, assign work, and move stages forward. Review pending deliverables and resolve blockers here." className="mt-1" />
       </motion.div>
 
+      {cohortName === "Ops / PM" && (
+        <motion.div variants={item}>
+          <Card className="border-accent/30 bg-accent/[0.03]">
+            <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold">Ops · Company Relations & Outreach</p>
+                <p className="text-xs text-muted-foreground">Ops doesn't run mock projects. Your operating surfaces are the CRM pipeline and outreach execution.</p>
+              </div>
+              <div className="flex shrink-0 gap-2">
+                <Button size="sm" onClick={() => navigate("/app/crm/dashboard")}>
+                  Open CRM
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => navigate("/app/crm/qualified")}>
+                  Qualified queue
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
       {/* Summary cards */}
       <motion.div variants={item} className="grid gap-3 grid-cols-2 sm:grid-cols-4">
         <SummaryCard icon={AlertTriangle} label="Overdue" value={overdueDeliverables.length} variant={overdueDeliverables.length > 0 ? "destructive" : "default"} />
