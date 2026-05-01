@@ -24,6 +24,7 @@ import DeliverableReviewHistory from "@/components/DeliverableReviewHistory";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { getUnifiedStatus, getValidationState, stageLabel } from "@/lib/deliverableStatus";
 import { ShieldAlert, ShieldCheck, Layers } from "lucide-react";
+import { CadenceHealthCard } from "@/components/CadenceHealthCard";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.2 } } };
@@ -241,6 +242,12 @@ export default function LeadWorkspace() {
           )}
         </motion.div>
       )}
+
+      {/* Cadence health (Phase 5) — cohort + first project */}
+      <motion.div variants={item} className="grid gap-3 md:grid-cols-2">
+        {cohort?.cohort_id && <CadenceHealthCard scope="cohort" targetId={cohort.cohort_id} dense />}
+        {projects[0]?.id && <CadenceHealthCard scope="project" targetId={projects[0].id} dense />}
+      </motion.div>
 
       <Tabs defaultValue="review">
         <TabsList>
