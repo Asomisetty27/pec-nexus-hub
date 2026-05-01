@@ -5429,6 +5429,16 @@ export type Database = {
           title: string
         }[]
       }
+      get_active_application_cycle: {
+        Args: never
+        Returns: {
+          closes_at: string
+          id: string
+          opens_at: string
+          season: Database["public"]["Enums"]["application_cycle_season"]
+          year: number
+        }[]
+      }
       get_milestone_blockers: {
         Args: { p_milestone_id: string }
         Returns: {
