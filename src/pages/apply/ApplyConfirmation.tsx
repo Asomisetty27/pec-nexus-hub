@@ -8,6 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 export default function ApplyConfirmation() {
   const [params] = useSearchParams();
   const ref = params.get("ref");
+  const intake = params.get("intake") === "1";
+  const dup = params.get("dup") === "1";
 
   useEffect(() => {
     document.title = "Application received | PEC";
@@ -22,9 +24,15 @@ export default function ApplyConfirmation() {
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-600/10">
                 <CheckCircle2 className="h-6 w-6 text-emerald-600" />
               </div>
-              <h1 className="mt-4 font-display text-3xl font-bold">Application received</h1>
+              <h1 className="mt-4 font-display text-3xl font-bold">
+                {dup ? "You're already in our pool" : "Application received"}
+              </h1>
               <p className="mt-2 text-sm text-muted-foreground">
-                Thanks for applying to Poly-Engineering Consulting. We have your submission.
+                {dup
+                  ? "We already have your application in our intake pool. We've noted that you're still interested and will reach out when the next recruitment cycle opens."
+                  : intake
+                  ? "Your application has been received and added to our intake pool. PEC reviews applications during formal recruitment cycles in Fall and, when needed, Spring."
+                  : "Thanks for applying to Poly-Engineering Consulting. We have your submission."}
               </p>
               {ref && (
                 <p className="mt-2 text-xs text-muted-foreground">
@@ -37,14 +45,18 @@ export default function ApplyConfirmation() {
                   <Clock className="h-4 w-4 text-primary" />
                   <h3 className="mt-2 text-sm font-semibold">What happens next</h3>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Our cohort leads will review your application during this cycle. We aim to respond before the cycle closes.
+                    {intake
+                      ? "Your application is held in our intake pool until the next recruitment cycle opens. No action is needed from you in the meantime."
+                      : "Our cohort leads will review your application during this cycle. We aim to respond before the cycle closes."}
                   </p>
                 </div>
                 <div className="rounded-md border border-border/60 p-4">
                   <Mail className="h-4 w-4 text-primary" />
-                  <h3 className="mt-2 text-sm font-semibold">If selected</h3>
+                  <h3 className="mt-2 text-sm font-semibold">{intake ? "When the cycle opens" : "If selected"}</h3>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    We'll reach out by email to schedule a short interview. No status portal — just direct contact.
+                    {intake
+                      ? "When the next cycle opens, your application is promoted into active review. If selected, we'll reach out by email."
+                      : "We'll reach out by email to schedule a short interview. No status portal — just direct contact."}
                   </p>
                 </div>
               </div>
