@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { onboardAcceptedApplicant, sendOnboardingInviteEmail, STAGE_LABEL } from "@/lib/recruitment";
 import { StageBadge } from "@/components/recruitment/StageBadge";
 import type { RecruitmentCtx } from "./RecruitmentLayout";
+import PreCyclePoolPanel from "@/components/recruitment/PreCyclePoolPanel";
 
 type Row = {
   id: string;
@@ -238,6 +239,7 @@ export default function RecruitmentLeadership() {
 
   return (
     <div className="space-y-4">
+      <PreCyclePoolPanel isLead={ctx.access.isLead} />
       <Section
         title="Decision pending"
         description="Awaiting your final call."
