@@ -41,6 +41,9 @@ export default function ApplyLanding() {
   }, []);
 
   const open = !!cycle;
+  // Intake mode = no active cycle. We still accept submissions into the
+  // pre-cycle pool and review them when formal recruitment opens.
+  const intake = !loading && !open;
 
   return (
     <div className="py-16 md:py-20">
@@ -71,23 +74,17 @@ export default function ApplyLanding() {
               </Badge>
             ) : (
               <Badge variant="outline" className="text-xs">
-                Applications are currently closed
+                Collecting applications for the next cycle
               </Badge>
             )}
           </div>
 
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            {open ? (
-              <Button asChild size="lg" className="gap-2">
-                <Link to="/apply/form">
-                  Start application <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            ) : (
-              <Button size="lg" disabled>
-                Applications closed
-              </Button>
-            )}
+            <Button asChild size="lg" className="gap-2">
+              <Link to="/apply/form">
+                {open ? "Start application" : "Submit interest now"} <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
             <Button asChild size="lg" variant="outline">
               <Link to="/services">Learn what we do</Link>
             </Button>
@@ -98,6 +95,12 @@ export default function ApplyLanding() {
               Cycle closes {new Date(cycle!.closes_at).toLocaleDateString(undefined, {
                 month: "long", day: "numeric", year: "numeric",
               })}.
+            </p>
+          )}
+          {intake && (
+            <p className="mt-3 text-xs text-muted-foreground">
+              We're currently collecting applications for the next recruitment cycle.
+              Submissions received now will be reviewed when formal recruitment opens.
             </p>
           )}
         </motion.div>
@@ -129,9 +132,10 @@ export default function ApplyLanding() {
                 <div>
                   <h3 className="font-semibold">When we recruit</h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Fall is our primary intake. We occasionally open a smaller Spring cycle when cohort capacity allows.
-                    If applications are closed today, the next cycle will be announced on this page and through
-                    Cal Poly engineering channels.
+                    Formal review and interviews happen during recruitment cycles in Fall and,
+                    when needed, Spring. You can submit an application at any time —
+                    submissions outside an active cycle are added to our intake pool and reviewed
+                    when the next cycle opens.
                   </p>
                 </div>
               </div>

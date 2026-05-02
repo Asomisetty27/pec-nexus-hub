@@ -275,6 +275,7 @@ export type Database = {
           gpa: number | null
           graduation_year: number | null
           id: string
+          last_resubmitted_at: string | null
           links: Json
           major: string | null
           onboarding_invite_token_id: string | null
@@ -316,6 +317,7 @@ export type Database = {
           gpa?: number | null
           graduation_year?: number | null
           id?: string
+          last_resubmitted_at?: string | null
           links?: Json
           major?: string | null
           onboarding_invite_token_id?: string | null
@@ -357,6 +359,7 @@ export type Database = {
           gpa?: number | null
           graduation_year?: number | null
           id?: string
+          last_resubmitted_at?: string | null
           links?: Json
           major?: string | null
           onboarding_invite_token_id?: string | null
@@ -5471,6 +5474,7 @@ export type Database = {
         Args: { p_scope: string; p_target_id: string; p_window_days?: number }
         Returns: Json
       }
+      count_pre_cycle_pool_eligible: { Args: never; Returns: number }
       create_assignment_bundle: {
         Args: {
           p_description?: string
@@ -5666,6 +5670,10 @@ export type Database = {
       }
       onboard_accepted_applicant: {
         Args: { _applicant_id: string }
+        Returns: Json
+      }
+      promote_pre_cycle_applicants: {
+        Args: { _applicant_ids?: string[]; _cycle_id?: string }
         Returns: Json
       }
       read_email_batch: {
@@ -5885,6 +5893,7 @@ export type Database = {
         | "social_media"
         | "other"
       applicant_stage:
+        | "pre_cycle_pool"
         | "applied"
         | "under_review"
         | "resume_screen"
@@ -6178,6 +6187,7 @@ export const Constants = {
         "other",
       ],
       applicant_stage: [
+        "pre_cycle_pool",
         "applied",
         "under_review",
         "resume_screen",
