@@ -1008,42 +1008,54 @@ export type Database = {
       }
       company_contacts: {
         Row: {
+          confidence_level: string | null
           created_at: string
           email: string | null
           full_name: string
           id: string
           is_primary: boolean
+          is_publicly_listed: boolean
           linkedin_url: string | null
           notes: string | null
           organization_id: string
           phone: string | null
+          source_url: string | null
           title: string | null
+          title_function: string | null
           updated_at: string
         }
         Insert: {
+          confidence_level?: string | null
           created_at?: string
           email?: string | null
           full_name: string
           id?: string
           is_primary?: boolean
+          is_publicly_listed?: boolean
           linkedin_url?: string | null
           notes?: string | null
           organization_id: string
           phone?: string | null
+          source_url?: string | null
           title?: string | null
+          title_function?: string | null
           updated_at?: string
         }
         Update: {
+          confidence_level?: string | null
           created_at?: string
           email?: string | null
           full_name?: string
           id?: string
           is_primary?: boolean
+          is_publicly_listed?: boolean
           linkedin_url?: string | null
           notes?: string | null
           organization_id?: string
           phone?: string | null
+          source_url?: string | null
           title?: string | null
+          title_function?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1114,7 +1126,9 @@ export type Database = {
           due_at: string | null
           id: string
           organization_id: string
+          related_public_contract_id: string | null
           status: Database["public"]["Enums"]["crm_task_status"]
+          task_source: string
           title: string
           updated_at: string
         }
@@ -1127,7 +1141,9 @@ export type Database = {
           due_at?: string | null
           id?: string
           organization_id: string
+          related_public_contract_id?: string | null
           status?: Database["public"]["Enums"]["crm_task_status"]
+          task_source?: string
           title: string
           updated_at?: string
         }
@@ -1140,7 +1156,9 @@ export type Database = {
           due_at?: string | null
           id?: string
           organization_id?: string
+          related_public_contract_id?: string | null
           status?: Database["public"]["Enums"]["crm_task_status"]
+          task_source?: string
           title?: string
           updated_at?: string
         }
@@ -1164,6 +1182,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_tasks_related_public_contract_id_fkey"
+            columns: ["related_public_contract_id"]
+            isOneToOne: false
+            referencedRelation: "public_contract_opportunities"
             referencedColumns: ["id"]
           },
         ]
@@ -1247,6 +1272,47 @@ export type Database = {
           title?: string
         }
         Relationships: []
+      }
+      contract_monitor_runs: {
+        Row: {
+          completed_at: string | null
+          created_by: string | null
+          error_log: string | null
+          id: string
+          run_type: string
+          started_at: string
+          status: string
+          summary: Json
+        }
+        Insert: {
+          completed_at?: string | null
+          created_by?: string | null
+          error_log?: string | null
+          id?: string
+          run_type: string
+          started_at?: string
+          status: string
+          summary?: Json
+        }
+        Update: {
+          completed_at?: string | null
+          created_by?: string | null
+          error_log?: string | null
+          id?: string
+          run_type?: string
+          started_at?: string
+          status?: string
+          summary?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_monitor_runs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       course_progress: {
         Row: {
@@ -3736,21 +3802,69 @@ export type Database = {
           },
         ]
       }
+      organization_enrichment_sources: {
+        Row: {
+          confidence_level: string
+          created_at: string
+          extracted_payload: Json
+          fetched_at: string
+          id: string
+          organization_id: string
+          source_domain: string | null
+          source_kind: string
+          source_url: string
+        }
+        Insert: {
+          confidence_level: string
+          created_at?: string
+          extracted_payload?: Json
+          fetched_at?: string
+          id?: string
+          organization_id: string
+          source_domain?: string | null
+          source_kind: string
+          source_url: string
+        }
+        Update: {
+          confidence_level?: string
+          created_at?: string
+          extracted_payload?: Json
+          fetched_at?: string
+          id?: string
+          organization_id?: string
+          source_domain?: string | null
+          source_kind?: string
+          source_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_enrichment_sources_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           contact_email: string | null
           contact_name: string | null
           contact_phone: string | null
+          contract_monitor_notes: string | null
           created_at: string
           created_by: string | null
           crm_status: Database["public"]["Enums"]["crm_status"]
           description: string | null
+          employee_band: string | null
+          enrichment_confidence: string | null
           hq_location: string | null
           id: string
           industry: string | null
           is_active: boolean
           is_company_relation: boolean
           last_contacted_at: string | null
+          last_enriched_at: string | null
           linkedin_url: string | null
           logo_url: string | null
           name: string
@@ -3759,7 +3873,9 @@ export type Database = {
           overseeing_lead_user_id: string | null
           owner_user_id: string | null
           prestige_score: number | null
+          procurement_vendor: boolean
           project_fit_score: number | null
+          public_sector_relevance: string | null
           relationship_goal:
             | Database["public"]["Enums"]["relationship_goal"]
             | null
@@ -3778,16 +3894,20 @@ export type Database = {
           contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string | null
+          contract_monitor_notes?: string | null
           created_at?: string
           created_by?: string | null
           crm_status?: Database["public"]["Enums"]["crm_status"]
           description?: string | null
+          employee_band?: string | null
+          enrichment_confidence?: string | null
           hq_location?: string | null
           id?: string
           industry?: string | null
           is_active?: boolean
           is_company_relation?: boolean
           last_contacted_at?: string | null
+          last_enriched_at?: string | null
           linkedin_url?: string | null
           logo_url?: string | null
           name: string
@@ -3796,7 +3916,9 @@ export type Database = {
           overseeing_lead_user_id?: string | null
           owner_user_id?: string | null
           prestige_score?: number | null
+          procurement_vendor?: boolean
           project_fit_score?: number | null
+          public_sector_relevance?: string | null
           relationship_goal?:
             | Database["public"]["Enums"]["relationship_goal"]
             | null
@@ -3817,16 +3939,20 @@ export type Database = {
           contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string | null
+          contract_monitor_notes?: string | null
           created_at?: string
           created_by?: string | null
           crm_status?: Database["public"]["Enums"]["crm_status"]
           description?: string | null
+          employee_band?: string | null
+          enrichment_confidence?: string | null
           hq_location?: string | null
           id?: string
           industry?: string | null
           is_active?: boolean
           is_company_relation?: boolean
           last_contacted_at?: string | null
+          last_enriched_at?: string | null
           linkedin_url?: string | null
           logo_url?: string | null
           name?: string
@@ -3835,7 +3961,9 @@ export type Database = {
           overseeing_lead_user_id?: string | null
           owner_user_id?: string | null
           prestige_score?: number | null
+          procurement_vendor?: boolean
           project_fit_score?: number | null
+          public_sector_relevance?: string | null
           relationship_goal?:
             | Database["public"]["Enums"]["relationship_goal"]
             | null
@@ -4320,6 +4448,83 @@ export type Database = {
           {
             foreignKeyName: "projects_client_org_id_fkey"
             columns: ["client_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_contract_opportunities: {
+        Row: {
+          awarded_at: string | null
+          awardee_organization_id: string | null
+          category: string | null
+          city: string | null
+          closed_at: string | null
+          confidence_level: string
+          created_at: string
+          external_solicitation_id: string | null
+          id: string
+          is_archived: boolean
+          published_at: string | null
+          routed_mode: string | null
+          solicitation_status: string
+          solicitation_title: string
+          source_agency: string
+          source_snapshot: Json
+          source_type: string
+          source_url: string | null
+          state: string | null
+          updated_at: string
+        }
+        Insert: {
+          awarded_at?: string | null
+          awardee_organization_id?: string | null
+          category?: string | null
+          city?: string | null
+          closed_at?: string | null
+          confidence_level: string
+          created_at?: string
+          external_solicitation_id?: string | null
+          id?: string
+          is_archived?: boolean
+          published_at?: string | null
+          routed_mode?: string | null
+          solicitation_status: string
+          solicitation_title: string
+          source_agency?: string
+          source_snapshot?: Json
+          source_type?: string
+          source_url?: string | null
+          state?: string | null
+          updated_at?: string
+        }
+        Update: {
+          awarded_at?: string | null
+          awardee_organization_id?: string | null
+          category?: string | null
+          city?: string | null
+          closed_at?: string | null
+          confidence_level?: string
+          created_at?: string
+          external_solicitation_id?: string | null
+          id?: string
+          is_archived?: boolean
+          published_at?: string | null
+          routed_mode?: string | null
+          solicitation_status?: string
+          solicitation_title?: string
+          source_agency?: string
+          source_snapshot?: Json
+          source_type?: string
+          source_url?: string | null
+          state?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_contract_opportunities_awardee_organization_id_fkey"
+            columns: ["awardee_organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
@@ -5465,6 +5670,18 @@ export type Database = {
       }
       can_view_applicant: {
         Args: { _applicant_id: string; _uid: string }
+        Returns: boolean
+      }
+      cm_confidence_rank: { Args: { _c: string }; Returns: number }
+      cm_write_field_if_better: {
+        Args: {
+          _field: string
+          _new_confidence: string
+          _org_id: string
+          _source_kind: string
+          _source_url: string
+          _value: string
+        }
         Returns: boolean
       }
       cohort_meeting_status: { Args: { p_cohort_id: string }; Returns: Json }
