@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Info } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -144,7 +145,11 @@ export default function ApplyForm() {
         return;
       }
 
-      navigate(`/apply/confirmation?ref=${encodeURIComponent(body?.ref ?? "")}`);
+      const params = new URLSearchParams();
+      if (body?.ref) params.set("ref", body.ref);
+      if (body?.intake) params.set("intake", "1");
+      if (body?.already_in_pool) params.set("dup", "1");
+      navigate(`/apply/confirmation?${params.toString()}`);
     } catch (err: any) {
       setError(err?.message ?? "Network error. Please try again.");
       setSubmitting(false);
@@ -159,19 +164,8 @@ export default function ApplyForm() {
     );
   }
 
-  if (!cycleOpen) {
-    return (
-      <div className="container max-w-2xl py-20 text-center">
-        <h1 className="font-display text-3xl font-bold">Applications are closed</h1>
-        <p className="mt-3 text-sm text-muted-foreground">
-          The current recruitment cycle isn't open. The next cycle will be posted on the apply page.
-        </p>
-        <Button asChild className="mt-6" variant="outline">
-          <Link to="/apply"><ArrowLeft className="mr-2 h-4 w-4" /> Back</Link>
-        </Button>
-      </div>
-    );
-  }
+  // No active cycle = intake mode. We accept the application into the
+  // pre-cycle pool and review it when formal recruitment opens.
 
   return (
     <div className="py-12 md:py-16">
@@ -188,6 +182,16 @@ export default function ApplyForm() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {!cycleOpen && (
+                <Alert className="mb-6 border-cyan-500/30 bg-cyan-500/5">
+                  <Info className="h-4 w-4" />
+                  <AlertDescription className="text-sm">
+                    We're currently collecting applications for the next recruitment cycle.
+                    Submissions received now will be reviewed when formal recruitment opens.
+                    Formal review and interviews happen in Fall and, when needed, Spring.
+                  </AlertDescription>
+                </Alert>
+              )}
               <form ref={formRef} onSubmit={handleSubmit} className="space-y-6" noValidate>
                 {/* honeypot */}
                 <div className="hidden" aria-hidden="true">
