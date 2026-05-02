@@ -89,12 +89,16 @@ export function canReviewerDoTransition(curr: ApplicantStage, to: ApplicantStage
 }
 
 export async function fetchSignedResumeUrl(applicantId: string): Promise<string | null> {
-  const { data, error } = await supabase.rpc("get_resume_signed_url", {
-    _applicant_id: applicantId,
-    _expires_in_seconds: 300,
+  // Authz + audit are enforced inside the edge function via the SQL
+  // RPC (under the caller's JWT). Signing happens with service role
+  // because the bucket blocks authenticated SELECTs by policy.
+  // The bucket itself remains private; URLs are short-lived (300s).
+  const { data, error } = await supabase.functions.invoke("get-applicant-resume-url", {
+    body: { applicant_id: applicantId },
   });
   if (error) return null;
-  return (typeof data === "string" ? data : null) ?? null;
+  const url = (data as { url?: string } | null)?.url;
+  return typeof url === "string" ? url : null;
 }
 
 export async function submitReview(args: {

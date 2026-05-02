@@ -21,3 +21,5 @@ project_id = "fjeroezjzymywvwqfemx"
     verify_jwt = true
   [functions.send-transactional-email]
     verify_jwt = true
+  [functions.get-applicant-resume-url]
+    verify_jwt = true
