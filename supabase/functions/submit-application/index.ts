@@ -126,38 +126,66 @@ Deno.serve(async (req) => {
     }
   } catch (_) { /* non-fatal */ }
 
-  // Active cycle
+  // Active cycle (may be null — pre-cycle intake mode)
   const { data: cycleRows, error: cycleErr } = await admin.rpc("get_active_application_cycle");
   if (cycleErr) return json(500, { error: "Could not check application cycle" });
   const cycle = Array.isArray(cycleRows) ? cycleRows[0] : null;
-  if (!cycle) return json(410, { error: "Applications are not currently open." });
+  const intakeMode = !cycle;
 
   const emailNorm = data.email.toLowerCase();
 
-  // Duplicate check (same email + same cycle)
-  const { data: dup } = await admin
-    .from("applicants")
-    .select("id")
-    .eq("cycle_id", cycle.id)
-    .ilike("email", emailNorm)
-    .maybeSingle();
-  if (dup) return json(409, { error: "You've already submitted an application for this cycle." });
+  // Duplicate checks
+  if (intakeMode) {
+    // One live pre-cycle pool record per email (DB enforces this with a
+    // partial unique index; we check first to return a friendly response).
+    const { data: poolDup } = await admin
+      .from("applicants")
+      .select("id")
+      .eq("current_stage", "pre_cycle_pool")
+      .is("archived_at", null)
+      .ilike("email", emailNorm)
+      .maybeSingle();
+    if (poolDup) {
+      // Touch last_resubmitted_at so leadership can see they're still interested.
+      await admin
+        .from("applicants")
+        .update({ last_resubmitted_at: new Date().toISOString() })
+        .eq("id", poolDup.id);
+      return json(200, {
+        ok: true,
+        intake: true,
+        already_in_pool: true,
+        ref: poolDup.id.slice(0, 8),
+      });
+    }
+  } else {
+    // Same email + same cycle dedupe (existing behavior).
+    const { data: dup } = await admin
+      .from("applicants")
+      .select("id")
+      .eq("cycle_id", cycle.id)
+      .ilike("email", emailNorm)
+      .maybeSingle();
+    if (dup) return json(409, { error: "You've already submitted an application for this cycle." });
+  }
 
-  // Routing
+  // Routing + reviewer assignment ONLY when an active cycle is open.
+  // In intake mode we never route or assign — that happens at promotion time.
   const majorNorm = data.major.trim().toLowerCase();
   let routedCohortId: string | null = null;
-  try {
-    const { data: route } = await admin
-      .from("major_cohort_routing")
-      .select("cohort_id")
-      .ilike("major", majorNorm)
-      .maybeSingle();
-    routedCohortId = route?.cohort_id ?? null;
-  } catch (_) {}
-
-  // Primary reviewer = lowest open load in routed cohort
   let primaryReviewerId: string | null = null;
-  if (routedCohortId) {
+
+  if (!intakeMode) {
+    try {
+      const { data: route } = await admin
+        .from("major_cohort_routing")
+        .select("cohort_id")
+        .ilike("major", majorNorm)
+        .maybeSingle();
+      routedCohortId = route?.cohort_id ?? null;
+    } catch (_) {}
+
+    if (routedCohortId) {
     const { data: reviewers } = await admin
       .from("cohort_memberships")
       .select("user_id")
@@ -184,12 +212,14 @@ Deno.serve(async (req) => {
       }
       primaryReviewerId = best;
     }
+    }
   }
 
   // Generate applicant id so we can name the resume file before insert
   const applicantId = crypto.randomUUID();
   const ext = detectExt(resume.type, resume.name || "");
-  const storagePath = `${cycle.id}/${applicantId}.${ext}`;
+  const storageBucket = intakeMode ? "pool" : cycle!.id;
+  const storagePath = `${storageBucket}/${applicantId}.${ext}`;
 
   // Upload resume
   const { error: upErr } = await admin.storage
@@ -204,7 +234,7 @@ Deno.serve(async (req) => {
 
   const insertRow: any = {
     id: applicantId,
-    cycle_id: cycle.id,
+    cycle_id: intakeMode ? null : cycle!.id,
     full_name: data.full_name,
     email: emailNorm,
     phone: data.phone,
@@ -216,13 +246,13 @@ Deno.serve(async (req) => {
     source: data.source,
     source_detail: data.source_detail || (data.calpoly_email ? `calpoly_email:${data.calpoly_email}` : null),
     routed_cohort_id: routedCohortId,
-    routing_resolved: routedCohortId !== null,
+    routing_resolved: !intakeMode && routedCohortId !== null,
     primary_reviewer_user_id: primaryReviewerId,
     resume_storage_path: storagePath,
     resume_uploaded_at: new Date().toISOString(),
     submission_ip: ip,
     submission_user_agent: ua,
-    current_stage: "applied",
+    current_stage: intakeMode ? "pre_cycle_pool" : "applied",
   };
 
   const { error: insErr } = await admin.from("applicants").insert(insertRow);
@@ -230,6 +260,15 @@ Deno.serve(async (req) => {
     // best-effort cleanup
     await admin.storage.from("applicant-resumes").remove([storagePath]);
     if (insErr.code === "23505") {
+      // Race: another submission for the same email landed first.
+      if (intakeMode) {
+        return json(200, {
+          ok: true,
+          intake: true,
+          already_in_pool: true,
+          ref: "pool",
+        });
+      }
       return json(409, { error: "You've already submitted an application for this cycle." });
     }
     return json(500, { error: "Could not save application", detail: insErr.message });
@@ -243,11 +282,12 @@ Deno.serve(async (req) => {
   // Audit
   try {
     await admin.from("audit_logs").insert({
-      action: "applicant.submitted",
+      action: intakeMode ? "applicant.intake_pooled" : "applicant.submitted",
       target_type: "applicant",
       target_id: applicantId,
       metadata: {
-        cycle_id: cycle.id,
+        cycle_id: intakeMode ? null : cycle!.id,
+        intake_mode: intakeMode,
         routed_cohort_id: routedCohortId,
         primary_reviewer_user_id: primaryReviewerId,
         major: data.major,
@@ -258,6 +298,7 @@ Deno.serve(async (req) => {
 
   return json(200, {
     ok: true,
+    intake: intakeMode,
     ref: applicantId.slice(0, 8),
     routed: routedCohortId !== null,
   });
