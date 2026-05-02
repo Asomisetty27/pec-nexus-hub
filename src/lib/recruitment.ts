@@ -19,9 +19,21 @@ export const TERMINAL_STAGES: ApplicantStage[] = [
   "withdrawn",
 ];
 
-export const ALL_STAGES: ApplicantStage[] = [...STAGE_ORDER, ...TERMINAL_STAGES];
+/**
+ * Intake-only stages — not part of normal reviewer progression.
+ * `pre_cycle_pool` is reachable only via public submission when no active
+ * cycle exists, and exits only via leadership promotion.
+ */
+export const INTAKE_STAGES: ApplicantStage[] = ["pre_cycle_pool"];
+
+export const ALL_STAGES: ApplicantStage[] = [
+  ...INTAKE_STAGES,
+  ...STAGE_ORDER,
+  ...TERMINAL_STAGES,
+];
 
 export const STAGE_LABEL: Record<ApplicantStage, string> = {
+  pre_cycle_pool: "Pre-cycle pool",
   applied: "Applied",
   under_review: "Under review",
   resume_screen: "Resume screen",
@@ -34,6 +46,7 @@ export const STAGE_LABEL: Record<ApplicantStage, string> = {
 };
 
 export const STAGE_TONE: Record<ApplicantStage, string> = {
+  pre_cycle_pool: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300",
   applied: "bg-muted text-foreground",
   under_review: "bg-blue-500/10 text-blue-700 dark:text-blue-300",
   resume_screen: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
