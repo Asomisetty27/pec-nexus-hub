@@ -25,27 +25,27 @@ export function ClaimButton({
 
   const claim = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (busy) return;
     setBusy(true);
-    // Re-check ownership server-side to avoid race claims
-    const { data: cur } = await supabase
-      .from("organizations")
-      .select("owner_user_id, secondary_owner_user_id, overseeing_lead_user_id")
-      .eq("id", organizationId)
-      .maybeSingle();
-    if (cur && (cur.owner_user_id || cur.secondary_owner_user_id || cur.overseeing_lead_user_id)) {
-      toast.error("Someone else just claimed this company.");
-      setBusy(false);
-      onClaimed?.();
-      return;
-    }
-    const { error } = await supabase
-      .from("organizations")
-      .update({ owner_user_id: user.id })
-      .eq("id", organizationId)
-      .is("owner_user_id", null);
+    const { data, error } = await supabase.rpc("crm_claim_organization", { _org_id: organizationId });
     setBusy(false);
     if (error) {
       toast.error(error.message);
+      return;
+    }
+    const result = data as { ok: boolean; reason?: string } | null;
+    if (!result?.ok) {
+      const reason = result?.reason;
+      toast.error(
+        reason === "already_owned"
+          ? "Someone else just claimed this company."
+          : reason === "forbidden"
+          ? "You don't have access to claim companies."
+          : reason === "not_found"
+          ? "Company not found."
+          : "Could not claim."
+      );
+      onClaimed?.();
       return;
     }
     toast.success("Claimed");

@@ -5731,6 +5731,8 @@ export type Database = {
         }
         Returns: string
       }
+      crm_claim_organization: { Args: { _org_id: string }; Returns: Json }
+      crm_release_organization: { Args: { _org_id: string }; Returns: Json }
       dashboard_changes_since: { Args: { p_since: string }; Returns: Json }
       delete_email: {
         Args: { message_id: number; queue_name: string }
