@@ -1,5 +1,7 @@
-// Manually-triggered procurement scan for the City of San Luis Obispo.
-// Leadership-only. Idempotent. Skips irrelevant rows. Never fabricates data.
+// Source-registry-driven procurement scan.
+// Reads active sources from public.opportunity_sources, respects scan_cadence_hours,
+// hash-skips unchanged listings, performs idempotent insert/update.
+// Leadership-only (or service-role for scheduled fanout).
 
 import { scrape } from "../_shared/contract-monitor/firecrawl.ts";
 import {
@@ -24,17 +26,6 @@ import {
   startRun,
 } from "../_shared/contract-monitor/runs.ts";
 
-const SOURCES = [
-  {
-    label: "BidNetDirect",
-    url: "https://www.bidnetdirect.com/california/cityofsanluisobispo",
-  },
-  {
-    label: "SLO City Bids/RFPs",
-    url: "https://www.slocity.org/government/department-directory/finance-it/purchasing-contracting/bids-rfps",
-  },
-];
-
 interface RawOpportunity {
   title: string;
   url: string;
@@ -46,17 +37,10 @@ interface RawOpportunity {
   awardedRaw?: string | null;
 }
 
-/**
- * Best-effort markdown parser for procurement listing pages. We extract
- * candidate rows by scanning markdown links and surrounding text for
- * status/date keywords. If we can't find a meaningful title we skip the row
- * entirely rather than insert junk.
- */
 function extractFromMarkdown(markdown: string, baseUrl: string): RawOpportunity[] {
   if (!markdown) return [];
   const out: RawOpportunity[] = [];
   const seen = new Set<string>();
-  // Capture markdown links: [text](href)
   const linkRx = /\[([^\]]{6,200})\]\(([^)]+)\)/g;
   let m: RegExpExecArray | null;
   while ((m = linkRx.exec(markdown)) !== null) {
@@ -65,15 +49,13 @@ function extractFromMarkdown(markdown: string, baseUrl: string): RawOpportunity[
     if (!text || !href) continue;
     const abs = absoluteUrl(href, baseUrl);
     if (!abs) continue;
-    // Skip obvious nav/utility links
     if (/^(home|next|previous|login|register|contact|help|search|sign\s*in)$/i.test(text)) continue;
     if (/\.(jpg|png|gif|svg|css|js)(\?|$)/i.test(abs)) continue;
     if (seen.has(abs)) continue;
     seen.add(abs);
-    // Look at the surrounding ~400 chars for status/date hints
-    const windowStart = Math.max(0, m.index - 200);
-    const windowEnd = Math.min(markdown.length, m.index + m[0].length + 200);
-    const ctx = markdown.slice(windowStart, windowEnd);
+    const ws = Math.max(0, m.index - 200);
+    const we = Math.min(markdown.length, m.index + m[0].length + 200);
+    const ctx = markdown.slice(ws, we);
     const statusRaw = (ctx.match(/\b(open|closed|awarded|cancell?ed|active|expired)\b/i)?.[1] ?? "").toLowerCase();
     const idMatch = ctx.match(/\b(?:RFP|RFQ|IFB|Bid|Project|Solicitation)[\s#:-]*([A-Z0-9][A-Z0-9\-_/]{2,40})/i);
     const closedRaw = ctx.match(/clos(?:e|ing|ed)\s*[:\-]?\s*([A-Z][a-z]+\s+\d{1,2},?\s+\d{4}|\d{1,2}\/\d{1,2}\/\d{2,4})/i)?.[1];
@@ -92,6 +74,23 @@ function extractFromMarkdown(markdown: string, baseUrl: string): RawOpportunity[
   return out;
 }
 
+async function sha256(s: string): Promise<string> {
+  const data = new TextEncoder().encode(s);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+interface SourceRow {
+  id: string;
+  name: string;
+  agency: string | null;
+  source_type: string;
+  listing_url: string;
+  category_tags: string[];
+  scan_cadence_hours: number;
+  last_scanned_at: string | null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return jsonResponse({ error: "method_not_allowed" }, 405);
@@ -100,9 +99,21 @@ Deno.serve(async (req) => {
   if (auth.error) return jsonResponse({ error: auth.error }, 403);
 
   const admin = adminClient();
-  const runId = await startRun(admin, "manual_scan", auth.userId);
+  let body: { source_ids?: string[]; force?: boolean } = {};
+  try { body = await req.json(); } catch { /* ok */ }
 
+  // Load active sources (optionally filtered to specific IDs / forced).
+  let q = admin.from("opportunity_sources").select("*").eq("is_active", true);
+  if (body.source_ids?.length) q = q.in("id", body.source_ids);
+  const { data: sources, error: srcErr } = await q;
+  if (srcErr) return jsonResponse({ error: srcErr.message }, 500);
+
+  const runId = await startRun(admin, "manual_scan", auth.userId);
   const summary: RunSummary = {
+    sources_total: sources?.length ?? 0,
+    sources_scanned: 0,
+    sources_skipped_cadence: 0,
+    sources_unchanged: 0,
     scanned_count: 0,
     relevant_count: 0,
     inserted_count: 0,
@@ -112,17 +123,43 @@ Deno.serve(async (req) => {
     errors: [],
     notes: [],
   };
-
   let hadFailure = false;
 
-  for (const src of SOURCES) {
-    const fc = await scrape(src.url, { formats: ["markdown", "links"], onlyMainContent: true });
+  for (const s of (sources ?? []) as SourceRow[]) {
+    // Cadence guard
+    if (!body.force && s.last_scanned_at) {
+      const ageMs = Date.now() - new Date(s.last_scanned_at).getTime();
+      if (ageMs < s.scan_cadence_hours * 3600_000) {
+        summary.sources_skipped_cadence! += 1;
+        continue;
+      }
+    }
+    summary.sources_scanned! += 1;
+
+    const fc = await scrape(s.listing_url, { formats: ["markdown", "links"], onlyMainContent: true });
     if (!fc.ok || !fc.data?.markdown) {
       hadFailure = true;
-      summary.errors!.push({ stage: "scrape", message: fc.error ?? "no markdown", context: { source: src.label } });
+      summary.errors!.push({ stage: "scrape", message: fc.error ?? "no markdown", context: { source_id: s.id } });
       continue;
     }
-    const raws = extractFromMarkdown(fc.data.markdown, src.url);
+
+    // Hash-skip if listing markdown unchanged from last scan.
+    const hash = await sha256(fc.data.markdown);
+    const { data: priorRow } = await admin
+      .from("public_contract_opportunities")
+      .select("listing_hash")
+      .eq("source_id", s.id)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const unchanged = priorRow?.listing_hash === hash;
+    if (unchanged && !body.force) {
+      summary.sources_unchanged! += 1;
+      await admin.from("opportunity_sources").update({ last_scanned_at: new Date().toISOString() }).eq("id", s.id);
+      continue;
+    }
+
+    const raws = extractFromMarkdown(fc.data.markdown, s.listing_url);
     summary.scanned_count! += raws.length;
 
     for (const r of raws) {
@@ -133,8 +170,8 @@ Deno.serve(async (req) => {
       const confidence = initialConfidence(status);
 
       const row = {
-        source_agency: "City of San Luis Obispo",
-        source_type: "public_procurement",
+        source_agency: s.agency ?? "Unknown",
+        source_type: s.source_type,
         external_solicitation_id: r.externalId ?? null,
         solicitation_title: r.title.slice(0, 500),
         solicitation_status: status,
@@ -143,8 +180,11 @@ Deno.serve(async (req) => {
         awarded_at: safeParseDate(r.awardedRaw),
         confidence_level: confidence,
         source_url: r.url,
+        source_id: s.id,
+        listing_hash: hash,
         source_snapshot: {
-          source_label: src.label,
+          source_label: s.name,
+          source_id: s.id,
           scraped_at: new Date().toISOString(),
           status_raw: r.statusRaw ?? null,
           published_raw: r.publishedRaw ?? null,
@@ -153,21 +193,17 @@ Deno.serve(async (req) => {
           relevance_reason: rel.reason,
         },
         category: rel.category,
-      } as const;
+      };
 
-      // Manual idempotent insert-or-update (partial unique indexes don't
-      // satisfy PostgREST's ON CONFLICT, so we look up explicitly).
       let existingId: string | null = null;
       let existingStatus: string | null = null;
       const lookup = row.external_solicitation_id
-        ? admin
-            .from("public_contract_opportunities")
+        ? admin.from("public_contract_opportunities")
             .select("id, solicitation_status")
             .eq("source_agency", row.source_agency)
             .eq("external_solicitation_id", row.external_solicitation_id)
             .maybeSingle()
-        : admin
-            .from("public_contract_opportunities")
+        : admin.from("public_contract_opportunities")
             .select("id, solicitation_status")
             .eq("source_agency", row.source_agency)
             .eq("source_url", r.url)
@@ -177,19 +213,18 @@ Deno.serve(async (req) => {
       existingStatus = ex?.solicitation_status ?? null;
 
       if (existingId) {
-        const { error: updErr } = await admin
-          .from("public_contract_opportunities")
-          .update({
-            solicitation_title: row.solicitation_title,
-            solicitation_status: row.solicitation_status,
-            published_at: row.published_at,
-            closed_at: row.closed_at,
-            awarded_at: row.awarded_at,
-            source_url: row.source_url,
-            source_snapshot: row.source_snapshot,
-            category: row.category,
-          })
-          .eq("id", existingId);
+        const { error: updErr } = await admin.from("public_contract_opportunities").update({
+          solicitation_title: row.solicitation_title,
+          solicitation_status: row.solicitation_status,
+          published_at: row.published_at,
+          closed_at: row.closed_at,
+          awarded_at: row.awarded_at,
+          source_url: row.source_url,
+          source_snapshot: row.source_snapshot,
+          source_id: row.source_id,
+          listing_hash: row.listing_hash,
+          category: row.category,
+        }).eq("id", existingId);
         if (updErr) {
           hadFailure = true;
           summary.errors!.push({ stage: "update", message: updErr.message, context: { url: r.url } });
@@ -198,11 +233,8 @@ Deno.serve(async (req) => {
         if (existingStatus !== status) summary.updated_count! += 1;
         else summary.duplicate_skipped_count! += 1;
       } else {
-        const { error: insErr } = await admin
-          .from("public_contract_opportunities")
-          .insert(row);
+        const { error: insErr } = await admin.from("public_contract_opportunities").insert(row);
         if (insErr) {
-          // Race: another concurrent run may have inserted same key. Treat as duplicate.
           if (/duplicate key|unique/i.test(insErr.message)) {
             summary.duplicate_skipped_count! += 1;
           } else {
@@ -215,13 +247,14 @@ Deno.serve(async (req) => {
         summary.unconfirmed_count! += 1;
       }
     }
+
+    await admin.from("opportunity_sources").update({ last_scanned_at: new Date().toISOString() }).eq("id", s.id);
   }
 
   const status =
     hadFailure && (summary.inserted_count! + summary.updated_count!) > 0 ? "partial"
     : hadFailure ? "failed"
     : "succeeded";
-
   await finishRun(admin, runId, status, summary, hadFailure ? JSON.stringify(summary.errors) : undefined);
   return jsonResponse({ ok: true, run_id: runId, status, summary });
 });
