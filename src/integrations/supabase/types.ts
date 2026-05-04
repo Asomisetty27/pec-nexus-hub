@@ -3713,6 +3713,74 @@ export type Database = {
           },
         ]
       }
+      opportunity_sources: {
+        Row: {
+          agency: string | null
+          category_tags: string[]
+          crawl_method: string
+          created_at: string
+          created_by: string | null
+          evidence_url_pattern: string | null
+          id: string
+          is_active: boolean
+          last_scanned_at: string | null
+          listing_url: string
+          name: string
+          notes: string | null
+          root_url: string | null
+          scan_cadence_hours: number
+          source_type: string
+          trust_level: string
+          updated_at: string
+        }
+        Insert: {
+          agency?: string | null
+          category_tags?: string[]
+          crawl_method?: string
+          created_at?: string
+          created_by?: string | null
+          evidence_url_pattern?: string | null
+          id?: string
+          is_active?: boolean
+          last_scanned_at?: string | null
+          listing_url: string
+          name: string
+          notes?: string | null
+          root_url?: string | null
+          scan_cadence_hours?: number
+          source_type?: string
+          trust_level?: string
+          updated_at?: string
+        }
+        Update: {
+          agency?: string | null
+          category_tags?: string[]
+          crawl_method?: string
+          created_at?: string
+          created_by?: string | null
+          evidence_url_pattern?: string | null
+          id?: string
+          is_active?: boolean
+          last_scanned_at?: string | null
+          listing_url?: string
+          name?: string
+          notes?: string | null
+          root_url?: string | null
+          scan_cadence_hours?: number
+          source_type?: string
+          trust_level?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunity_sources_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       ops_tasks: {
         Row: {
           assignee_id: string | null
@@ -4457,6 +4525,7 @@ export type Database = {
       public_contract_opportunities: {
         Row: {
           awarded_at: string | null
+          awardee_evidence_payload: Json
           awardee_organization_id: string | null
           category: string | null
           city: string | null
@@ -4466,11 +4535,14 @@ export type Database = {
           external_solicitation_id: string | null
           id: string
           is_archived: boolean
+          listing_hash: string | null
+          monitor_evidence_url: string | null
           published_at: string | null
           routed_mode: string | null
           solicitation_status: string
           solicitation_title: string
           source_agency: string
+          source_id: string | null
           source_snapshot: Json
           source_type: string
           source_url: string | null
@@ -4479,6 +4551,7 @@ export type Database = {
         }
         Insert: {
           awarded_at?: string | null
+          awardee_evidence_payload?: Json
           awardee_organization_id?: string | null
           category?: string | null
           city?: string | null
@@ -4488,11 +4561,14 @@ export type Database = {
           external_solicitation_id?: string | null
           id?: string
           is_archived?: boolean
+          listing_hash?: string | null
+          monitor_evidence_url?: string | null
           published_at?: string | null
           routed_mode?: string | null
           solicitation_status: string
           solicitation_title: string
           source_agency?: string
+          source_id?: string | null
           source_snapshot?: Json
           source_type?: string
           source_url?: string | null
@@ -4501,6 +4577,7 @@ export type Database = {
         }
         Update: {
           awarded_at?: string | null
+          awardee_evidence_payload?: Json
           awardee_organization_id?: string | null
           category?: string | null
           city?: string | null
@@ -4510,11 +4587,14 @@ export type Database = {
           external_solicitation_id?: string | null
           id?: string
           is_archived?: boolean
+          listing_hash?: string | null
+          monitor_evidence_url?: string | null
           published_at?: string | null
           routed_mode?: string | null
           solicitation_status?: string
           solicitation_title?: string
           source_agency?: string
+          source_id?: string | null
           source_snapshot?: Json
           source_type?: string
           source_url?: string | null
@@ -4527,6 +4607,13 @@ export type Database = {
             columns: ["awardee_organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_contract_opportunities_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_sources"
             referencedColumns: ["id"]
           },
         ]
@@ -5673,6 +5760,19 @@ export type Database = {
         Returns: boolean
       }
       cm_confidence_rank: { Args: { _c: string }; Returns: number }
+      cm_create_followup_task: {
+        Args: {
+          _assignee?: string
+          _created_by?: string
+          _description: string
+          _due_in_days: number
+          _kind: string
+          _org_id: string
+          _related_pco_id: string
+          _title: string
+        }
+        Returns: string
+      }
       cm_write_field_if_better: {
         Args: {
           _field: string

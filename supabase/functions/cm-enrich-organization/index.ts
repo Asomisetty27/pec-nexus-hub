@@ -3,7 +3,7 @@
 // CRM-ready row, then writes confidence-aware enrichment via
 // cm_write_field_if_better.
 
-import { scrape } from "../_shared/contract-monitor/firecrawl.ts";
+import { scrape, search } from "../_shared/contract-monitor/firecrawl.ts";
 import { normalizeDomain, normalizeOrgName, normalizeWhitespace } from "../_shared/contract-monitor/normalize.ts";
 import {
   adminClient,
@@ -134,7 +134,6 @@ Deno.serve(async (req) => {
   let q = admin
     .from("public_contract_opportunities")
     .select("id, source_url, source_snapshot, awardee_organization_id, confidence_level, solicitation_title")
-    .eq("source_agency", "City of San Luis Obispo")
     .eq("is_archived", false)
     .in("confidence_level", allowed)
     .is("awardee_organization_id", null)
@@ -185,14 +184,42 @@ Deno.serve(async (req) => {
       const probe = await scrape(probeUrl, { formats: ["markdown", "links"], onlyMainContent: true });
       if (probe.ok && probe.data) {
         const md = (probe.data.markdown ?? "").toLowerCase();
-        // Confirm the page actually mentions the candidate name to avoid
-        // accidentally claiming a parked/unrelated domain.
         if (md.includes(candidate.candidate_name.toLowerCase()) || md.includes(slug)) {
           officialSite = probeUrl;
           const picked = pickBestExternalLink(probe.data.links, candidate.candidate_name);
           if (picked.linkedin) linkedin = picked.linkedin;
         }
       }
+    }
+
+    // Firecrawl search fallback (one bounded call) for confirmed awardees only.
+    if (!officialSite && row.confidence_level === "confirmed_awardee") {
+      const sres = await search(`"${candidate.candidate_name}" engineering company official site`, 5);
+      if (sres.ok && sres.data?.web?.length) {
+        for (const r of sres.data.web) {
+          const dom = normalizeDomain(r.url);
+          if (!dom) continue;
+          if (/(linkedin|facebook|twitter|x\.com|youtube|wikipedia|bidnetdirect|slocity|google|reddit|crunchbase|bloomberg|yelp|zoominfo)/i.test(dom)) {
+            if (!linkedin && /linkedin\.com\/company\//i.test(r.url)) linkedin = r.url;
+            continue;
+          }
+          // Take the first non-noise result as the official site candidate.
+          officialSite = `https://${dom}`;
+          break;
+        }
+      }
+    }
+
+    // Persist enrichment evidence row (confidence-aware ledger).
+    if (officialSite || linkedin) {
+      await admin.from("organization_enrichment_sources").insert({
+        organization_id: resolved.id,
+        source_kind: officialSite ? "official_company_site" : "linkedin_company_page",
+        source_url: officialSite ?? linkedin ?? row.source_url ?? "",
+        source_domain: normalizeDomain(officialSite ?? linkedin ?? ""),
+        extracted_payload: { candidate_name: candidate.candidate_name, official_site: officialSite, linkedin },
+        confidence_level: officialSite ? "high" : "medium",
+      });
     }
 
     // Confidence-aware writes via DB helper. Only write fields we actually found.
