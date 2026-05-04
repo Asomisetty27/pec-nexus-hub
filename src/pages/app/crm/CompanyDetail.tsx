@@ -373,6 +373,40 @@ export default function CompanyDetail() {
 
           <Card>
             <CardHeader className="py-3 px-5 flex-row items-center justify-between">
+              <CardTitle className="text-sm font-semibold">Activity</CardTitle>
+              <LogActivityDialog organizationId={company.id} onLogged={load} triggerLabel="Log" />
+            </CardHeader>
+            <CardContent className="px-5 pb-4">
+              {activities.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground py-2">
+                  No activity yet. Log outreach so other Ops members can see what's been done.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {activities.map((a) => (
+                    <div key={a.id} className="text-[12px] border-l-2 border-border/50 pl-3">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-[9px] font-mono capitalize">
+                          {a.activity_type?.replace(/_/g, " ")}
+                        </Badge>
+                        <span className="text-[10px] font-mono text-muted-foreground">
+                          {fmtRelative(a.occurred_at)}
+                          {a.performed_by ? ` · ${actorNames[a.performed_by] || "Member"}` : ""}
+                        </span>
+                      </div>
+                      {a.subject && <p className="font-medium mt-0.5">{a.subject}</p>}
+                      {a.body && (
+                        <p className="text-[11px] text-muted-foreground whitespace-pre-line">{a.body}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="py-3 px-5 flex-row items-center justify-between">
               <CardTitle className="text-sm font-semibold">Tasks</CardTitle>
               <Button size="sm" variant="ghost" className="text-[10px] gap-1" onClick={() => toast.info("Task creation coming next phase")}>
                 <Plus className="h-3 w-3" /> Add
