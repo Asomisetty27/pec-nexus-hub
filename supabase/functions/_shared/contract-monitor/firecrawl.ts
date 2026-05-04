@@ -70,8 +70,22 @@ export async function scrape(url: string, opts: FirecrawlScrapeOptions = {}): Pr
   };
   const res = await call<{ data?: ScrapeDoc } & ScrapeDoc>("/scrape", body, 1);
   if (!res.ok) return res as FirecrawlResult<ScrapeDoc>;
-  // v2 may return doc fields at top level or under .data
   const raw: any = res.data ?? {};
   const doc: ScrapeDoc = raw.data ?? raw;
   return { ok: true, status: res.status, data: doc };
+}
+
+export interface SearchResult {
+  url: string;
+  title?: string;
+  description?: string;
+}
+
+/** Bounded single-call Firecrawl search for domain discovery fallback. */
+export async function search(query: string, limit = 5): Promise<FirecrawlResult<{ web: SearchResult[] }>> {
+  const res = await call<any>("/search", { query, limit }, 0);
+  if (!res.ok) return res as FirecrawlResult<{ web: SearchResult[] }>;
+  const raw: any = res.data ?? {};
+  const list: SearchResult[] = raw?.data?.web ?? raw?.web ?? raw?.data ?? [];
+  return { ok: true, status: res.status, data: { web: Array.isArray(list) ? list : [] } };
 }
