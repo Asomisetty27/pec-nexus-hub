@@ -36,6 +36,9 @@ import {
   type CrmStatus,
 } from "@/lib/crmConstants";
 import { logAuditAction } from "@/lib/audit";
+import { ClaimButton } from "@/components/crm/ClaimButton";
+import { LogActivityDialog } from "@/components/crm/LogActivityDialog";
+import { isUnowned, fmtRelative } from "@/lib/crmQueues";
 
 export default function CompanyDetail() {
   const { id } = useParams<{ id: string }>();
@@ -45,6 +48,8 @@ export default function CompanyDetail() {
   const [contacts, setContacts] = useState<any[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
   const [conversions, setConversions] = useState<any[]>([]);
+  const [activities, setActivities] = useState<any[]>([]);
+  const [actorNames, setActorNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
@@ -53,16 +58,43 @@ export default function CompanyDetail() {
   const load = async () => {
     if (!id) return;
     setLoading(true);
-    const [orgRes, contactsRes, tasksRes, convRes] = await Promise.all([
+    const [orgRes, contactsRes, tasksRes, convRes, actsRes] = await Promise.all([
       supabase.from("organizations").select("*").eq("id", id).maybeSingle(),
       supabase.from("company_contacts").select("*").eq("organization_id", id).order("is_primary", { ascending: false }),
       supabase.from("company_tasks").select("*").eq("organization_id", id).order("due_at", { ascending: true }),
       supabase.from("company_conversions").select("*").eq("organization_id", id).order("converted_at", { ascending: false }),
+      supabase
+        .from("company_activities")
+        .select("*")
+        .eq("organization_id", id)
+        .order("occurred_at", { ascending: false })
+        .limit(25),
     ]);
     setCompany(orgRes.data);
     setContacts(contactsRes.data || []);
     setTasks(tasksRes.data || []);
     setConversions(convRes.data || []);
+    const acts = actsRes.data || [];
+    setActivities(acts);
+    const userIds = Array.from(
+      new Set(
+        [
+          ...acts.map((a: any) => a.performed_by),
+          orgRes.data?.owner_user_id,
+          orgRes.data?.secondary_owner_user_id,
+          orgRes.data?.overseeing_lead_user_id,
+        ].filter(Boolean)
+      )
+    ) as string[];
+    if (userIds.length) {
+      const { data: pf } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", userIds);
+      const m: Record<string, string> = {};
+      (pf || []).forEach((p: any) => (m[p.user_id] = p.full_name || "Member"));
+      setActorNames(m);
+    }
     setLoading(false);
   };
 
