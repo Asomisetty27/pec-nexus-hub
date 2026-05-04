@@ -255,6 +255,40 @@ export default function CompanyDetail() {
                   </span>
                 )}
               </div>
+
+              <div className="flex items-center gap-3 mt-3 flex-wrap text-[10px] font-mono text-muted-foreground">
+                <span>
+                  Owner:{" "}
+                  {company.owner_user_id
+                    ? actorNames[company.owner_user_id] || "Member"
+                    : "Unowned"}
+                </span>
+                {company.secondary_owner_user_id && (
+                  <span>2nd: {actorNames[company.secondary_owner_user_id] || "Member"}</span>
+                )}
+                {company.overseeing_lead_user_id && (
+                  <span>Lead: {actorNames[company.overseeing_lead_user_id] || "Member"}</span>
+                )}
+                {activities[0] ? (
+                  <span>
+                    Last touched {fmtRelative(activities[0].occurred_at)}
+                    {activities[0].performed_by
+                      ? ` · ${actorNames[activities[0].performed_by] || "Member"}`
+                      : ""}
+                  </span>
+                ) : (
+                  <span>No activity logged yet</span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 mt-3">
+                <ClaimButton
+                  organizationId={company.id}
+                  unowned={isUnowned(company)}
+                  onClaimed={load}
+                />
+                <LogActivityDialog organizationId={company.id} onLogged={load} />
+              </div>
             </div>
           </div>
 
