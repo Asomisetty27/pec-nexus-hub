@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch { /* empty body ok */ }
 
   const admin = adminClient();
-  const runId = await startRun(admin, "manual_scan", auth.userId);
+  const runId = await startRun(admin, "awardee_identification", auth.userId);
 
   const summary: RunSummary = {
     scanned_count: 0,
@@ -100,7 +100,6 @@ Deno.serve(async (req) => {
   let q = admin
     .from("public_contract_opportunities")
     .select("id, source_url, source_snapshot, solicitation_status, confidence_level, solicitation_title")
-    .eq("source_agency", "City of San Luis Obispo")
     .eq("confidence_level", "closed_bid_unconfirmed")
     .eq("is_archived", false)
     .in("solicitation_status", ["closed", "awarded"])
