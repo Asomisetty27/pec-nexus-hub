@@ -69,10 +69,9 @@ export async function requireLeadership(req: Request): Promise<{ userId: string 
     Deno.env.get("SUPABASE_ANON_KEY")!,
     { global: { headers: { Authorization: auth } } },
   );
-  const token = auth.slice("Bearer ".length);
-  const { data: claims } = await userClient.auth.getClaims(token);
-  const uid = claims?.claims?.sub ?? null;
-  if (!uid) return { userId: null, error: "invalid token" };
+  const { data: userData, error: userErr } = await userClient.auth.getUser();
+  const uid = userData?.user?.id ?? null;
+  if (!uid) return { userId: null, error: userErr?.message ?? "invalid token" };
   const admin = adminClient();
   const { data, error } = await admin.rpc("is_crm_leadership", { _uid: uid });
   if (error) return { userId: uid, error: error.message };
