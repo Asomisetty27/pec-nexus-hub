@@ -155,51 +155,64 @@ Deno.serve(async (req) => {
         category: rel.category,
       } as const;
 
-      // Idempotent upsert: prefer external_solicitation_id when present, else
-      // fall back to (agency, source_url). The two partial unique indexes
-      // guarantee no duplicates either way.
-      const conflictTarget = row.external_solicitation_id
-        ? "source_agency,external_solicitation_id"
-        : "source_agency,source_url";
-
-      // Look up existing row for delta detection
+      // Manual idempotent insert-or-update (partial unique indexes don't
+      // satisfy PostgREST's ON CONFLICT, so we look up explicitly).
       let existingId: string | null = null;
       let existingStatus: string | null = null;
-      if (row.external_solicitation_id) {
-        const { data } = await admin
-          .from("public_contract_opportunities")
-          .select("id, solicitation_status")
-          .eq("source_agency", row.source_agency)
-          .eq("external_solicitation_id", row.external_solicitation_id)
-          .maybeSingle();
-        existingId = data?.id ?? null;
-        existingStatus = data?.solicitation_status ?? null;
-      } else {
-        const { data } = await admin
-          .from("public_contract_opportunities")
-          .select("id, solicitation_status")
-          .eq("source_agency", row.source_agency)
-          .eq("source_url", row.url)
-          .maybeSingle();
-        existingId = data?.id ?? null;
-        existingStatus = data?.solicitation_status ?? null;
-      }
+      const lookup = row.external_solicitation_id
+        ? admin
+            .from("public_contract_opportunities")
+            .select("id, solicitation_status")
+            .eq("source_agency", row.source_agency)
+            .eq("external_solicitation_id", row.external_solicitation_id)
+            .maybeSingle()
+        : admin
+            .from("public_contract_opportunities")
+            .select("id, solicitation_status")
+            .eq("source_agency", row.source_agency)
+            .eq("source_url", r.url)
+            .maybeSingle();
+      const { data: ex } = await lookup;
+      existingId = ex?.id ?? null;
+      existingStatus = ex?.solicitation_status ?? null;
 
-      const { error } = await admin
-        .from("public_contract_opportunities")
-        .upsert(row, { onConflict: conflictTarget, ignoreDuplicates: false });
-      if (error) {
-        hadFailure = true;
-        summary.errors!.push({ stage: "upsert", message: error.message, context: { url: r.url } });
-        continue;
-      }
-      if (!existingId) {
+      if (existingId) {
+        const { error: updErr } = await admin
+          .from("public_contract_opportunities")
+          .update({
+            solicitation_title: row.solicitation_title,
+            solicitation_status: row.solicitation_status,
+            published_at: row.published_at,
+            closed_at: row.closed_at,
+            awarded_at: row.awarded_at,
+            source_url: row.source_url,
+            source_snapshot: row.source_snapshot,
+            category: row.category,
+          })
+          .eq("id", existingId);
+        if (updErr) {
+          hadFailure = true;
+          summary.errors!.push({ stage: "update", message: updErr.message, context: { url: r.url } });
+          continue;
+        }
+        if (existingStatus !== status) summary.updated_count! += 1;
+        else summary.duplicate_skipped_count! += 1;
+      } else {
+        const { error: insErr } = await admin
+          .from("public_contract_opportunities")
+          .insert(row);
+        if (insErr) {
+          // Race: another concurrent run may have inserted same key. Treat as duplicate.
+          if (/duplicate key|unique/i.test(insErr.message)) {
+            summary.duplicate_skipped_count! += 1;
+          } else {
+            hadFailure = true;
+            summary.errors!.push({ stage: "insert", message: insErr.message, context: { url: r.url } });
+          }
+          continue;
+        }
         summary.inserted_count! += 1;
         summary.unconfirmed_count! += 1;
-      } else if (existingStatus !== status) {
-        summary.updated_count! += 1;
-      } else {
-        summary.duplicate_skipped_count! += 1;
       }
     }
   }
