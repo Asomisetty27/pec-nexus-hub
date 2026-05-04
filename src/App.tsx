@@ -25,10 +25,10 @@ import Members from "./pages/app/Members";
 import CrmLayout from "./components/crm/CrmLayout";
 import CrmDashboard from "./pages/app/crm/CrmDashboard";
 import CrmPipeline from "./pages/app/crm/CrmPipeline";
-import CrmMyCompanies from "./pages/app/crm/CrmMyCompanies";
+import CrmQueues from "./pages/app/crm/CrmQueues";
 import CrmTable from "./pages/app/crm/CrmTable";
 import CrmContacts from "./pages/app/crm/CrmContacts";
-import CrmQualified from "./pages/app/crm/CrmQualified";
+import CrmContracts from "./pages/app/crm/CrmContracts";
 import CrmAnalytics from "./pages/app/crm/CrmAnalytics";
 import CrmLegacy from "./pages/app/crm/CrmLegacy";
 import CompanyDetail from "./pages/app/crm/CompanyDetail";
@@ -96,10 +96,12 @@ const App = () => (
                 <Route index element={<Navigate to="/app/crm/dashboard" replace />} />
                 <Route path="dashboard" element={<CrmDashboard />} />
                 <Route path="pipeline" element={<CrmPipeline />} />
-                <Route path="my" element={<CrmMyCompanies />} />
+                <Route path="queues" element={<CrmQueues />} />
+                <Route path="my" element={<Navigate to="/app/crm/queues?q=mine" replace />} />
+                <Route path="qualified" element={<Navigate to="/app/crm/queues?q=qualified" replace />} />
                 <Route path="table" element={<CrmTable />} />
                 <Route path="contacts" element={<CrmContacts />} />
-                <Route path="qualified" element={<CrmQualified />} />
+                <Route path="contracts" element={<CrmContracts />} />
                 <Route path="analytics" element={<CrmAnalytics />} />
                 <Route path="legacy" element={<CrmLegacy />} />
                 <Route path="c/:id" element={<CompanyDetail />} />

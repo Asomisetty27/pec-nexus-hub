@@ -3,10 +3,10 @@ import { useCrmAccess } from "@/hooks/useCrmAccess";
 import {
   LayoutDashboard,
   Columns3,
-  UserSquare,
+  ListChecks,
   Table as TableIcon,
   Users,
-  CheckCircle2,
+  FileSearch,
   BarChart3,
   Inbox,
 } from "lucide-react";
@@ -21,11 +21,11 @@ interface NavTab {
 
 const TABS: NavTab[] = [
   { to: "/app/crm/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/app/crm/queues", label: "Queues", icon: ListChecks },
   { to: "/app/crm/pipeline", label: "Pipeline", icon: Columns3 },
-  { to: "/app/crm/my", label: "My Companies", icon: UserSquare },
-  { to: "/app/crm/table", label: "Table", icon: TableIcon },
+  { to: "/app/crm/table", label: "Companies", icon: TableIcon },
   { to: "/app/crm/contacts", label: "Contacts", icon: Users },
-  { to: "/app/crm/qualified", label: "Qualified", icon: CheckCircle2 },
+  { to: "/app/crm/contracts", label: "Contracts", icon: FileSearch },
   { to: "/app/crm/analytics", label: "Analytics", icon: BarChart3, leadershipOnly: true },
   { to: "/app/crm/legacy", label: "Legacy Inbound", icon: Inbox, leadershipOnly: true },
 ];
