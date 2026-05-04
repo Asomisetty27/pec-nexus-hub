@@ -288,6 +288,26 @@ export default function CompanyDetail() {
                   onClaimed={load}
                 />
                 <LogActivityDialog organizationId={company.id} onLogged={load} />
+                {company.owner_user_id === user?.id && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-[11px]"
+                    onClick={async () => {
+                      const { data, error } = await supabase.rpc("crm_release_organization", {
+                        _org_id: company.id,
+                      });
+                      if (error) return toast.error(error.message);
+                      const r = data as { ok: boolean; reason?: string } | null;
+                      if (!r?.ok) return toast.error(r?.reason || "Could not release");
+                      toast.success("Released");
+                      logAuditAction("crm.released", "organization", company.id, {});
+                      load();
+                    }}
+                  >
+                    Release ownership
+                  </Button>
+                )}
               </div>
             </div>
           </div>
