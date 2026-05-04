@@ -3,7 +3,7 @@
 // official follow-up). Never fabricates a winner.
 
 import { scrape } from "../_shared/contract-monitor/firecrawl.ts";
-import { normalizeWhitespace, normalizeOrgName } from "../_shared/contract-monitor/normalize.ts";
+import { normalizeWhitespace, normalizeOrgName, absoluteUrl } from "../_shared/contract-monitor/normalize.ts";
 import {
   adminClient,
   corsHeaders,
@@ -23,9 +23,32 @@ const AWARD_PATTERNS: RegExp[] = [
   /award(?:ed)?\s+(?:to|the\s+contract\s+to)\s+([A-Z][A-Za-z0-9&.,'\- ]{2,80}?)(?:[,.;\n]| for | in | on )/g,
   /contract\s+(?:was\s+)?awarded\s+to\s+([A-Z][A-Za-z0-9&.,'\- ]{2,80}?)(?:[,.;\n]| for | in | on )/g,
   /selected\s+([A-Z][A-Za-z0-9&.,'\- ]{2,80}?)\s+as\s+the\s+(?:successful|winning|awarded)\s+(?:bidder|proposer|firm|contractor)/g,
+  /recommended\s+(?:vendor|firm|contractor|bidder|proposer)\s*[:\-]?\s*([A-Z][A-Za-z0-9&.,'\- ]{2,80}?)(?:[,.;\n]| for | in | on )/g,
+  /(?:lowest\s+responsive|lowest\s+responsible)\s+bidder\s*[:\-]?\s*([A-Z][A-Za-z0-9&.,'\- ]{2,80}?)(?:[,.;\n]| for | in | on )/g,
 ];
 
 const BIDDER_LIST_RX = /bidder(?:s|\s+list)\s*[:\-]?\s*([\s\S]{0,800})/i;
+
+// Follow at most this many official-looking links per opportunity.
+const MAX_FOLLOWED_LINKS = 2;
+const OFFICIAL_LINK_HINTS = /(staff[-_ ]?report|agenda|council|award|resolution|minutes|meeting)/i;
+const OFFICIAL_DOMAIN_HINT = /(\.gov|slocity\.org|cityof|county|state\.|public)/i;
+
+function pickOfficialFollowupLinks(links: string[] | undefined, sourceUrl: string): string[] {
+  if (!links?.length) return [];
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of links) {
+    const abs = absoluteUrl(raw, sourceUrl);
+    if (!abs || seen.has(abs)) continue;
+    seen.add(abs);
+    if (OFFICIAL_LINK_HINTS.test(abs) && OFFICIAL_DOMAIN_HINT.test(abs)) {
+      out.push(abs);
+      if (out.length >= MAX_FOLLOWED_LINKS) break;
+    }
+  }
+  return out;
+}
 
 function extractAwardCandidates(text: string): { name: string; raw: string }[] {
   const out: { name: string; raw: string }[] = [];
@@ -105,31 +128,62 @@ Deno.serve(async (req) => {
       summary.unconfirmed_count! += 1;
       continue;
     }
-    const fc = await scrape(row.source_url, { formats: ["markdown"], onlyMainContent: true });
+    const fc = await scrape(row.source_url, { formats: ["markdown", "links"], onlyMainContent: true });
     if (!fc.ok || !fc.data?.markdown) {
       hadFailure = true;
       summary.errors!.push({ stage: "scrape", message: fc.error ?? "no markdown", context: { id: row.id } });
       summary.unconfirmed_count! += 1;
       continue;
     }
-    const md = fc.data.markdown;
-    const awardCandidates = extractAwardCandidates(md);
-    const bidderNames = extractBidderNames(md);
+    const allMarkdown: { url: string; md: string }[] = [{ url: row.source_url, md: fc.data.markdown }];
+
+    // Follow up to 2 official-looking award/agenda links from the source page.
+    const followups = pickOfficialFollowupLinks(fc.data.links, row.source_url);
+    let followupEvidenceUrl: string | null = null;
+    for (const link of followups) {
+      const sub = await scrape(link, { formats: ["markdown"], onlyMainContent: true });
+      if (sub.ok && sub.data?.markdown) {
+        allMarkdown.push({ url: link, md: sub.data.markdown });
+        if (!followupEvidenceUrl) followupEvidenceUrl = link;
+      }
+    }
+
+    let awardCandidates: { name: string; raw: string; from: string }[] = [];
+    let bidderNames: string[] = [];
+    for (const { url, md } of allMarkdown) {
+      const aw = extractAwardCandidates(md).map((c) => ({ ...c, from: url }));
+      awardCandidates = awardCandidates.concat(aw);
+      bidderNames = bidderNames.concat(extractBidderNames(md));
+    }
 
     let newConfidence: "confirmed_awardee" | "likely_active_bidder" | "closed_bid_unconfirmed" = "closed_bid_unconfirmed";
     const evidence: Record<string, unknown> = {
       checked_at: new Date().toISOString(),
       source_url: row.source_url,
+      followups_attempted: followups.length,
+      followups_succeeded: allMarkdown.length - 1,
+      evidence_url: followupEvidenceUrl,
     };
 
     if (awardCandidates.length > 0) {
-      newConfidence = "confirmed_awardee";
+      // Strong-signal heuristic: at least one match must come from an
+      // official followup OR appear at least twice across pages.
+      const fromOfficial = awardCandidates.some((c) => c.from !== row.source_url);
+      const counts = new Map<string, number>();
+      for (const c of awardCandidates) {
+        const k = normalizeOrgName(c.name);
+        counts.set(k, (counts.get(k) ?? 0) + 1);
+      }
+      const repeated = Array.from(counts.values()).some((n) => n >= 2);
+      newConfidence = (fromOfficial || repeated) ? "confirmed_awardee" : "likely_active_bidder";
       evidence.award_matches = awardCandidates.map((c) => ({
         candidate_name: c.name,
         normalized_name: normalizeOrgName(c.name),
         evidence_snippet: c.raw.slice(0, 240),
+        evidence_from: c.from,
       }));
-      summary.confirmed_awardee_count! += 1;
+      if (newConfidence === "confirmed_awardee") summary.confirmed_awardee_count! += 1;
+      else summary.likely_bidder_count! += 1;
     } else if (bidderNames.length > 0) {
       newConfidence = "likely_active_bidder";
       evidence.bidder_names = bidderNames.slice(0, 25);
@@ -143,7 +197,11 @@ Deno.serve(async (req) => {
       awardee_evidence: evidence,
     };
 
-    const update: Record<string, unknown> = { source_snapshot: merged };
+    const update: Record<string, unknown> = {
+      source_snapshot: merged,
+      awardee_evidence_payload: evidence,
+      monitor_evidence_url: followupEvidenceUrl ?? row.source_url,
+    };
     if (newConfidence !== "closed_bid_unconfirmed") {
       update.confidence_level = newConfidence;
       if (newConfidence === "confirmed_awardee" && row.solicitation_status !== "awarded") {
