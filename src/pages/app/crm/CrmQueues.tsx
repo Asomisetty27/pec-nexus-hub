@@ -66,7 +66,7 @@ export default function CrmQueues() {
             .from("company_tasks")
             .select("*, organizations!inner(id, name)")
             .eq("assigned_to", user.id)
-            .neq("status", "completed")
+            .neq("status", "done")
             .order("due_at", { ascending: true })
             .limit(100)
         : Promise.resolve({ data: [] as any[] }),
