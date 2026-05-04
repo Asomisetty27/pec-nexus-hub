@@ -64,6 +64,10 @@ export async function finishRun(
 export async function requireLeadership(req: Request): Promise<{ userId: string | null; error?: string }> {
   const auth = req.headers.get("Authorization") ?? "";
   if (!auth.startsWith("Bearer ")) return { userId: null, error: "missing bearer token" };
+  // Service-role token (used by Inngest scheduler / cross-function fanout) bypasses the user check.
+  const token = auth.slice("Bearer ".length).trim();
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (serviceKey && token === serviceKey) return { userId: null };
   const userClient = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_ANON_KEY")!,
