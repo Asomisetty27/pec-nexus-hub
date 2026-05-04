@@ -23,3 +23,9 @@ project_id = "fjeroezjzymywvwqfemx"
     verify_jwt = true
   [functions.get-applicant-resume-url]
     verify_jwt = true
+  [functions.cm-scan-procurement]
+    verify_jwt = true
+  [functions.cm-identify-awardee]
+    verify_jwt = true
+  [functions.cm-enrich-organization]
+    verify_jwt = true
