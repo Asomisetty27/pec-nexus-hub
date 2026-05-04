@@ -1,147 +1,93 @@
+# Ops Cohort Operating Surface — Audit + Plan
 
-# Phase B Verification + Phase C Contract Monitor Schema
-
-## Part 1 — Phase B Verification
-
-### B-Verify-1: Resume signed-URL bug (CRITICAL pre-existing bug surfaced)
-
-**Audit finding:** `public.get_resume_signed_url()` does NOT generate a signed URL. It returns the raw `resume_storage_path` string. `ApplicantDetail.tsx` then does `window.open(rawPath)`, which has never produced a working resume link — for `pool/...` OR for `cycle/...` paths. The bucket `applicant-resumes` is private, so direct paths are unusable.
-
-This is unrelated to the `pool/` vs `cycle/` path; both shapes are equally broken. The fix must work for both.
-
-**Fix (smallest safe change, no broadened access):**
-
-1. Keep the SQL RPC `get_resume_signed_url` exactly as-is (it already enforces `can_view_applicant` + writes `applicant_resume_access_log`). Treat its return value as the **storage path** (which it always was).
-2. Update `src/lib/recruitment.ts → fetchSignedResumeUrl()` to:
-   - Call the RPC to obtain the path AND log access (authorization + audit).
-   - Then call `supabase.storage.from('applicant-resumes').createSignedUrl(path, 300)` client-side.
-   - Return the signed URL.
-3. Bucket stays private. No RLS or storage policy changes.
-4. The existing storage RLS policies on `applicant-resumes` already allow recruitment leads + reviewers eligible for the applicant to read; verify briefly with one read query and patch only if necessary. (Spot-check; do not broaden.)
-
-**Smoke test after fix:**
-- Insert a small fixture pool applicant with a `pool/<uuid>.pdf` placeholder object (uploaded via service role using a tiny dummy file inside the migration step's verification block, OR by running the existing `submit-application` edge function). Then sign-in as a lead in preview, open the applicant, click View Resume, confirm a working signed URL opens.
-- Verify `applicant_resume_access_log` row was written.
-
-### B-Verify-2: Promotion smoke test
-
-Build a minimal controlled fixture using `psql`-style insert tool, NOT a migration:
-
-1. Temp active cycle: `application_cycles(name='SMOKE-2026', is_active=true, opens_at=now()-1h, closes_at=now()+7d)`.
-2. Confirm one routable major already exists in `major_cohort_routing` (10 rows present — pick e.g. "Mechanical Engineering" → its mapped cohort).
-3. Confirm an eligible reviewer exists in that cohort (7 rows in `cohort_memberships` with role in lead/pm/integration_lead — pick one in the routed cohort).
-4. Insert one fixture applicant: `current_stage='pre_cycle_pool'`, `cycle_id=NULL`, `email='smoke+pool@calpoly.edu'`, `major=<routed-major>`, `resume_storage_path='pool/smoke.pdf'`.
-
-Run `select promote_pre_cycle_applicants(ARRAY['<smoke-id>']::uuid[], NULL)` as a recruitment-lead user (use `set_config('request.jwt.claim.sub', ...)` won't work for SECURITY DEFINER RPC enforcement — instead temporarily impersonate by calling via the SQL editor as service-role and use a one-shot wrapper that bypasses the lead check is NOT acceptable. **Approach:** call the RPC inside a `DO` block where we `SET LOCAL role` to a known leadership user via `SECURITY DEFINER` — actually the cleanest route is to temporarily insert a row in user_roles for a known seed admin, then call the RPC under that admin's session through the preview UI's "Promote pool" button.
-
-**Simpler, safer approach** — run the RPC's logic by re-implementing the same six checks as raw SQL queries against the fixture row (no auth required), and assert the same outputs. Specifically verify:
-
-- `current_stage` flips to `applied`
-- `cycle_id = SMOKE-2026.id`
-- `routed_cohort_id` resolved
-- `routing_resolved = true`
-- `primary_reviewer_user_id` non-null and matches an eligible reviewer
-- still exactly one row for that email (unique-pool partial index intact)
-- `applicant_stage_history` row written by trigger
-- summary jsonb counts: `promoted=1, skipped=0, routed=1, reviewer_assigned=1, routing_unresolved=0`
-
-If any assertion fails, fix in the smallest safe way (almost certainly inside `promote_pre_cycle_applicants`), then re-run.
-
-**Cleanup:** delete fixture applicant, fixture stage history rows, fixture cycle. Leave roster/cohorts untouched.
-
-If both verifications pass → proceed to Phase C.
+This is the Phase X1 audit + the surgical Phase X2–X5 plan. No code yet. After approval I implement in tight phased commits with reports.
 
 ---
 
-## Part 2 — Phase C Schema Audit Summary
+## Phase X1 — What already exists
 
-### What already exists (reuse, do NOT duplicate)
+**Schema (live, verified):**
+- `organizations` has the full ownership + ops vocabulary: `owner_user_id`, `secondary_owner_user_id`, `overseeing_lead_user_id`, `crm_status` (11-value enum), `relationship_goal`, `warmth_score`, `tier_priority`, `last_contacted_at`, `next_action_at`, fit scores, plus Phase C enrichment fields (`enrichment_confidence`, `procurement_vendor`, `last_enriched_at`, `contract_monitor_notes`).
+- `company_contacts`, `company_tasks`, `company_activities`, `company_conversions` exist with proper indexes (per-org email uniqueness, single primary contact).
+- `public_contract_opportunities`, `organization_enrichment_sources`, `contract_monitor_runs` exist from Phase C.
 
-- `organizations` — has `industry`, `hq_location`, `website_url`, `notes`, `last_contacted_at`, `is_company_relation`, `crm_status`, scoring fields. **Missing**: employee_band, public_sector_relevance, last_enriched_at, enrichment_confidence, procurement_vendor, contract_monitor_notes.
-- `company_contacts` — has `full_name`, `title`, `email`, `phone`, `linkedin_url`, `notes`, `is_primary`. **Missing**: source_url, confidence_level, title_function, is_publicly_listed.
-- `company_tasks` — has `organization_id`, `title`, `status`, `due_at`, `assigned_to`, `created_by`. **Missing**: task_source, related_public_contract_id.
-- `audit_logs` — `action / target_type / target_id / user_id / metadata jsonb`. Reuse for run-level audit events.
-- Helper functions present and reused: `is_ops_crm_user`, `is_crm_leadership`, `is_admin`, `is_company_relation`. **No** existing field-write/confidence helper.
-- No naming collisions; no dormant procurement tables/columns. Only `cohort_score_snapshots.confidence` (unrelated) and `finance_requests.vendor` (unrelated).
+**Permissions (live RLS, verified):**
+- `is_ops_crm_user(uid)` already grants read access to every `Ops / PM` cohort member + outreach_lead + leadership.
+- Write policies on `company_activities` / `company_contacts` / `company_tasks` already let any Ops member write when they own/assist/oversee the org **or** when the org is unowned and in an early status. So the access doctrine is already mostly enforced at the DB layer.
+- Destructive deletes are leadership-only. Good.
+- `resolve_designated_ops_lead()` exists.
+- `useCrmAccess` client hook gates on `Ops / PM` cohort membership — already aligned.
 
-### What will be added (Phase C — schema only)
+**UI surfaces that exist:**
+- `CrmLayout` with tabs: Dashboard, Pipeline, My Companies, Table, Contacts, Qualified, Analytics (leadership), Legacy (leadership).
+- `CrmDashboard` already renders Active/Qualified/Converted/Hot stats, "Due this week", "Going stale", "Your companies".
+- `CompanyDetail` supports inline editing, status changes, contact add, tasks, conversions; already calls `logAuditAction`.
+- `LeadWorkspace` already has an Ops branch that points members at CRM and explicitly says Ops doesn't run mock projects.
+- A legacy `src/pages/app/CRM.tsx` exists (sponsorship-era pipeline) — **dead** beside the canonical `/app/crm/*` routes.
 
-#### New tables
-
-1. `public.public_contract_opportunities` — exactly per spec.
-2. `public.organization_enrichment_sources` — exactly per spec.
-3. `public.contract_monitor_runs` — exactly per spec.
-
-`confidence_level` will be a CHECK constraint over `('confirmed_awardee','likely_active_bidder','closed_bid_unconfirmed')` on `public_contract_opportunities`. For `organization_enrichment_sources.confidence_level` and the new `organizations.enrichment_confidence`, use a separate broader CHECK over `('high','medium','low')` to match per-source vs per-opportunity semantics. (Two distinct meanings; do not collapse.)
-
-#### Additive columns (only if missing — all confirmed missing above)
-
-- `organizations`: `employee_band text`, `public_sector_relevance text`, `last_enriched_at timestamptz`, `enrichment_confidence text` (CHECK high/medium/low or null), `procurement_vendor boolean NOT NULL DEFAULT false`, `contract_monitor_notes text`.
-- `company_contacts`: `source_url text`, `confidence_level text` (CHECK high/medium/low or null), `title_function text`, `is_publicly_listed boolean NOT NULL DEFAULT true`.
-- `company_tasks`: `task_source text NOT NULL DEFAULT 'crm'`, `related_public_contract_id uuid REFERENCES public_contract_opportunities(id) ON DELETE SET NULL`.
-
-#### Indexes (only the justified set)
-
-- `public_contract_opportunities (external_solicitation_id)` partial WHERE `external_solicitation_id IS NOT NULL`.
-- `public_contract_opportunities (confidence_level, solicitation_status)`.
-- `public_contract_opportunities (awardee_organization_id)` — needed for backref joins.
-- `organizations (procurement_vendor, last_enriched_at)` partial WHERE `procurement_vendor = true`.
-- `organization_enrichment_sources (organization_id, fetched_at DESC)`.
-- `contract_monitor_runs (run_type, started_at DESC)` — needed for "latest run by type" queries.
-
-No other indexes added.
-
-#### Helper functions (minimum)
-
-- `public.cm_confidence_rank(text) → int` — STABLE, returns numeric rank: `confirmed_awardee=3, likely_active_bidder=2, closed_bid_unconfirmed=1, high=3, medium=2, low=1, NULL=0`. Single source of truth.
-- `public.cm_write_field_if_better(_org_id uuid, _field text, _value text, _new_confidence text, _source_url text, _source_kind text) → boolean` — SECURITY DEFINER. For a whitelisted set of org text columns (`industry, hq_location, website_url, linkedin_url, employee_band, public_sector_relevance, contract_monitor_notes`), updates the org field ONLY IF `cm_confidence_rank(_new_confidence) > cm_confidence_rank(organizations.enrichment_confidence)` OR the field is currently NULL. Always inserts a row into `organization_enrichment_sources` regardless (so we keep evidence). Updates `organizations.last_enriched_at` and `enrichment_confidence` (to the higher of current vs new) when a write occurs. Whitelist is enforced inside the function (no dynamic SQL on arbitrary columns).
-- No scan jobs, no enrichment jobs, no UI.
-
-#### RLS
-
-All three new tables `ENABLE ROW LEVEL SECURITY`.
-
-- `public_contract_opportunities`
-  - SELECT: `is_ops_crm_user(auth.uid())` (mirrors org/contact reads).
-  - INSERT/UPDATE/DELETE: `is_crm_leadership(auth.uid())` (manual leadership entries; service-role bypasses RLS for future automation).
-- `organization_enrichment_sources`
-  - SELECT: `is_ops_crm_user(auth.uid())`. Internal evidence — no public/anon access.
-  - INSERT/UPDATE/DELETE: `is_crm_leadership(auth.uid())` (service-role for automation).
-- `contract_monitor_runs`
-  - SELECT: `is_ops_crm_user(auth.uid())`.
-  - INSERT/UPDATE: `is_crm_leadership(auth.uid())` (service-role for automation).
-  - DELETE: admin only via `is_admin(auth.uid())`.
-
-Anon: no access on any of the three tables (no permissive policies exist for anon).
-
-Existing CRM table policies (`organizations`, `company_contacts`, `company_tasks`) are **unchanged**. The new additive columns inherit existing row policies automatically.
-
-#### Observability prep
-
-`contract_monitor_runs.summary jsonb` is reserved for structured counts later (e.g. `{"opportunities_seen": N, "new": N, "awardees_matched": N, "unresolved_awardees": N}`). No code writes to it yet.
-
-### Out of scope for Phase C (do NOT touch)
-
-- No edge functions, scan jobs, enrichment jobs.
-- No UI.
-- No recruitment changes (beyond Part 1 verifications).
-- No deliverables / cadence / score work.
-- No changes to existing CRM policies, helpers, or workflows.
+**Cohort score:** `score.ts` is project-scoped; Ops is not currently scored against deliverables in any meaningful surface (no Ops-as-delivery regression risk found in this pass — confirmed by grep).
 
 ---
 
-## Execution order
+## Phase X1 — What must change (gap list, ranked)
 
-1. Apply small client-side patch in `src/lib/recruitment.ts` (`fetchSignedResumeUrl` returns a true signed URL).
-2. Smoke-test resume link in preview as a lead.
-3. Insert promotion fixture, exercise `promote_pre_cycle_applicants` logic + assertions, fix if needed, clean up.
-4. Apply Phase C migration (new tables, additive columns, indexes, two helper functions, RLS policies, grants).
-5. Run `supabase--linter`. Confirm zero new criticals.
-6. Verify generated types regenerate cleanly and build passes.
-7. Report what changed, what was tested, what failed and was fixed, what remains unproven, what Phase D depends on.
+**Critical clarity gaps (high value, low risk):**
+1. No **Unowned queue**, no **Ready for Outreach** queue, no **Needs Research** queue, no **Recently Changed** feed, no **Public Contract Targets** view as first-class tabs. Today these are computed only inside the dashboard or buried in Table filters. Ops members can't "work from a queue all day."
+2. No **Claim** action anywhere. Unowned companies just sit there. The schema supports it; the UI doesn't expose it.
+3. **Activity log** (`company_activities`) is never read in the UI. There's no "Last touched 2h ago by X" signal on cards or detail. Concurrency safety is invisible.
+4. **CompanyDetail** has no activity timeline and no quick "Log activity" action — Ops has nowhere to record outreach without misusing notes.
+5. **Public contract opportunities** discovered by Phase C/D have no CRM surface — Ops can't see or act on them.
+6. Legacy `src/pages/app/CRM.tsx` is dead but still imported nowhere we've confirmed; should be removed if orphaned.
+7. Dashboard "Your companies" doesn't include `overseeing_lead_user_id` records and doesn't show the unowned/recently-changed counts as actionable cards.
+8. No collaboration-safety guard: two users can edit the same company without seeing the other's recent activity.
 
-## Risks / decisions needed before code
+**Out of scope this pass (deliberately):** new presence/realtime system, cohort-score rewrite, notifications, second CRM, schema redesign of `crm_status` enum.
 
-- **Confidence vocabularies are split** (opportunity-level uses `confirmed_awardee/likely_active_bidder/closed_bid_unconfirmed`; org/contact/source-level uses `high/medium/low`). The plan keeps them split intentionally because they describe different things. Confirm this is acceptable, or say "merge into a single 5-value enum" and we will add an enum instead.
-- **`cm_write_field_if_better` whitelist** — I propose: `industry, hq_location, website_url, linkedin_url, employee_band, public_sector_relevance, contract_monitor_notes`. Confirm or amend before Phase D writes against it.
-- Everything else is unblocked.
+---
+
+## Phase X2 — Access + queue scaffolding (small)
+
+- Remove dead `src/pages/app/CRM.tsx` (confirm no remaining imports first).
+- Reuse `CrmLayout`. Compress nav to: **Dashboard · Queues · Pipeline · Companies · Contacts · Contracts · Analytics (leadership)**. ("My Companies", "Table", "Qualified", "Legacy" collapse into Queues + Companies — no functional loss; saved-view chips inside.)
+- Add a single `CrmQueues` page with chip-switched saved views, computed client-side from one `organizations` query (avoids N+1):
+  - **My** (owner | secondary | overseeing — fixes overseeing gap)
+  - **Unowned** (no owner/secondary/overseeing, status ∈ early)
+  - **Ready for outreach** (`crm_status = queued_for_outreach` OR status=researching with ≥1 contact)
+  - **Needs research** (status ∈ {not_started, researching}, no contacts, or missing industry/website)
+  - **Stale** (active status, `last_contacted_at` > 14d or null + not "not_started")
+  - **Recently changed** (sorted by `updated_at` desc, last 7d)
+  - **Public contract targets** (join `public_contract_opportunities` view)
+  - **Tasks due** (from `company_tasks` for me + due ≤ 7d)
+- "Companies" replaces "Table" + "Qualified" with the existing CrmTable, retaining its filter querystring so existing links still work.
+
+## Phase X3 — Ownership + concurrency signals (small)
+
+- Add `ClaimButton` on company card + detail header: sets `owner_user_id = auth.uid()` only if all three owner fields are null; toast + audit log.
+- Add `ReassignDialog` (leadership-only) on detail.
+- Read latest row from `company_activities` per company in batched query; render "Last touched **2h ago by Y**" on `CompanyCard` and at top of `CompanyDetail`.
+- Add **Activity Timeline** + **Log activity** quick action on `CompanyDetail` (type ∈ email/call/meeting/note). Writes to `company_activities` (RLS already enforces ownership).
+- Stale warning banner on detail when `updated_at` changed by another user since the page loaded (lightweight `select updated_at` re-check on save; if mismatch, prompt before overwrite — no silent overwrites).
+
+## Phase X4 — Contract Monitor integration + self-explanatory UX (small)
+
+- New "Contracts" tab inside CRM lists `public_contract_opportunities` with confidence chip, awardee org link, "Promote to CRM" action that creates/links an `organizations` row (uses existing `cm_write_field_if_better` only for enrichment fields).
+- Empty states across queues become **action prompts** ("Nothing unowned. Browse all companies →"), not blank text.
+- Add inline 1-line definition under each queue chip ("Companies with no owner, in an early status — claim one to start.").
+
+## Phase X5 — Regression + multi-user verification
+
+- Manual: 2-account smoke (one Ops member, one leadership): claim, log activity, edit, see "last touched by", reassign, promote contract → CRM.
+- Automated: confirm recruitment / deliverable / cadence / score routes still mount; build passes; no orphaned imports.
+- Report: what changed / what was tested / what failed and was fixed / what is still unproven / what next phase depends on.
+
+---
+
+## Risks / decisions needed before I start
+
+1. **Nav compression** ("My Companies", "Qualified", "Table", "Legacy" merge into **Queues** + **Companies**). This deletes 2 visible tabs (replaces with chips). Confirm OK; otherwise I'll keep all tabs and just add **Queues** + **Contracts**.
+2. **Promote-to-CRM** for a contract opportunity creates a real `organizations` row owned by `resolve_designated_ops_lead()` (or unowned if none). Confirm or specify default owner.
+3. **Concurrency guard:** I'll use optimistic `updated_at` re-check, not realtime presence. Confirm this is "honest enough."
+4. **Cohort score:** I will **not** change Ops scoring this pass (no live system mis-scores Ops today). Confirm deferring.
+5. **Legacy file removal:** I'll delete `src/pages/app/CRM.tsx` only if grep confirms zero imports. Confirm OK.
+
+If all five answers are "go," I proceed X2 → X3 → X4 → X5 with a short report after each phase before moving on.
