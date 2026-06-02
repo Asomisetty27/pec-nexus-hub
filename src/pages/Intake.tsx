@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Send, CheckCircle2, Mail, Clock } from "lucide-react";
@@ -14,25 +15,34 @@ export default function Intake() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [engagementType, setEngagementType] = useState("");
+  const [deliverablePreference, setDeliverablePreference] = useState("");
   const [budget, setBudget] = useState("");
   const [timeline, setTimeline] = useState("");
+  const [ndaNeeded, setNdaNeeded] = useState(false);
+  const [ipConcerns, setIpConcerns] = useState(false);
+  const [proprietaryData, setProprietaryData] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     const name = (form.get("name") as string).trim();
     const email = (form.get("email") as string).trim().toLowerCase();
+    const phone = (form.get("phone") as string).trim();
     const company = (form.get("company") as string).trim();
     const role = (form.get("role") as string).trim();
     const website = (form.get("website") as string).trim();
-    const description = (form.get("description") as string).trim();
+    const problemSummary = (form.get("problem_summary") as string).trim();
+    const desiredOutcome = (form.get("desired_outcome") as string).trim();
+    const dataAvailable = (form.get("data_available") as string).trim();
+    const constraints = (form.get("constraints") as string).trim();
+    const decisionApprover = (form.get("decision_approver") as string).trim();
 
-    if (!name || !email || !company || !engagementType || !description) {
+    if (!name || !email || !company || !engagementType || !problemSummary || !desiredOutcome || !deliverablePreference || !decisionApprover) {
       toast.error("Please fill in all required fields.");
       return;
     }
-    if (description.length < 20) {
-      toast.error("Please add a bit more detail about your project (20+ chars).");
+    if (problemSummary.length < 20) {
+      toast.error("Problem summary needs a bit more detail (20+ characters).");
       return;
     }
 
@@ -58,7 +68,25 @@ export default function Intake() {
         if (newOrg) orgId = newOrg.id;
       }
 
-      // Dedupe: if a lead with this email + org already exists in an open stage, update notes instead
+      // Build structured notes block that captures all vault-required intake fields
+      const sensitivityParts: string[] = [];
+      if (ndaNeeded) sensitivityParts.push("NDA needed");
+      if (ipConcerns) sensitivityParts.push("IP concerns");
+      if (proprietaryData) sensitivityParts.push("Proprietary data");
+      const sensitivityLine = sensitivityParts.length > 0 ? sensitivityParts.join(", ") : "None flagged";
+
+      const noteBlock = `[${new Date().toISOString().slice(0, 10)}] ${problemSummary}
+
+--- Full Intake Details ---
+Desired outcome: ${desiredOutcome}
+Deliverable preference: ${deliverablePreference}
+Data / resources available: ${dataAvailable || "Not specified"}
+Constraints (manufacturing / compliance / safety): ${constraints || "None specified"}
+Budget range: ${budget || "Not specified"}
+Sensitivity: ${sensitivityLine}
+Decision approver: ${decisionApprover}`;
+
+      // Dedupe: if a lead with this email + org already exists in an open stage, update notes
       const { data: existingLead } = await supabase
         .from("leads")
         .select("id, notes")
@@ -69,8 +97,6 @@ export default function Intake() {
         .limit(1)
         .maybeSingle();
 
-      const noteBlock = `[${new Date().toISOString().slice(0, 10)}] ${description}`;
-
       if (existingLead) {
         await supabase
           .from("leads")
@@ -80,9 +106,11 @@ export default function Intake() {
           })
           .eq("id", existingLead.id);
       } else {
+        const urgencyValue = timeline === "urgent" ? "high" : timeline === "quarter" ? "medium" : "low";
         const { error: leadError } = await supabase.from("leads").insert({
           contact_name: name,
           contact_email: email,
+          contact_phone: phone || null,
           org_id: orgId,
           source: "intake_form",
           stage: "new" as any,
@@ -91,6 +119,7 @@ export default function Intake() {
           engagement_type: engagementType,
           timeline: timeline || null,
           budget_range: budget || null,
+          urgency: urgencyValue,
           notes: noteBlock,
         });
         if (leadError) throw leadError;
@@ -125,8 +154,8 @@ export default function Intake() {
                     <div className="text-sm">
                       <p className="font-medium">What happens next</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        A PEC officer will review your submission within ~5 business days. If it aligns with active
-                        cohort capacity, we'll reach out to schedule a scoping call.
+                        A PEC officer will review your submission within approximately 5 business days. If your project
+                        aligns with active cohort capacity, we'll reach out to schedule a scoping call.
                       </p>
                     </div>
                   </div>
@@ -136,7 +165,7 @@ export default function Intake() {
                       <p className="font-medium">Need to follow up?</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         Email{" "}
-                        <a href="mailto:calpoly.pec@gmail.com" className="underline">
+                        <a href="mailto:pec@calpoly.edu" className="underline">
                           pec@calpoly.edu
                         </a>{" "}
                         referencing your company name.
@@ -169,6 +198,8 @@ export default function Intake() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-5">
+
+                {/* Contact information */}
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="name">Your Name *</Label>
@@ -181,18 +212,40 @@ export default function Intake() {
                 </div>
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="company">Company / Organization *</Label>
-                    <Input id="company" name="company" placeholder="Acme Corp" required />
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input id="phone" name="phone" type="tel" placeholder="+1 (555) 000-0000" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="role">Your Role</Label>
                     <Input id="role" name="role" placeholder="VP Engineering" />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="website">Company Website</Label>
-                  <Input id="website" name="website" type="url" placeholder="https://acme.com" />
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="company">Company / Organization *</Label>
+                    <Input id="company" name="company" placeholder="Acme Corp" required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="website">Company Website</Label>
+                    <Input id="website" name="website" type="url" placeholder="https://acme.com" />
+                  </div>
                 </div>
+
+                {/* Decision approver */}
+                <div className="space-y-2">
+                  <Label htmlFor="decision_approver">Who will approve decisions on your side? *</Label>
+                  <Input
+                    id="decision_approver"
+                    name="decision_approver"
+                    placeholder="e.g. Jane Smith, VP Engineering"
+                    required
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    The person who can approve scope, deliverables, and timeline on your end.
+                  </p>
+                </div>
+
+                {/* Engagement type */}
                 <div className="space-y-2">
                   <Label>Engagement Type *</Label>
                   <Select value={engagementType} onValueChange={setEngagementType} required>
@@ -207,17 +260,52 @@ export default function Intake() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Problem summary */}
                 <div className="space-y-2">
-                  <Label htmlFor="description">What do you need? *</Label>
+                  <Label htmlFor="problem_summary">Problem summary *</Label>
                   <Textarea
-                    id="description"
-                    name="description"
-                    rows={5}
-                    placeholder="Describe the problem, the domain (e.g. embedded firmware, mechanical design, data tooling), and any specific requirements..."
+                    id="problem_summary"
+                    name="problem_summary"
+                    rows={3}
+                    placeholder="In 2–3 sentences: what challenge are you facing, what domain is it in (e.g. embedded firmware, mechanical design, data analysis), and what's driving the need now?"
                     required
                     minLength={20}
                   />
                 </div>
+
+                {/* Desired outcome */}
+                <div className="space-y-2">
+                  <Label htmlFor="desired_outcome">What does success look like? *</Label>
+                  <Textarea
+                    id="desired_outcome"
+                    name="desired_outcome"
+                    rows={2}
+                    placeholder="e.g. A validated prototype and manufacturing plan that reduces assembly time by 20%, delivered within 12 weeks."
+                    required
+                    minLength={10}
+                  />
+                </div>
+
+                {/* Deliverable preference */}
+                <div className="space-y-2">
+                  <Label>Preferred deliverable format *</Label>
+                  <Select value={deliverablePreference} onValueChange={setDeliverablePreference} required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="What output format do you need?" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="report">Report — written findings and recommendations</SelectItem>
+                      <SelectItem value="deck">Deck — presentation for stakeholders</SelectItem>
+                      <SelectItem value="prototype">Prototype — physical or functional build</SelectItem>
+                      <SelectItem value="analysis">Analysis — data, model, or technical study</SelectItem>
+                      <SelectItem value="recommendation">Recommendation — decision brief</SelectItem>
+                      <SelectItem value="other">Other — describe in problem summary</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Timeline and budget */}
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Timeline</Label>
@@ -249,6 +337,67 @@ export default function Intake() {
                     </Select>
                   </div>
                 </div>
+
+                {/* Data and resources */}
+                <div className="space-y-2">
+                  <Label htmlFor="data_available">Data and resources you can share</Label>
+                  <Textarea
+                    id="data_available"
+                    name="data_available"
+                    rows={2}
+                    placeholder="e.g. CAD files, test data, system access, stakeholders willing to participate in weekly calls..."
+                  />
+                </div>
+
+                {/* Constraints */}
+                <div className="space-y-2">
+                  <Label htmlFor="constraints">Constraints</Label>
+                  <Textarea
+                    id="constraints"
+                    name="constraints"
+                    rows={2}
+                    placeholder="e.g. Manufacturing limits, compliance or safety requirements, regulatory restrictions, hard deadlines..."
+                  />
+                </div>
+
+                {/* Sensitivity */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Sensitivity</Label>
+                  <p className="text-[11px] text-muted-foreground">Check all that apply. We handle sensitive projects carefully.</p>
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="nda_needed"
+                        checked={ndaNeeded}
+                        onCheckedChange={(v) => setNdaNeeded(!!v)}
+                      />
+                      <Label htmlFor="nda_needed" className="text-sm font-normal cursor-pointer">
+                        NDA required before sharing details
+                      </Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="ip_concerns"
+                        checked={ipConcerns}
+                        onCheckedChange={(v) => setIpConcerns(!!v)}
+                      />
+                      <Label htmlFor="ip_concerns" className="text-sm font-normal cursor-pointer">
+                        Involves patents, proprietary code, or IP concerns
+                      </Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="proprietary_data"
+                        checked={proprietaryData}
+                        onCheckedChange={(v) => setProprietaryData(!!v)}
+                      />
+                      <Label htmlFor="proprietary_data" className="text-sm font-normal cursor-pointer">
+                        Includes proprietary or sensitive data
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+
                 <p className="text-[11px] text-muted-foreground">
                   By submitting, you agree your inquiry will be reviewed by Poly-Engineering Consulting officers at Cal
                   Poly SLO. We do not share your information externally.

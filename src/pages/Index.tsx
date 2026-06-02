@@ -156,7 +156,7 @@ export default function Index() {
               Ready to Start Your Project?
             </h2>
             <p className="mt-4 text-primary-foreground/80">
-              Submit a project inquiry and our team will get back to you within 48 hours.
+              Submit a project inquiry and our team will review it within approximately 5 business days.
             </p>
             <Link to="/intake">
               <Button size="lg" variant="secondary" className="mt-8 gap-2 bg-accent text-accent-foreground hover:bg-accent/90">
