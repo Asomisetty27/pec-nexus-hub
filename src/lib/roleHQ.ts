@@ -4,6 +4,26 @@
 // theirs. Decision rights and cadence mirror the PEC operating documents
 // (club structure + workflow/quality-gate specs).
 
+// Season-one curation (2026-07-14 audit): modules with zero recorded usage
+// and no role in the one-team relaunch are parked. Routes stay alive so deep
+// links and history work; they leave the nav and show an off-season notice.
+// Reactivate by removing the entry when the season needs it.
+export const SEASON_ONE_PARKED: { url: string; reason: string }[] = [
+  { url: "/app/purpose", reason: "Purpose tracks: 0 records ever; year one has one purpose, the client engagement" },
+  { url: "/app/competitions", reason: "Competitions: 0 records; not in the fall model" },
+  { url: "/app/academy", reason: "Academy courses: 0 records; Training (drills) is the live learning surface" },
+  { url: "/app/opportunities", reason: "Opportunities board: 0 records; CRM is the pipeline of record" },
+  { url: "/app/grind", reason: "Gamification: near-zero usage; year one culture is real artifacts, not points" },
+  { url: "/app/skills", reason: "Skill dashboard: parked with grind until training data justifies it" },
+  { url: "/app/ask", reason: "Ask Nexus: 0 queries ever logged; resurfaces when the vault has season data" },
+  { url: "/app/cohort", reason: "Cohort hub: multi-cohort machinery; year one runs one team" },
+]
+
+export function parkedReason(pathname: string): string | null {
+  const hit = SEASON_ONE_PARKED.find((p) => pathname === p.url || pathname.startsWith(p.url + "/"))
+  return hit ? hit.reason : null
+}
+
 export interface HQResource {
   title: string;
   url: string;
@@ -27,7 +47,6 @@ const MEMBER_RESOURCES: HQResource[] = [
   { title: "Projects", url: "/app/projects", desc: "Your workstream, deliverables, and gate timeline" },
   { title: "Messages", url: "/app/messages", desc: "Team channels. Blockers go here early, not on Friday" },
   { title: "Training", url: "/app/training", desc: "Skill modules tied to your cohort" },
-  { title: "Ask Nexus", url: "/app/ask", desc: "Ask the club brain before you ask a human" },
   { title: "Documents", url: "/app/docs", desc: "Templates: charter, status update, QA checklist" },
 ];
 

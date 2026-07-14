@@ -1,7 +1,7 @@
 // Every signed-in perspective must resolve to a playbook that tells the
 // person what to do: mission, weekly duties, decision rights, rooms.
 import { describe, expect, it } from "vitest";
-import { PLAYBOOKS, selectPlaybook, weekKey } from "@/lib/roleHQ";
+import { PLAYBOOKS, SEASON_ONE_PARKED, parkedReason, selectPlaybook, weekKey } from "@/lib/roleHQ";
 
 const PERSPECTIVES = [
   { name: "applicant", opts: { highestRole: "applicant", isAdmin: false }, expected: "applicant" },
@@ -40,6 +40,21 @@ describe("every playbook is complete", () => {
       expect(pb.navPriority.length).toBeGreaterThan(0);
     });
   }
+});
+
+describe("season-one curation", () => {
+  it("no playbook resource or nav priority points at a parked module", () => {
+    const parked = SEASON_ONE_PARKED.map((p) => p.url);
+    for (const pb of Object.values(PLAYBOOKS)) {
+      for (const r of pb.resources) expect(parked).not.toContain(r.url);
+      for (const u of pb.navPriority) expect(parked).not.toContain(u);
+    }
+  });
+  it("parkedReason matches parked paths and subpaths only", () => {
+    expect(parkedReason("/app/grind")).toBeTruthy();
+    expect(parkedReason("/app/grind/admin")).toBeTruthy();
+    expect(parkedReason("/app/projects")).toBeNull();
+  });
 });
 
 describe("weekKey", () => {
