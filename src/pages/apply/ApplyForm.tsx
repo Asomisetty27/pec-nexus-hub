@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { z } from "zod";
 import { ArrowLeft, Loader2, Upload } from "lucide-react";
@@ -62,6 +62,9 @@ const YEAR_STANDING = [
 
 export default function ApplyForm() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // QR Studio tags printed surfaces with ?src=; carried here via ApplyLanding.
+  const qrSrc = (searchParams.get("src") ?? "").replace(/[^a-z0-9-]/gi, "-").slice(0, 40);
   const [checkingCycle, setCheckingCycle] = useState(true);
   const [cycleOpen, setCycleOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -109,6 +112,9 @@ export default function ApplyForm() {
     }
     fields.year_standing = yearStanding;
     fields.source = source;
+    if (qrSrc) {
+      fields.source_detail = [fields.source_detail, `qr:${qrSrc}`].filter(Boolean).join(" | ").slice(0, 255);
+    }
 
     const parsed = FormSchema.safeParse(fields);
     if (!parsed.success) {
