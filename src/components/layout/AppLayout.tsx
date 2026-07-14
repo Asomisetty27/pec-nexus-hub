@@ -1,7 +1,8 @@
-import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { Link, Navigate, Outlet, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 
 import { useAuth } from "@/lib/auth";
+import { parkedReason } from "@/lib/roleHQ";
 import { CommandPalette } from "@/components/CommandPalette";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
@@ -69,6 +70,19 @@ export function AppLayout() {
           <AppTopBar />
 
           <main id="app-main-content" className="relative flex-1 overflow-auto bg-grid-animate p-4 sm:p-6">
+            {parkedReason(location.pathname) && (
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border border-warning bg-warning/10 px-4 py-3">
+                <p className="text-sm">
+                  <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-warning">
+                    off-season&ensp;
+                  </span>
+                  This module is parked for the year-one relaunch: {parkedReason(location.pathname)}.
+                </p>
+                <Link to="/app" className="text-sm font-medium underline underline-offset-4 hover:text-warning">
+                  Back to your HQ
+                </Link>
+              </div>
+            )}
             <motion.div
               key={location.pathname}
               initial={{ opacity: 0, y: 8 }}

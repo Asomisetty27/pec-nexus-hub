@@ -22,7 +22,7 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "@/lib/auth";
-import { selectPlaybook } from "@/lib/roleHQ";
+import { selectPlaybook, SEASON_ONE_PARKED } from "@/lib/roleHQ";
 import { useCrmAccess } from "@/hooks/useCrmAccess";
 import { useRecruitmentAccess } from "@/hooks/useRecruitmentAccess";
 import { NavLink } from "@/components/NavLink";
@@ -157,6 +157,9 @@ export function AppSidebar() {
   const orderedMainNav = [...mainNav].sort((a, b) => priorityIndex(a.url) - priorityIndex(b.url));
 
   const canViewItem = (item: NavItem) => {
+    // Season-one curation: parked modules leave the nav entirely (routes
+    // stay reachable; AppLayout shows the off-season notice on them).
+    if (SEASON_ONE_PARKED.some((p) => item.url === p.url)) return false;
     if (item.requiresAdmin && !isAdmin) return false;
     if (item.requiresBoardOrAdmin && !isBoardOrAdmin && !isAdmin) return false;
     if (item.requiresLeadAccess && !hasLeadAccess) return false;
