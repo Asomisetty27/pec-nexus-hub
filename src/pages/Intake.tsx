@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +13,10 @@ import { Send, CheckCircle2, Mail, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function Intake() {
+  const [searchParams] = useSearchParams();
+  // QR Studio tags every printed surface with ?src=; keep it on the lead so
+  // the pipeline knows which flyer or handout did the work.
+  const srcTag = (searchParams.get("src") ?? "").replace(/[^a-z0-9-]/gi, "-").slice(0, 40);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [engagementType, setEngagementType] = useState("");
@@ -112,7 +117,7 @@ Decision approver: ${decisionApprover}`;
           contact_email: email,
           contact_phone: phone || null,
           org_id: orgId,
-          source: "intake_form",
+          source: srcTag ? `intake_form:${srcTag}` : "intake_form",
           stage: "new" as any,
           contact_role: role || null,
           website: website || null,

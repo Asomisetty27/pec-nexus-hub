@@ -173,6 +173,7 @@ export const PLAYBOOKS: Record<string, HQPlaybook> = {
     escalateTo: "Faculty advisor / ASI",
     resources: [
       { title: "Re-commitment tracker", url: "/app/recommit", desc: "Live stay/alumni/leave counts for the re-formation" },
+      { title: "QR Studio", url: "/app/qr", desc: "Print-ready QR codes with source tracking for flyers and booths" },
       { title: "Command Center", url: "/app/command", desc: "Org-wide state at a glance" },
       { title: "Admin Console", url: "/app/admin", desc: "Roles, invites, metrics, configuration" },
       { title: "Company Relations", url: "/app/crm", desc: "Pipeline with decision queue" },
