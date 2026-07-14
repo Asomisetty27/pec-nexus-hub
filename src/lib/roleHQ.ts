@@ -123,14 +123,15 @@ export const PLAYBOOKS: Record<string, HQPlaybook> = {
 
   board_member: {
     key: "board_member",
-    title: "Board / PM / VP",
-    mission: "Pipeline health and delivery consistency. You are the client's single point of contact and the club's early-warning system.",
+    title: "VP / Board",
+    mission:
+      "Year one: run the delivery machine. Sprint planning, working sessions, QA, and member accountability are yours. Amogh handles the outside; you make the inside undeniable.",
     weekly: [
-      "Verify every active project filed a check-in this week; chase the ones that did not",
-      "Send the weekly written status to every client, even in no-meeting weeks",
-      "Scan escalation triggers: client silent over 7 days, scope growth over 15%, two missed deadlines",
-      "Move CRM pipeline: every open inquiry gets a next action and an owner",
-      "Review staffing: anyone overloaded, anyone idle",
+      "Plan the sprint: every member has a named artifact with a date",
+      "Run the working session from the generated agenda; every meeting ends with assigned actions",
+      "Review artifacts against the QA checklist before anything is client-visible",
+      "Keep the attendance and delivery ledger current; two unexcused absences triggers the waitlist rule",
+      "Send the weekly written client status (draft generated from sprint state; edit, never write from scratch)",
     ],
     canDecide: [
       "Task assignments, internal deadlines, meeting cadence",
@@ -157,13 +158,14 @@ export const PLAYBOOKS: Record<string, HQPlaybook> = {
   admin: {
     key: "admin",
     title: "President / Admin",
-    mission: "External credibility, final approvals, high-risk calls. Everything that can embarrass the club in public crosses your desk first.",
+    mission:
+      "Year one: land the client, own the outside. You sign the fall client, run every external conversation, and make the final calls. Sam runs delivery; you two never overlap.",
     weekly: [
+      "Move the fall client pipeline: every open conversation gets a next action this week (signed by mid-August)",
       "Decide every inquiry sitting at accept/reshape/decline; nothing waits more than a week",
-      "Review act-now escalations across the portfolio",
-      "Check the three acquisition lanes: cold outreach, partnerships, referrals",
-      "Confirm next cycle's pipeline is on schedule (fall signed by June, spring by November)",
-      "Review anything touching NDA, IP, safety, or liability",
+      "Review the escalation queue and anything touching NDA, IP, safety, or liability",
+      "Check recruiting readiness against the runway (WOW showcase Aug 18-19, apps close Sep 4)",
+      "Log every decision you and Sam make in the Decision Log; year one sets the precedents",
     ],
     canDecide: ["Client acceptance (with VP)", "High-risk and dispute calls", "External representation"],
     mustEscalate: ["Legal exposure beyond club policy: advisor / university"],
