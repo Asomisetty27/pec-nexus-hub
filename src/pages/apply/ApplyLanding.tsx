@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Calendar, CheckCircle2, Clock, FileText, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,9 @@ const PROCESS = [
 ];
 
 export default function ApplyLanding() {
+  // Preserve QR source tags (?src=) through the landing -> form navigation
+  // so scanned flyers stay attributable.
+  const { search } = useLocation();
   const [loading, setLoading] = useState(true);
   const [cycle, setCycle] = useState<ActiveCycle | null>(null);
 
@@ -81,7 +84,7 @@ export default function ApplyLanding() {
 
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button asChild size="lg" className="gap-2">
-              <Link to="/apply/form">
+              <Link to={`/apply/form${search}`}>
                 {open ? "Start application" : "Submit interest now"} <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
