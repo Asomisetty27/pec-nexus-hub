@@ -19,7 +19,7 @@ import RosterEditSheet from "@/components/admin/RosterEditSheet";
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.03 } } };
 const item = { hidden: { opacity: 0, y: 6 }, show: { opacity: 1, y: 0, transition: { duration: 0.15 } } };
 
-const APP_URL = "https://pec-nexus-hub.lovable.app";
+const APP_URL = "https://pecnexus.com";
 
 interface RosterEntry {
   id: string;

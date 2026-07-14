@@ -3,7 +3,7 @@ import QRCode from "qrcode";
 import { Download, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
 
-const SITE = "https://pec-nexus-hub.lovable.app";
+const SITE = "https://pecnexus.com";
 
 // Every physical surface gets its own src tag so a scan is attributable in
 // the CRM: leads arrive as source "intake_form:<src>" / apply traffic
