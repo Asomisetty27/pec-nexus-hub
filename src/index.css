@@ -1,77 +1,82 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/*
+  PEC Nexus design language: "the engineering document come alive."
+  Public/light = warm drafting paper + ink + safety orange.
+  Dark = operations console. Motifs: title blocks, stamps, dimension
+  lines, registration marks, mono annotations.
+*/
+
 @layer base {
   :root {
-    --background: 43 38% 92%;
-    --foreground: 160 38% 16%;
-    --card: 40 50% 99%;
-    --card-foreground: 160 38% 16%;
-    --popover: 40 50% 99%;
-    --popover-foreground: 160 38% 16%;
-    --primary: 160 38% 16%;
-    --primary-foreground: 43 38% 92%;
-    --secondary: 160 30% 26%;
-    --secondary-foreground: 43 38% 92%;
-    --accent: 43 50% 53%;
-    --accent-foreground: 160 38% 16%;
-    --muted: 38 25% 88%;
-    --muted-foreground: 160 15% 40%;
-    --destructive: 4 63% 46%;
+    --background: 44 35% 94%;
+    --foreground: 150 8% 9%;
+    --card: 43 47% 97%;
+    --card-foreground: 150 8% 9%;
+    --popover: 43 47% 97%;
+    --popover-foreground: 150 8% 9%;
+    --primary: 150 8% 9%;
+    --primary-foreground: 44 35% 94%;
+    --secondary: 156 44% 20%;
+    --secondary-foreground: 44 35% 94%;
+    --accent: 16 100% 45%;
+    --accent-foreground: 0 0% 100%;
+    --muted: 44 28% 90%;
+    --muted-foreground: 150 5% 31%;
+    --destructive: 6 73% 44%;
     --destructive-foreground: 0 0% 100%;
-    --success: 152 46% 33%;
+    --success: 155 45% 33%;
     --success-foreground: 0 0% 100%;
-    --warning: 45 75% 46%;
-    --warning-foreground: 160 38% 16%;
-    --border: 38 25% 85%;
-    --input: 38 25% 85%;
-    --ring: 160 38% 16%;
-    --radius: 0.625rem;
-    --sidebar-background: 160 38% 16%;
-    --sidebar-foreground: 43 38% 92%;
-    --sidebar-primary: 43 50% 53%;
-    --sidebar-primary-foreground: 160 38% 16%;
-    --sidebar-accent: 160 30% 22%;
-    --sidebar-accent-foreground: 43 38% 92%;
-    --sidebar-border: 160 30% 22%;
-    --sidebar-ring: 43 50% 53%;
+    --warning: 42 100% 39%;
+    --warning-foreground: 150 8% 9%;
+    --border: 45 20% 81%;
+    --input: 45 20% 81%;
+    --ring: 16 100% 45%;
+    --radius: 0.25rem;
+    --sidebar-background: 165 11% 7%;
+    --sidebar-foreground: 46 27% 90%;
+    --sidebar-primary: 16 100% 56%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 156 9% 12%;
+    --sidebar-accent-foreground: 46 27% 90%;
+    --sidebar-border: 150 7% 16%;
+    --sidebar-ring: 16 100% 56%;
   }
 
   .dark {
-    --background: 164 33% 9%;
-    --foreground: 43 38% 92%;
-    --card: 160 30% 12%;
-    --card-foreground: 43 38% 92%;
-    --popover: 160 30% 12%;
-    --popover-foreground: 43 38% 92%;
-    --primary: 43 50% 53%;
-    --primary-foreground: 164 33% 9%;
-    --secondary: 160 30% 20%;
-    --secondary-foreground: 43 38% 92%;
-    --accent: 160 38% 16%;
-    --accent-foreground: 43 50% 53%;
-    --muted: 160 20% 16%;
-    --muted-foreground: 43 20% 65%;
-    --destructive: 0 62% 35%;
+    --background: 165 11% 7%;
+    --foreground: 46 27% 90%;
+    --card: 156 9% 10%;
+    --card-foreground: 46 27% 90%;
+    --popover: 156 9% 10%;
+    --popover-foreground: 46 27% 90%;
+    --primary: 46 27% 90%;
+    --primary-foreground: 165 11% 7%;
+    --secondary: 156 30% 18%;
+    --secondary-foreground: 46 27% 90%;
+    --accent: 16 100% 56%;
+    --accent-foreground: 0 0% 100%;
+    --muted: 150 7% 14%;
+    --muted-foreground: 93 5% 64%;
+    --destructive: 6 73% 50%;
     --destructive-foreground: 0 0% 100%;
-    --success: 152 46% 33%;
+    --success: 155 45% 40%;
     --success-foreground: 0 0% 100%;
-    --warning: 45 75% 46%;
-    --warning-foreground: 164 33% 9%;
-    --border: 160 20% 18%;
-    --input: 160 20% 18%;
-    --ring: 43 50% 53%;
-    --sidebar-background: 164 40% 7%;
-    --sidebar-foreground: 43 38% 92%;
-    --sidebar-primary: 43 50% 53%;
-    --sidebar-primary-foreground: 164 33% 9%;
-    --sidebar-accent: 160 30% 14%;
-    --sidebar-accent-foreground: 43 38% 92%;
-    --sidebar-border: 160 30% 14%;
-    --sidebar-ring: 43 50% 53%;
+    --warning: 42 100% 50%;
+    --warning-foreground: 165 11% 7%;
+    --border: 150 7% 16%;
+    --input: 150 7% 16%;
+    --ring: 16 100% 56%;
+    --sidebar-background: 165 13% 5%;
+    --sidebar-foreground: 46 27% 90%;
+    --sidebar-primary: 16 100% 56%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 156 9% 12%;
+    --sidebar-accent-foreground: 46 27% 90%;
+    --sidebar-border: 150 7% 14%;
+    --sidebar-ring: 16 100% 56%;
   }
 }
 
@@ -81,53 +86,131 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Inter Variable', Inter, system-ui, sans-serif;
+    font-feature-settings: 'ss01', 'cv05';
   }
   h1, h2, h3 {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-weight: 400;
+    letter-spacing: -0.01em;
   }
   code, .font-mono {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
   }
   .font-display {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-weight: 400;
   }
   .font-sans {
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Inter Variable', Inter, system-ui, sans-serif;
+  }
+  ::selection {
+    background: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
   }
 }
 
 @layer utilities {
-  /* Ambient blueprint grid */
+  /* ---- Drawing-annotation voice ---- */
+  .label {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .stamp {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    border: 1.5px solid currentColor;
+    border-radius: 2px;
+    padding: 0.2rem 0.5rem;
+    display: inline-block;
+  }
+  .stamp-tilt {
+    transform: rotate(-3deg);
+  }
+
+  /* Engineering-drawing double frame */
+  .title-block {
+    border: 1px solid hsl(var(--foreground));
+    position: relative;
+  }
+  .title-block::after {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border: 1px solid hsl(var(--foreground) / 0.25);
+    pointer-events: none;
+  }
+
+  /* Registration crosshair corner marks */
+  .reg-marks {
+    position: relative;
+  }
+  .reg-marks::before,
+  .reg-marks::after {
+    content: '+';
+    position: absolute;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.875rem;
+    color: hsl(var(--foreground) / 0.35);
+    line-height: 1;
+  }
+  .reg-marks::before {
+    top: 0.5rem;
+    left: 0.75rem;
+  }
+  .reg-marks::after {
+    bottom: 0.5rem;
+    right: 0.75rem;
+  }
+
+  /* Marching-ants attention edge */
+  .live-edge {
+    background-image: linear-gradient(90deg, hsl(var(--accent)) 0 8px, transparent 8px 16px);
+    background-size: 16px 2px;
+    background-repeat: repeat-x;
+    background-position: 0 0;
+    animation: march 1.2s linear infinite;
+  }
+  @keyframes march {
+    to { background-position: 200% 0; }
+  }
+
+  /* ---- Pre-existing utility names, rethemed ---- */
   .bg-grid {
     background-image:
-      linear-gradient(hsl(var(--border) / 0.3) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(var(--border) / 0.3) 1px, transparent 1px);
-    background-size: 40px 40px;
+      linear-gradient(hsl(var(--foreground) / 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--foreground) / 0.05) 1px, transparent 1px),
+      linear-gradient(hsl(var(--foreground) / 0.09) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--foreground) / 0.09) 1px, transparent 1px);
+    background-size: 24px 24px, 24px 24px, 120px 120px, 120px 120px;
   }
 
   .bg-grid-subtle {
     background-image:
-      linear-gradient(hsl(var(--border) / 0.12) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(var(--border) / 0.12) 1px, transparent 1px);
-    background-size: 28px 28px;
+      linear-gradient(hsl(var(--foreground) / 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--foreground) / 0.03) 1px, transparent 1px);
+    background-size: 24px 24px;
   }
 
-  /* Animated grid */
   .bg-grid-animate {
     background-image:
-      linear-gradient(hsl(var(--border) / 0.08) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(var(--border) / 0.08) 1px, transparent 1px);
+      linear-gradient(hsl(var(--foreground) / 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--foreground) / 0.04) 1px, transparent 1px);
     background-size: 32px 32px;
     animation: gridPan 60s linear infinite;
   }
-
   @keyframes gridPan {
     0% { background-position: 0 0; }
     100% { background-position: 32px 32px; }
   }
 
-  /* Progress ring */
   .progress-ring {
     transform: rotate(-90deg);
   }
@@ -135,44 +218,39 @@
     transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  /* Glass card */
+  /* Flat panels: the old glassmorphism reads as template; keep names, go flat */
   .glass {
-    @apply bg-card/60 backdrop-blur-xl border border-border/50;
+    @apply bg-card border border-border;
   }
   .glass-strong {
-    @apply bg-card/80 backdrop-blur-2xl border border-border/60 shadow-lg;
+    @apply bg-card border border-foreground/60;
   }
 
-  /* Glow effects */
   .glow-accent {
-    box-shadow: 0 0 20px -5px hsl(var(--accent) / 0.3);
+    box-shadow: 0 0 0 1px hsl(var(--accent) / 0.35);
   }
   .glow-primary {
-    box-shadow: 0 0 24px -6px hsl(var(--primary) / 0.25);
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.3);
   }
   .glow-success {
-    box-shadow: 0 0 16px -4px hsl(var(--success) / 0.3);
+    box-shadow: 0 0 0 1px hsl(var(--success) / 0.35);
   }
   .glow-subtle {
-    box-shadow: 0 0 40px -10px hsl(var(--accent) / 0.15);
+    box-shadow: 0 0 0 1px hsl(var(--accent) / 0.15);
   }
 
-  /* Separator glow line */
   .glow-line {
     height: 1px;
-    background: linear-gradient(90deg, transparent, hsl(var(--accent) / 0.4), transparent);
+    background: linear-gradient(90deg, transparent, hsl(var(--accent) / 0.5), transparent);
   }
 
-  /* Premium card hover */
   .card-hover {
-    @apply transition-all duration-200;
+    @apply transition-colors duration-150;
   }
   .card-hover:hover {
-    @apply border-accent/40 shadow-lg;
-    box-shadow: 0 0 30px -8px hsl(var(--accent) / 0.15);
+    @apply border-accent;
   }
 
-  /* Status pulse */
   .status-pulse {
     @apply relative;
   }
@@ -186,34 +264,35 @@
     50% { box-shadow: 0 0 0 4px hsl(var(--success) / 0); }
   }
 
-  /* Scroll container */
   .scroll-smooth {
     scroll-behavior: smooth;
   }
 
-  /* Text gradient */
+  /* Formerly a gradient; ink-to-accent gradients read as 2023 template */
   .text-gradient {
-    background: linear-gradient(135deg, hsl(var(--foreground)), hsl(var(--accent)));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: hsl(var(--foreground));
   }
 
-  /* Exclusive access badge */
   .badge-verified {
-    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-wider;
-    background: linear-gradient(135deg, hsl(var(--accent) / 0.15), hsl(var(--primary) / 0.1));
-    border: 1px solid hsl(var(--accent) / 0.3);
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[9px] font-mono uppercase tracking-wider;
+    background: hsl(var(--accent) / 0.1);
+    border: 1px solid hsl(var(--accent) / 0.4);
+    color: hsl(var(--accent));
   }
 
-  /* Panel depth layers */
   .panel-depth-1 {
-    @apply bg-card border rounded-xl;
+    @apply bg-card border rounded-md;
   }
   .panel-depth-2 {
-    @apply bg-muted/30 border border-border/50 rounded-lg;
+    @apply bg-muted/40 border border-border rounded-sm;
   }
   .panel-depth-3 {
-    @apply bg-muted/20 border border-border/30 rounded-md;
+    @apply bg-muted/25 border border-border/60 rounded-sm;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .live-edge, .bg-grid-animate, .status-pulse::after {
+      animation: none;
+    }
   }
 }
