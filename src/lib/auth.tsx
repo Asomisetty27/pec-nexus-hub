@@ -17,6 +17,7 @@ interface Profile {
   graduation_year: number | null;
   linkedin_url: string | null;
   status: string;
+  member_status?: string | null;
   onboarding_completed: boolean;
   invite_state: string;
 }
