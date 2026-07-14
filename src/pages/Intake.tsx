@@ -53,24 +53,16 @@ export default function Intake() {
 
     setSubmitting(true);
     try {
-      // Create or find organization (case-insensitive name match)
-      let orgId: string | null = null;
-      const { data: existingOrg } = await supabase
+      // Anonymous visitors can INSERT (narrow RLS policies) but never SELECT
+      // CRM tables, so: generate the org id client-side, insert with no
+      // returning, and link the lead to it. Board dedupes in the CRM.
+      let orgId: string | null = crypto.randomUUID();
+      const { error: orgError } = await supabase
         .from("organizations")
-        .select("id")
-        .ilike("name", company)
-        .limit(1)
-        .maybeSingle();
-
-      if (existingOrg) {
-        orgId = existingOrg.id;
-      } else {
-        const { data: newOrg } = await supabase
-          .from("organizations")
-          .insert({ name: company, type: "client", website: website || null })
-          .select("id")
-          .single();
-        if (newOrg) orgId = newOrg.id;
+        .insert({ id: orgId, name: company, type: "client", website: website || null });
+      if (orgError) {
+        // The inquiry must never be lost over an org hiccup; submit unlinked.
+        orgId = null;
       }
 
       // Build structured notes block that captures all vault-required intake fields
@@ -91,44 +83,23 @@ Budget range: ${budget || "Not specified"}
 Sensitivity: ${sensitivityLine}
 Decision approver: ${decisionApprover}`;
 
-      // Dedupe: if a lead with this email + org already exists in an open stage, update notes
-      const { data: existingLead } = await supabase
-        .from("leads")
-        .select("id, notes")
-        .ilike("contact_email", email)
-        .eq("org_id", orgId!)
-        .in("stage", ["new", "contacted", "scoping"])
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (existingLead) {
-        await supabase
-          .from("leads")
-          .update({
-            notes: `${existingLead.notes || ""}\n\n--- Follow-up ---\n${noteBlock}`,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", existingLead.id);
-      } else {
-        const urgencyValue = timeline === "urgent" ? "high" : timeline === "quarter" ? "medium" : "low";
-        const { error: leadError } = await supabase.from("leads").insert({
-          contact_name: name,
-          contact_email: email,
-          contact_phone: phone || null,
-          org_id: orgId,
-          source: srcTag ? `intake_form:${srcTag}` : "intake_form",
-          stage: "new" as any,
-          contact_role: role || null,
-          website: website || null,
-          engagement_type: engagementType,
-          timeline: timeline || null,
-          budget_range: budget || null,
-          urgency: urgencyValue,
-          notes: noteBlock,
-        });
-        if (leadError) throw leadError;
-      }
+      const urgencyValue = timeline === "urgent" ? "high" : timeline === "quarter" ? "medium" : "low";
+      const { error: leadError } = await supabase.from("leads").insert({
+        contact_name: name,
+        contact_email: email,
+        contact_phone: phone || null,
+        org_id: orgId,
+        source: srcTag ? `intake_form:${srcTag}` : "intake_form",
+        stage: "new" as any,
+        contact_role: role || null,
+        website: website || null,
+        engagement_type: engagementType,
+        timeline: timeline || null,
+        budget_range: budget || null,
+        urgency: urgencyValue,
+        notes: noteBlock,
+      });
+      if (leadError) throw leadError;
 
       setSubmitted(true);
       toast.success("Inquiry received. PEC leadership has been notified.");
