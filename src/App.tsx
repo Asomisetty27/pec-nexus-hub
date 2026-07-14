@@ -18,6 +18,7 @@ import ApplyLanding from "./pages/apply/ApplyLanding";
 import ApplyForm from "./pages/apply/ApplyForm";
 import ApplyConfirmation from "./pages/apply/ApplyConfirmation";
 import Dashboard from "./pages/app/Dashboard";
+import Recommit from "./pages/app/Recommit";
 import Projects from "./pages/app/Projects";
 import ProjectDetail from "./pages/app/ProjectDetail";
 import Messages from "./pages/app/Messages";
@@ -87,6 +88,7 @@ const App = () => (
             </Route>
             <Route path="/app" element={<AppLayout />}>
               <Route index element={<Dashboard />} />
+              <Route path="recommit" element={<Recommit />} />
               <Route path="purpose" element={<PurposeTrack />} />
               <Route path="opportunities" element={<Opportunities />} />
               <Route path="projects" element={<Projects />} />

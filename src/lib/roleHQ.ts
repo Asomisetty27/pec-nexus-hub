@@ -23,6 +23,7 @@ export interface HQPlaybook {
 }
 
 const MEMBER_RESOURCES: HQResource[] = [
+  { title: "Re-commitment", url: "/app/recommit", desc: "Fall 2026 re-formation: claim your seat, go alumni, or step away" },
   { title: "Projects", url: "/app/projects", desc: "Your workstream, deliverables, and gate timeline" },
   { title: "Messages", url: "/app/messages", desc: "Team channels. Blockers go here early, not on Friday" },
   { title: "Training", url: "/app/training", desc: "Skill modules tied to your cohort" },
@@ -171,6 +172,7 @@ export const PLAYBOOKS: Record<string, HQPlaybook> = {
     mustEscalate: ["Legal exposure beyond club policy: advisor / university"],
     escalateTo: "Faculty advisor / ASI",
     resources: [
+      { title: "Re-commitment tracker", url: "/app/recommit", desc: "Live stay/alumni/leave counts for the re-formation" },
       { title: "Command Center", url: "/app/command", desc: "Org-wide state at a glance" },
       { title: "Admin Console", url: "/app/admin", desc: "Roles, invites, metrics, configuration" },
       { title: "Company Relations", url: "/app/crm", desc: "Pipeline with decision queue" },
