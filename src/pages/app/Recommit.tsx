@@ -88,11 +88,16 @@ export default function Recommit() {
       commitment_version: choice === "stay" ? COMMITMENT_VERSION : null,
     };
     const { data, error } = await recommitments().upsert(payload, { onConflict: "user_id,cycle" }).select().single();
-    setSubmitting(false);
     if (error) {
+      setSubmitting(false);
       toast.error("Could not save. Try again or ping ops.");
       return;
     }
+    // The choice moves the member through the lifecycle: alumni get the
+    // alumni Role HQ, leavers go inactive, stayers stay active.
+    const nextStatus = choice === "alumni" ? "alumni" : choice === "leave" ? "inactive" : "active";
+    await supabase.from("profiles").update({ member_status: nextStatus } as never).eq("user_id", user.id);
+    setSubmitting(false);
     setMine(data as Row);
     toast.success(
       choice === "stay"

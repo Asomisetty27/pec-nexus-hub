@@ -74,13 +74,14 @@ export const PLAYBOOKS: Record<string, HQPlaybook> = {
   member: {
     key: "member",
     title: "Member",
-    mission: "Deliver your workstream and grow your craft. Your lead owns correctness; you own momentum and honesty about blockers.",
+    mission:
+      "Deliver your artifact and grow your craft. The contract is simple: one named artifact per sprint, submitted on your project page by Friday of sprint week 2, reviewed by your lead within 48 hours.",
     weekly: [
-      "Check your action items Monday; recommit or flag anything you cannot hit",
-      "Post progress and blockers in your team channel before the weekly meeting",
-      "Send your 2-minute status to your lead before Friday",
-      "Log every decision that changes the work in the project Decision Log",
-      "Complete one training module if your project is between pushes",
+      "Monday: open Projects, confirm your assigned artifact and its due date; flag now if it is at risk",
+      "Post progress and blockers in your team channel before the working session, not after",
+      "Submit your artifact on the project page (its card has the submit button); it flows draft, submitted, tech review, approved",
+      "If review comes back needs-revision, turn it around within 48 hours; a silent stall is an escalation",
+      "Between pushes: one training drill",
     ],
     canDecide: ["Implementation details inside your assigned task", "How you organize your own work"],
     mustEscalate: [
