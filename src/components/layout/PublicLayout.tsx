@@ -4,6 +4,7 @@ import { TopBar } from "./TopBar";
 
 const QUICK_LINKS = [
   { label: "Services", to: "/services" },
+  { label: "Track Record", to: "/history" },
   { label: "Sponsors", to: "/sponsors" },
   { label: "Work With Us", to: "/intake" },
   { label: "Apply to Join", to: "/apply" },

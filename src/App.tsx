@@ -8,6 +8,7 @@ import { PublicLayout } from "@/components/layout/PublicLayout";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
 import Services from "./pages/Services";
+import History from "./pages/History";
 import Sponsors from "./pages/Sponsors";
 import Intake from "./pages/Intake";
 import Login from "./pages/Login";
@@ -74,6 +75,7 @@ const App = () => (
             <Route element={<PublicLayout />}>
               <Route path="/" element={<Index />} />
               <Route path="/services" element={<Services />} />
+              <Route path="/history" element={<History />} />
               <Route path="/sponsors" element={<Sponsors />} />
               <Route path="/intake" element={<Intake />} />
               <Route path="/apply" element={<ApplyLanding />} />

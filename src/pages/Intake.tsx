@@ -190,7 +190,7 @@ Decision approver: ${decisionApprover}`;
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <Card>
             <CardHeader className="text-center">
-              <CardTitle className="font-display text-3xl">Work With PEC</CardTitle>
+              <h1 className="font-display text-3xl font-semibold leading-none tracking-tight">Work With PEC</h1>
               <CardDescription className="text-base">
                 Poly-Engineering Consulting partners with companies, sponsors, and competition organizers. Tell us about
                 your need and we'll route it to the right cohort.
@@ -253,8 +253,8 @@ Decision approver: ${decisionApprover}`;
                       <SelectValue placeholder="What kind of engagement?" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="contract">Contract — paid project work</SelectItem>
-                      <SelectItem value="sponsorship">Sponsorship — fund a cohort or initiative</SelectItem>
+                      <SelectItem value="contract">Contract: paid project work</SelectItem>
+                      <SelectItem value="sponsorship">Sponsorship: fund a cohort or initiative</SelectItem>
                       <SelectItem value="competition">Competition collaboration</SelectItem>
                       <SelectItem value="exploratory">Exploratory conversation</SelectItem>
                     </SelectContent>
@@ -295,12 +295,12 @@ Decision approver: ${decisionApprover}`;
                       <SelectValue placeholder="What output format do you need?" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="report">Report — written findings and recommendations</SelectItem>
-                      <SelectItem value="deck">Deck — presentation for stakeholders</SelectItem>
-                      <SelectItem value="prototype">Prototype — physical or functional build</SelectItem>
-                      <SelectItem value="analysis">Analysis — data, model, or technical study</SelectItem>
-                      <SelectItem value="recommendation">Recommendation — decision brief</SelectItem>
-                      <SelectItem value="other">Other — describe in problem summary</SelectItem>
+                      <SelectItem value="report">Report: written findings and recommendations</SelectItem>
+                      <SelectItem value="deck">Deck: presentation for stakeholders</SelectItem>
+                      <SelectItem value="prototype">Prototype: physical or functional build</SelectItem>
+                      <SelectItem value="analysis">Analysis: data, model, or technical study</SelectItem>
+                      <SelectItem value="recommendation">Recommendation: decision brief</SelectItem>
+                      <SelectItem value="other">Other: describe in problem summary</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -314,7 +314,7 @@ Decision approver: ${decisionApprover}`;
                         <SelectValue placeholder="When do you need this?" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="urgent">Urgent — within 4 weeks</SelectItem>
+                        <SelectItem value="urgent">Urgent: within 4 weeks</SelectItem>
                         <SelectItem value="quarter">This quarter</SelectItem>
                         <SelectItem value="semester">This academic term</SelectItem>
                         <SelectItem value="flexible">Flexible</SelectItem>

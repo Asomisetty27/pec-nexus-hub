@@ -108,8 +108,8 @@ export default function ApplyLanding() {
         <section className="mt-16">
           <h2 className="text-center font-display text-2xl font-bold">How recruiting works</h2>
           <p className="mx-auto mt-2 max-w-2xl text-center text-sm text-muted-foreground">
-            We recruit primarily in the Fall, and occasionally in Spring. Each cycle has a defined window —
-            we don't run rolling intake.
+            We recruit primarily in the Fall, and occasionally in Spring. Each cycle has a defined window.
+            We don't run rolling intake.
           </p>
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {PROCESS.map((p) => (
@@ -133,8 +133,8 @@ export default function ApplyLanding() {
                   <h3 className="font-semibold">When we recruit</h3>
                   <p className="mt-1 text-sm text-muted-foreground">
                     Formal review and interviews happen during recruitment cycles in Fall and,
-                    when needed, Spring. You can submit an application at any time —
-                    submissions outside an active cycle are added to our intake pool and reviewed
+                    when needed, Spring. You can submit an application at any time.
+                    Submissions outside an active cycle are added to our intake pool and reviewed
                     when the next cycle opens.
                   </p>
                 </div>

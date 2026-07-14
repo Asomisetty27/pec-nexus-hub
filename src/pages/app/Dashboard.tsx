@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { SectionExplainer, InfoDot } from "@/components/ui/SectionExplainer";
+import { RoleHQ } from "@/components/RoleHQ";
 import DeliverableStatusBadge from "@/components/DeliverableStatusBadge";
 import { ResumeStrip } from "@/components/ResumeStrip";
 import { useMyDeliverableOwnership } from "@/hooks/useMyDeliverableOwnership";
@@ -364,6 +365,9 @@ export default function Dashboard() {
           </span>
         </motion.div>
       )}
+
+      {/* ROLE HQ: mission, weekly duties, decision rights, allocated rooms */}
+      <RoleHQ />
 
       {/* HERO + 1. NEXT MOVE (max 3) */}
       <motion.div variants={item} className="relative overflow-hidden rounded-2xl border bg-card">

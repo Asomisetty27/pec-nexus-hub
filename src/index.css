@@ -108,6 +108,41 @@
     background: hsl(var(--accent));
     color: hsl(var(--accent-foreground));
   }
+
+  /* State-of-the-art feel: every interactive element gives physical
+     feedback on press, a consistent accent focus ring on keyboard nav,
+     and themed thin scrollbars. */
+  button:not(:disabled):active,
+  a:active,
+  [role='button']:not([aria-disabled='true']):active {
+    transform: translateY(0.5px);
+  }
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.35) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.35);
+    border-radius: 4px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    button:not(:disabled):active,
+    a:active,
+    [role='button']:not([aria-disabled='true']):active {
+      transform: none;
+    }
+  }
 }
 
 @layer utilities {

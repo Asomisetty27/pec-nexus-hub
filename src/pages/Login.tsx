@@ -156,9 +156,9 @@ export default function Login() {
         </div>
         <Card>
           <CardHeader className="text-center">
-            <CardTitle className="font-display text-2xl">
+            <h1 className="font-display text-2xl font-semibold leading-none tracking-tight">
               {inviteMode && isSignUp ? "Accept Invitation" : isSignUp ? "Create Account" : "Welcome Back"}
-            </CardTitle>
+            </h1>
             <CardDescription>
               {inviteMode && isSignUp
                 ? "Finish your PEC Nexus signup with the invited email address"

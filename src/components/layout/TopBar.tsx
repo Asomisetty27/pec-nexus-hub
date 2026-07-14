@@ -14,6 +14,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: "Home", path: "/", exact: true },
   { label: "Services", path: "/services" },
+  { label: "Track Record", path: "/history" },
   { label: "Sponsors", path: "/sponsors" },
   { label: "Work With Us", path: "/intake" },
 ];

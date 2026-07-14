@@ -22,6 +22,7 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "@/lib/auth";
+import { selectPlaybook } from "@/lib/roleHQ";
 import { useCrmAccess } from "@/hooks/useCrmAccess";
 import { useRecruitmentAccess } from "@/hooks/useRecruitmentAccess";
 import { NavLink } from "@/components/NavLink";
@@ -142,6 +143,19 @@ export function AppSidebar() {
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
+  // Order the nav the way this role actually works: playbook-priority
+  // items first, everything else after in original order.
+  const playbook = selectPlaybook({
+    highestRole,
+    isAdmin,
+    memberStatus: (profile as { member_status?: string } | null)?.member_status,
+  });
+  const priorityIndex = (url: string) => {
+    const i = playbook.navPriority.indexOf(url);
+    return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+  };
+  const orderedMainNav = [...mainNav].sort((a, b) => priorityIndex(a.url) - priorityIndex(b.url));
+
   const canViewItem = (item: NavItem) => {
     if (item.requiresAdmin && !isAdmin) return false;
     if (item.requiresBoardOrAdmin && !isBoardOrAdmin && !isAdmin) return false;
@@ -206,15 +220,15 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className={GROUP_LABEL_CLASS}>Core</SidebarGroupLabel>
+          <SidebarGroupLabel className={GROUP_LABEL_CLASS}>Your work · {playbook.title}</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>{renderItems(mainNav)}</SidebarMenu>
+            <SidebarMenu>{renderItems(orderedMainNav)}</SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
         {showOrganizationSection && (
           <SidebarGroup>
-            <SidebarGroupLabel className={GROUP_LABEL_CLASS}>Organization</SidebarGroupLabel>
+            <SidebarGroupLabel className={GROUP_LABEL_CLASS}>The club</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>{renderItems(orgNav)}</SidebarMenu>
             </SidebarGroupContent>
