@@ -55,30 +55,39 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return json({ error: "Unauthorized" }, 401);
+    const authHeader = req.headers.get("Authorization") || "";
+    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const userClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: userRes } = await userClient.auth.getUser();
-    const user = userRes?.user;
-    if (!user) return json({ error: "Unauthorized" }, 401);
-
-    const { eventId } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const eventId = body.eventId;
     if (!eventId) return json({ error: "eventId required" }, 400);
 
-    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    // Two callers: an interactive leader (default), or the system, i.e. the
+    // cron auto-prep job, presenting the service-role key plus the user to
+    // attribute the deck to. System calls skip the interactive role check
+    // because only the auto-prep function (also service role) can make them.
+    const isSystem = authHeader === `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
+    let actorId: string | undefined;
+    if (isSystem) {
+      actorId = body.actorUserId;
+      if (!actorId) return json({ error: "actorUserId required for system calls" }, 400);
+    } else {
+      if (!authHeader) return json({ error: "Unauthorized" }, 401);
+      const userClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: userRes } = await userClient.auth.getUser();
+      actorId = userRes?.user?.id;
+      if (!actorId) return json({ error: "Unauthorized" }, 401);
+      const { data: allowed } = await admin.rpc("is_board_or_admin", { _user_id: actorId });
+      if (allowed !== true) {
+        const { data: lead } = await admin.rpc("is_recruitment_lead", { _uid: actorId });
+        if (lead !== true) return json({ error: "forbidden: leadership role required" }, 403);
+      }
+    }
 
     const { data: event } = await admin.from("events").select("*").eq("id", eventId).maybeSingle();
     if (!event) return json({ error: "Event not found" }, 404);
-
-    // Only board/leads should generate a leadership deck.
-    const { data: allowed } = await admin.rpc("is_board_or_admin", { _user_id: user.id });
-    if (allowed !== true) {
-      const { data: lead } = await admin.rpc("is_recruitment_lead", { _uid: user.id });
-      if (lead !== true) return json({ error: "forbidden: leadership role required" }, 403);
-    }
 
     // Window: since last deck for this event, else 14 days.
     const { data: lastDeck } = await admin
@@ -234,7 +243,7 @@ Rules:
       .from("meeting_decks")
       .insert({
         event_id: eventId,
-        generated_by: user.id,
+        generated_by: actorId,
         theme_note: parsed.theme_note || null,
         slides,
         deck_html: deckHtml,
