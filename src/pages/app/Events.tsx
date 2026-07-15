@@ -14,7 +14,7 @@ import { CalendarDays, MapPin, Plus, Check, Clock, Pencil, Trash2, Ban, Mail, Al
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { logAuditAction } from "@/lib/audit";
-import { Sparkles, Users, ClipboardCheck } from "lucide-react";
+import { Sparkles, Users, ClipboardCheck, CalendarRange } from "lucide-react";
 import { MeetingBriefDialog } from "@/components/MeetingBriefDialog";
 import { FeedbackPrompt } from "@/components/FeedbackPrompt";
 import { EventAttendanceDrawer } from "@/components/EventAttendanceDrawer";
@@ -106,6 +106,28 @@ export default function Events() {
   const myLeadCohortIds = myCohorts.filter(c => ["pm","lead","integration_lead"].includes(c.role)).map(c => c.cohort_id);
   const isCohortHost = myLeadCohortIds.length > 0;
   const canCreateEvents = isAdmin || isCohortHost;
+
+  const [planning, setPlanning] = useState(false);
+  // One-click: lay the whole semester calendar (recruiting -> engagement ->
+  // delivery) from the club's operating plan. Idempotent: re-running replaces
+  // the generated events, never the hand-made ones.
+  const handlePlanSeason = async () => {
+    if (!window.confirm(
+      "Generate the Fall 2026 calendar? This lays out recruiting, weekly working sessions, sprint gates, all-hands, socials, delivery, and retro. Re-running replaces the previously generated season events (your hand-made events are untouched)."
+    )) return;
+    setPlanning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("plan-season", { body: { seasonKey: "fall-2026" } });
+      if (error) throw error;
+      const n = (data as any)?.planned ?? 0;
+      toast.success(`Semester planned: ${n} events on the calendar`);
+      await fetchEvents();
+    } catch (e: any) {
+      toast.error("Could not plan the semester", { description: e.message });
+    } finally {
+      setPlanning(false);
+    }
+  };
 
   const canManage = (ev: any) => {
     if (isAdmin) return true;
@@ -276,11 +298,18 @@ export default function Events() {
           <h1 className="font-display text-2xl font-bold">Events</h1>
           <p className="text-xs text-muted-foreground font-mono">{upcoming.length} upcoming · {past.length} past</p>
         </div>
-        {canCreateEvents && (
-          <Button size="sm" className="gap-2" onClick={openCreate}>
-            <Plus className="h-3.5 w-3.5" /> {isAdmin ? "New Event" : "New cohort meeting"}
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Button size="sm" variant="outline" className="gap-2" onClick={handlePlanSeason} disabled={planning}>
+              <CalendarRange className="h-3.5 w-3.5" /> {planning ? "Planning…" : "Plan semester"}
+            </Button>
+          )}
+          {canCreateEvents && (
+            <Button size="sm" className="gap-2" onClick={openCreate}>
+              <Plus className="h-3.5 w-3.5" /> {isAdmin ? "New Event" : "New cohort meeting"}
+            </Button>
+          )}
+        </div>
       </motion.div>
 
       {eventCreatedFlag && (
