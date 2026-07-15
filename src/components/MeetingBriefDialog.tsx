@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { Sparkles, RefreshCw, Copy, Check } from "lucide-react";
+import { Sparkles, RefreshCw, Copy, Check, Presentation, ClipboardList } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,8 @@ export function MeetingBriefDialog({ open, onOpenChange, eventId, eventTitle }: 
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [justGenerated, setJustGenerated] = useState(false);
+  const [presenting, setPresenting] = useState(false);
+  const [buildingKit, setBuildingKit] = useState(false);
 
   useEffect(() => {
     if (!open || !eventId) return;
@@ -74,6 +76,70 @@ export function MeetingBriefDialog({ open, onOpenChange, eventId, eventTitle }: 
       setGenerating(false);
     }
   };
+
+  // Generate a themed artifact (slide deck or hands-on kit) from the same live
+  // context and open it in a new tab. Opens the tab synchronously first so the
+  // popup blocker treats it as user-initiated, then streams the HTML in when
+  // ready. Deck: arrow keys advance, P prints. Kit: scrollable, P prints.
+  const openGenerated = async (opts: {
+    fn: string;
+    pick: (data: any) => string | undefined;
+    building: string;
+    ok: string;
+    fail: string;
+    setBusy: (b: boolean) => void;
+  }) => {
+    opts.setBusy(true);
+    const tab = window.open("", "_blank");
+    if (tab) {
+      tab.document.write(
+        "<!doctype html><meta charset='utf-8'><title>" + opts.building + "</title>" +
+          "<body style='font-family:system-ui;display:grid;place-items:center;height:100vh;margin:0;color:#555'>" +
+          opts.building + "</body>"
+      );
+    }
+    try {
+      const { data, error } = await supabase.functions.invoke(opts.fn, { body: { eventId } });
+      if (error) throw error;
+      const html = opts.pick(data);
+      if (!html) throw new Error("Came back empty");
+      if (tab) {
+        tab.document.open();
+        tab.document.write(html);
+        tab.document.close();
+      } else {
+        // Popup blocked: fall back to a blob URL.
+        const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+        window.open(url, "_blank");
+      }
+      toast.success(opts.ok);
+    } catch (e: any) {
+      if (tab) tab.close();
+      toast.error(opts.fail, { description: e.message });
+    } finally {
+      opts.setBusy(false);
+    }
+  };
+
+  const handlePresentDeck = () =>
+    openGenerated({
+      fn: "generate-meeting-deck",
+      pick: (d) => d?.deck?.deck_html,
+      building: "Building your meeting deck…",
+      ok: "Deck ready",
+      fail: "Could not build deck",
+      setBusy: setPresenting,
+    });
+
+  const handleMeetingKit = () =>
+    openGenerated({
+      fn: "generate-meeting-kit",
+      pick: (d) => d?.kit?.kit_html,
+      building: "Building your hands-on kit…",
+      ok: "Kit ready",
+      fail: "Could not build kit",
+      setBusy: setBuildingKit,
+    });
 
   const handleCopy = async () => {
     if (!brief) return;
@@ -145,6 +211,20 @@ export function MeetingBriefDialog({ open, onOpenChange, eventId, eventTitle }: 
               {copied ? "Copied" : "Copy"}
             </Button>
           )}
+          <Button variant="outline" size="sm" onClick={handleMeetingKit} disabled={buildingKit}>
+            {buildingKit ? (
+              <><RefreshCw className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Building…</>
+            ) : (
+              <><ClipboardList className="mr-1.5 h-3.5 w-3.5" /> Meeting kit</>
+            )}
+          </Button>
+          <Button variant="outline" size="sm" onClick={handlePresentDeck} disabled={presenting}>
+            {presenting ? (
+              <><RefreshCw className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Building…</>
+            ) : (
+              <><Presentation className="mr-1.5 h-3.5 w-3.5" /> Present deck</>
+            )}
+          </Button>
           <Button size="sm" onClick={handleGenerate} disabled={generating}>
             {generating ? (
               <>
