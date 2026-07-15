@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { Sparkles, RefreshCw, Copy, Check } from "lucide-react";
+import { Sparkles, RefreshCw, Copy, Check, Presentation } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,7 @@ export function MeetingBriefDialog({ open, onOpenChange, eventId, eventTitle }: 
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [justGenerated, setJustGenerated] = useState(false);
+  const [presenting, setPresenting] = useState(false);
 
   useEffect(() => {
     if (!open || !eventId) return;
@@ -72,6 +73,45 @@ export function MeetingBriefDialog({ open, onOpenChange, eventId, eventTitle }: 
       toast.error("Could not generate brief", { description: e.message });
     } finally {
       setGenerating(false);
+    }
+  };
+
+  // Generate a themed slide deck from the same live context and open it in a
+  // new tab as a ready-to-present slideshow (arrow keys to advance, P to print
+  // to PDF). Opens the tab synchronously first so the popup blocker treats it
+  // as user-initiated, then streams the deck HTML into it when ready.
+  const handlePresentDeck = async () => {
+    setPresenting(true);
+    const tab = window.open("", "_blank");
+    if (tab) {
+      tab.document.write(
+        "<!doctype html><meta charset='utf-8'><title>Building deck…</title>" +
+          "<body style='font-family:system-ui;display:grid;place-items:center;height:100vh;margin:0;color:#555'>" +
+          "Building your meeting deck…</body>"
+      );
+    }
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-meeting-deck", {
+        body: { eventId },
+      });
+      if (error) throw error;
+      const html = (data as any)?.deck?.deck_html;
+      if (!html) throw new Error("Deck came back empty");
+      if (tab) {
+        tab.document.open();
+        tab.document.write(html);
+        tab.document.close();
+      } else {
+        // Popup blocked: fall back to a downloadable blob URL.
+        const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+        window.open(url, "_blank");
+      }
+      toast.success("Deck ready");
+    } catch (e: any) {
+      if (tab) tab.close();
+      toast.error("Could not build deck", { description: e.message });
+    } finally {
+      setPresenting(false);
     }
   };
 
@@ -145,6 +185,13 @@ export function MeetingBriefDialog({ open, onOpenChange, eventId, eventTitle }: 
               {copied ? "Copied" : "Copy"}
             </Button>
           )}
+          <Button variant="outline" size="sm" onClick={handlePresentDeck} disabled={presenting}>
+            {presenting ? (
+              <><RefreshCw className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Building…</>
+            ) : (
+              <><Presentation className="mr-1.5 h-3.5 w-3.5" /> Present deck</>
+            )}
+          </Button>
           <Button size="sm" onClick={handleGenerate} disabled={generating}>
             {generating ? (
               <>
