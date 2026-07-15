@@ -43,6 +43,7 @@ export default function CohortHub() {
   const [activeOpps, setActiveOpps] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [createMPDialog, setCreateMPDialog] = useState(false);
+  const [progress, setProgress] = useState<Record<string, any>>({});
   const [createLabDialog, setCreateLabDialog] = useState(false);
 
   const isLeader = membership?.role === "pm" || membership?.role === "lead" || membership?.role === "integration_lead";
@@ -58,14 +59,18 @@ export default function CohortHub() {
       setCohort((cm as any).cohorts);
       const cid = cm.cohort_id;
 
-      const [membersRes, projRes, manualRes, ptRes, capRes, oppRes] = await Promise.all([
+      const [membersRes, projRes, manualRes, ptRes, capRes, oppRes, progRes] = await Promise.all([
         supabase.from("cohort_memberships").select("*, profiles:user_id(full_name, avatar_url, major, user_id)").eq("cohort_id", cid).order("role"),
         supabase.from("mock_projects").select("*").eq("cohort_id", cid),
         supabase.from("lab_manuals").select("*").eq("cohort_id", cid),
         supabase.from("purpose_tracks").select("*").eq("cohort_id", cid).eq("status", "active").limit(1).maybeSingle(),
         supabase.from("capacity_allocations").select("*").eq("cohort_id", cid).order("effective_date", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("opportunities").select("*").eq("assigned_cohort_id", cid).in("status", ["approved", "active"]),
+        supabase.from("cohort_onboarding_progress" as any).select("*").eq("cohort_id", cid),
       ]);
+      const progMap: Record<string, any> = {};
+      ((progRes.data as any[]) || []).forEach((p: any) => { progMap[p.user_id] = p; });
+      setProgress(progMap);
       setMembers(membersRes.data || []);
       setMockProjects(projRes.data || []);
       setManuals(manualRes.data || []);
@@ -81,6 +86,35 @@ export default function CohortHub() {
     };
     load();
   }, [user]);
+
+  // Onboarding track interactivity: members check off their own steps; the
+  // final "Certified" step is granted by a cohort leader or board (DB trigger
+  // enforces this even if the UI is bypassed).
+  const myProgress = user ? progress[user.id] : null;
+  const trackLen = Array.isArray(cohort?.onboarding_track) ? cohort.onboarding_track.length : 0;
+
+  const toggleStep = async (i: number) => {
+    if (!user || !cohort) return;
+    if (i === trackLen - 1) return; // Certified: leader-granted, not self-checked
+    const current: number[] = myProgress?.completed_steps || [];
+    const next = current.includes(i) ? current.filter((x) => x !== i) : [...current, i].sort((a, b) => a - b);
+    const { error } = await supabase.from("cohort_onboarding_progress" as any).upsert({
+      user_id: user.id, cohort_id: cohort.id, completed_steps: next,
+    } as any, { onConflict: "user_id,cohort_id" });
+    if (error) { toast.error(error.message); return; }
+    setProgress((p) => ({ ...p, [user.id]: { ...(p[user.id] || { user_id: user.id, cohort_id: cohort.id }), completed_steps: next } }));
+  };
+
+  const certifyMember = async (memberUserId: string) => {
+    const row = progress[memberUserId];
+    if (!row) { toast.error("Member hasn't started the track yet"); return; }
+    const { error } = await supabase.from("cohort_onboarding_progress" as any)
+      .update({ certified_at: new Date().toISOString() } as any)
+      .eq("id", row.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Certified — they run the line now");
+    setProgress((p) => ({ ...p, [memberUserId]: { ...row, certified_at: new Date().toISOString() } }));
+  };
 
   const handleCreateMockProject = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -338,18 +372,34 @@ export default function CohortHub() {
             </CardHeader>
             <CardContent className="pt-0 px-5 pb-4">
               <div className="flex flex-wrap items-stretch gap-1.5">
-                {cohort.onboarding_track.map((t: any, i: number) => (
-                  <div
-                    key={i}
-                    className={`rounded-lg border p-2.5 min-w-[140px] flex-1 ${t.where?.startsWith("/app") ? "cursor-pointer card-hover" : ""}`}
-                    onClick={() => t.where?.startsWith("/app") && navigate(t.where)}
-                  >
-                    <p className="text-[10px] font-mono uppercase tracking-wider font-semibold">
-                      {String(i + 1).padStart(2, "0")} {t.step}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground mt-1 leading-snug">{t.detail}</p>
-                  </div>
-                ))}
+                {cohort.onboarding_track.map((t: any, i: number) => {
+                  const done = (myProgress?.completed_steps || []).includes(i);
+                  const isFinal = i === trackLen - 1;
+                  const certified = !!myProgress?.certified_at;
+                  const stateClass = isFinal
+                    ? certified ? "bg-success/10 border-success/30" : "bg-muted/20"
+                    : done ? "bg-success/10 border-success/30" : "";
+                  return (
+                    <div
+                      key={i}
+                      className={`rounded-lg border p-2.5 min-w-[140px] flex-1 cursor-pointer card-hover ${stateClass}`}
+                      onClick={() => (isFinal ? undefined : toggleStep(i))}
+                      title={isFinal ? "Granted by your lead when the rest is done" : done ? "Click to un-check" : "Click when done"}
+                    >
+                      <p className="text-[10px] font-mono uppercase tracking-wider font-semibold flex items-center gap-1">
+                        {(done || (isFinal && certified)) && <span className="text-success">✓</span>}
+                        {String(i + 1).padStart(2, "0")} {t.step}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground mt-1 leading-snug">{t.detail}</p>
+                      {t.where?.startsWith("/app") && (
+                        <button
+                          className="text-[9px] font-mono text-accent-foreground mt-1 hover:underline"
+                          onClick={(e) => { e.stopPropagation(); navigate(t.where); }}
+                        >open →</button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
@@ -415,6 +465,19 @@ export default function CohortHub() {
                     <p className="text-sm font-medium truncate leading-tight">{(m.profiles as any)?.full_name}</p>
                     <p className="text-[10px] text-muted-foreground font-mono">{(m.profiles as any)?.major || ""}</p>
                   </div>
+                  {(() => {
+                    const p = progress[(m.profiles as any)?.user_id];
+                    const doneCount = (p?.completed_steps || []).length;
+                    const readyToCertify = !p?.certified_at && trackLen > 0 && doneCount >= trackLen - 1;
+                    if (p?.certified_at) return <Badge className="text-[8px] font-mono uppercase shrink-0 bg-success/10 text-success border-success/30">Certified</Badge>;
+                    if (isLeader && readyToCertify) return (
+                      <Button size="sm" variant="outline" className="h-6 px-2 text-[9px] shrink-0" onClick={() => certifyMember((m.profiles as any)?.user_id)}>
+                        Certify
+                      </Button>
+                    );
+                    if (trackLen > 0) return <span className="text-[9px] font-mono text-muted-foreground shrink-0">{doneCount}/{Math.max(trackLen - 1, 0)}</span>;
+                    return null;
+                  })()}
                   <Badge variant={roleBadgeVariant(m.role) as any} className="text-[8px] font-mono uppercase shrink-0">{roleLabel(m.role)}</Badge>
                 </motion.div>
               ))}
