@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useCrmAccess } from "@/hooks/useCrmAccess";
+import { useClubStage, type ClubStage } from "@/lib/clubStage";
 import {
   LayoutDashboard,
   Columns3,
@@ -17,21 +18,23 @@ interface NavTab {
   label: string;
   icon: typeof LayoutDashboard;
   leadershipOnly?: boolean;
+  minStage?: ClubStage; // hidden until the club reaches this stage
 }
 
 const TABS: NavTab[] = [
   { to: "/app/crm/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/app/crm/queues", label: "Queues", icon: ListChecks },
   { to: "/app/crm/pipeline", label: "Pipeline", icon: Columns3 },
   { to: "/app/crm/table", label: "Companies", icon: TableIcon },
   { to: "/app/crm/contacts", label: "Contacts", icon: Users },
-  { to: "/app/crm/contracts", label: "Contracts", icon: FileSearch },
-  { to: "/app/crm/analytics", label: "Analytics", icon: BarChart3, leadershipOnly: true },
-  { to: "/app/crm/legacy", label: "Legacy Inbound", icon: Inbox, leadershipOnly: true },
+  { to: "/app/crm/queues", label: "Queues", icon: ListChecks, minStage: "growing" },
+  { to: "/app/crm/contracts", label: "Contracts", icon: FileSearch, minStage: "growing" },
+  { to: "/app/crm/analytics", label: "Analytics", icon: BarChart3, leadershipOnly: true, minStage: "growing" },
+  { to: "/app/crm/legacy", label: "Legacy Inbound", icon: Inbox, leadershipOnly: true, minStage: "growing" },
 ];
 
 export default function CrmLayout() {
   const { loading, canAccess, isLeadership } = useCrmAccess();
+  const { atLeast } = useClubStage();
   const location = useLocation();
 
   if (loading) {
@@ -54,7 +57,9 @@ export default function CrmLayout() {
     );
   }
 
-  const visibleTabs = TABS.filter((t) => !t.leadershipOnly || isLeadership);
+  const visibleTabs = TABS.filter(
+    (t) => (!t.leadershipOnly || isLeadership) && (!t.minStage || atLeast(t.minStage))
+  );
 
   // Hide subnav on company detail pages so the focus stays on the company.
   const isDetail = /^\/app\/crm\/c\//.test(location.pathname);
