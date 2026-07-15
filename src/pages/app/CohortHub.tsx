@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { isBusinessCohort } from "@/lib/cohorts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,7 +46,8 @@ export default function CohortHub() {
   const [createLabDialog, setCreateLabDialog] = useState(false);
 
   const isLeader = membership?.role === "pm" || membership?.role === "lead" || membership?.role === "integration_lead";
-  const isOpsCohort = cohort?.name === "Ops / PM";
+  // Business & Marketing runs the CRM/brand lines, not mock projects.
+  const isOpsCohort = isBusinessCohort(cohort);
 
   useEffect(() => {
     if (!user) return;
@@ -256,6 +258,104 @@ export default function CohortHub() {
         </Card>
       </motion.div>
 
+      {/* The cohort's production line: what this cohort does, as repeatable
+          work units. Data-driven from cohorts.assembly_line so the operating
+          model is editable without code changes. */}
+      {Array.isArray(cohort.assembly_line) && cohort.assembly_line.length > 0 && (
+        <motion.div variants={item}>
+          <Card>
+            <CardHeader className="py-3 px-5">
+              <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
+                <Rocket className="h-3.5 w-3.5 text-accent-foreground" /> Your line
+                <InfoDot tip="Every stage is a repeatable work unit. Finish one, the queue feeds you the next. This is the whole job." />
+              </CardTitle>
+              {cohort.charter?.mission && (
+                <p className="text-[11px] text-muted-foreground mt-1">{cohort.charter.mission}</p>
+              )}
+            </CardHeader>
+            <CardContent className="pt-0 px-5 pb-4 space-y-4">
+              {(() => {
+                const line: any[] = cohort.assembly_line;
+                const sections: any[] = cohort.charter?.sections || [];
+                const groups = new Map<string, any[]>();
+                for (const s of line) {
+                  const key = s.section || "_all";
+                  if (!groups.has(key)) groups.set(key, []);
+                  groups.get(key)!.push(s);
+                }
+                return [...groups.entries()].map(([key, stages]) => {
+                  const meta = sections.find((s: any) => s.key === key);
+                  return (
+                    <div key={key}>
+                      {meta && (
+                        <div className="mb-2">
+                          <p className="text-[10px] font-mono uppercase tracking-wider font-semibold">{meta.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{meta.who} — {meta.owns}</p>
+                        </div>
+                      )}
+                      <div className="flex flex-wrap items-stretch gap-1.5">
+                        {stages.map((s: any, i: number) => (
+                          <div
+                            key={`${key}-${i}`}
+                            className={`rounded-lg border p-2.5 min-w-[120px] flex-1 ${s.where?.startsWith("/app") ? "cursor-pointer card-hover" : ""}`}
+                            onClick={() => s.where?.startsWith("/app") && navigate(s.where)}
+                          >
+                            <p className="text-[10px] font-mono uppercase tracking-wider font-semibold text-accent-foreground">
+                              {String(i + 1).padStart(2, "0")} {s.stage}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground mt-1 leading-snug">{s.unit}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+              {Array.isArray(cohort.charter?.escalates) && cohort.charter.escalates.length > 0 && (
+                <div className="border-t pt-3">
+                  <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-1">Escalate, don't sit on it</p>
+                  <ul className="space-y-0.5">
+                    {cohort.charter.escalates.map((e: string, i: number) => (
+                      <li key={i} className="text-[11px] text-muted-foreground">• {e}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
+      {/* Nexus-taught onboarding: Orient -> Learn -> Shadow -> First Unit -> Certified */}
+      {Array.isArray(cohort.onboarding_track) && cohort.onboarding_track.length > 0 && (
+        <motion.div variants={item}>
+          <Card>
+            <CardHeader className="py-3 px-5">
+              <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
+                <Compass className="h-3.5 w-3.5 text-accent-foreground" /> Onboarding track
+                <InfoDot tip="New to this cohort? Walk these steps in order. After the last one you run the line solo." />
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0 px-5 pb-4">
+              <div className="flex flex-wrap items-stretch gap-1.5">
+                {cohort.onboarding_track.map((t: any, i: number) => (
+                  <div
+                    key={i}
+                    className={`rounded-lg border p-2.5 min-w-[140px] flex-1 ${t.where?.startsWith("/app") ? "cursor-pointer card-hover" : ""}`}
+                    onClick={() => t.where?.startsWith("/app") && navigate(t.where)}
+                  >
+                    <p className="text-[10px] font-mono uppercase tracking-wider font-semibold">
+                      {String(i + 1).padStart(2, "0")} {t.step}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-1 leading-snug">{t.detail}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
       {/* Cadence health (Phase 5) — compact, non-blocking */}
       <motion.div variants={item}>
         <CadenceHealthCard scope="cohort" targetId={cohort.id} />
@@ -362,7 +462,7 @@ export default function CohortHub() {
                 ) : (
                   <div className="space-y-2">
                     {mockProjects.map((p: any) => (
-                      <motion.div key={p.id} whileHover={{ x: 2 }} className="rounded-xl border p-4 cursor-pointer card-hover group" onClick={() => navigate(cohort?.name === "Ops / PM" ? "/app/crm/dashboard" : `/app/mock-project/${p.id}`)}>
+                      <motion.div key={p.id} whileHover={{ x: 2 }} className="rounded-xl border p-4 cursor-pointer card-hover group" onClick={() => navigate(isOpsCohort ? "/app/crm/dashboard" : `/app/mock-project/${p.id}`)}>
                         <div className="flex items-start justify-between">
                           <div>
                             <h3 className="text-sm font-semibold leading-tight">{p.title}</h3>

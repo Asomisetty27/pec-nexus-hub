@@ -9,10 +9,10 @@ import { Flame, TrendingUp, TrendingDown, Trophy, Activity, Shield, BarChart3 } 
 type Cohort = "software" | "hardware" | "mechanical" | "ops";
 
 const COHORT_LABELS: Record<Cohort, string> = {
-  software: "Software / Systems",
-  hardware: "Hardware / Embedded",
-  mechanical: "Mechanical / Mfg",
-  ops: "Ops / Business",
+  software: "Software & AI",
+  hardware: "Hardware & Embedded",
+  mechanical: "Mechanical & Mfg",
+  ops: "Business & Marketing",
 };
 
 export default function SkillDashboard() {

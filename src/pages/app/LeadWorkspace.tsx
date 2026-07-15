@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { isBusinessCohort } from "@/lib/cohorts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -186,13 +187,13 @@ export default function LeadWorkspace() {
         <SectionExplainer text="You manage progress, assign work, and move stages forward. Review pending deliverables and resolve blockers here." className="mt-1" />
       </motion.div>
 
-      {cohortName === "Ops / PM" && (
+      {isBusinessCohort(cohort?.cohorts as any) && (
         <motion.div variants={item}>
           <Card className="border-accent/30 bg-accent/[0.03]">
             <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-semibold">Ops · Company Relations & Outreach</p>
-                <p className="text-xs text-muted-foreground">Ops doesn't run mock projects. Your operating surfaces are the CRM pipeline and outreach execution.</p>
+                <p className="text-sm font-semibold">Business & Marketing · Company Relations & Brand</p>
+                <p className="text-xs text-muted-foreground">This cohort doesn't run mock projects. Your operating surfaces are the CRM pipeline and the brand/fundraising line.</p>
               </div>
               <div className="flex shrink-0 gap-2">
                 <Button size="sm" onClick={() => navigate("/app/crm/dashboard")}>
