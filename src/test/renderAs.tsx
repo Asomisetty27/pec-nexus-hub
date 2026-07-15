@@ -4,6 +4,7 @@
 import type { ReactElement } from "react";
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { vi } from "vitest";
 
 export type TestRole =
@@ -77,5 +78,12 @@ export function supabaseStub(rows: unknown[] = []) {
 }
 
 export function renderAt(ui: ReactElement, route = "/app") {
-  return render(<MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>);
+  // Mirror the app root: pages may use react-query (e.g. useClubStage), so the
+  // harness must provide a QueryClient. Retries off so failed queries don't loop.
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={qc}>
+      <MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>
+    </QueryClientProvider>
+  );
 }
