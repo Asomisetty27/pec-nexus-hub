@@ -2,7 +2,7 @@ import { Link, Navigate, Outlet, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 
 import { useAuth } from "@/lib/auth";
-import { parkedReason } from "@/lib/roleHQ";
+import { isApplicantAllowed, parkedReason } from "@/lib/roleHQ";
 import { CommandPalette } from "@/components/CommandPalette";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
@@ -50,7 +50,7 @@ function AppLoadingScreen() {
 }
 
 export function AppLayout() {
-  const { user, loading } = useAuth();
+  const { user, loading, highestRole } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -59,6 +59,12 @@ export function AppLayout() {
 
   if (!user) {
     return <Navigate to="/login" replace state={{ from: location.pathname + location.search + location.hash }} />;
+  }
+
+  // Applicants only have a handful of pages; keep them out of member routes
+  // entirely rather than showing an empty member page they can't use.
+  if (highestRole === "applicant" && !isApplicantAllowed(location.pathname)) {
+    return <Navigate to="/app" replace />;
   }
 
   return (

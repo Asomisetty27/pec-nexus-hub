@@ -24,6 +24,19 @@ export function parkedReason(pathname: string): string | null {
   return hit ? hit.reason : null
 }
 
+// Routes an applicant is allowed to open. Everything else under /app is
+// member-and-up; an applicant who types the URL is bounced to their HQ so
+// they never land on a page that is not theirs (RLS already blocks the
+// data; this closes the confusing-empty-page gap).
+// Exact index route plus prefix-matched sections. "/app" must match exactly,
+// or its "/app/" prefix would swallow every member route.
+const APPLICANT_ALLOWED_PREFIXES = ["/app/events", "/app/settings"]
+
+export function isApplicantAllowed(pathname: string): boolean {
+  if (pathname === "/app") return true
+  return APPLICANT_ALLOWED_PREFIXES.some((a) => pathname === a || pathname.startsWith(a + "/"))
+}
+
 export interface HQResource {
   title: string;
   url: string;
