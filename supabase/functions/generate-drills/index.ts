@@ -24,13 +24,13 @@ type DrillType =
 
 const COHORT_CONTEXT: Record<Cohort, string> = {
   software:
-    "Software / Systems engineering at a student consulting org. Focus on real industry skills: debugging, distributed systems, API design, code reasoning, technical communication. Drills should feel like senior-engineer interview prompts, not textbook quizzes.",
+    "Software & AI delivery engineering at a student consulting org. Focus on real industry skills: debugging, distributed systems, API design, code reasoning, technical communication. Drills should feel like senior-engineer interview prompts, not textbook quizzes.",
   hardware:
-    "Hardware / Systems / Embedded engineering. Focus on sensor integration, GPIO/I2C/SPI debugging, timing & state-machine logic, signal interpretation, hardware/software tradeoffs, reliability scenarios.",
+    "Hardware & Embedded delivery engineering. Focus on sensor integration, GPIO/I2C/SPI debugging, timing & state-machine logic, signal interpretation, hardware/software tradeoffs, reliability scenarios.",
   mechanical:
-    "Mechanical / Manufacturing engineering. Focus on CAD interpretation, tolerance/fit/packaging, DFM/DFA, design tradeoffs, brackets/fixtures/mounting, drawing/documentation quality, concept comparison.",
+    "Mechanical & Manufacturing delivery engineering. Focus on CAD interpretation, tolerance/fit/packaging, DFM/DFA, design tradeoffs, brackets/fixtures/mounting, drawing/documentation quality, concept comparison.",
   ops:
-    "Ops / Business / GTM. Focus on go-to-market mini-cases, outreach/sales strategy, consulting-style prioritization, sponsor strategy, operations design, stakeholder communication, decision memos, process optimization.",
+    "Business & Marketing at a student engineering consulting org. Two lines: Company Relations (prospect research, first-touch outreach emails, discovery-call qualification, scope one-pagers, proposals, client care) and Brand & Fundraising (content calendars, social posts, campus events, fundraiser planning and recaps). Drills should feel like real work units from those lines, not textbook marketing quizzes.",
 };
 
 const TYPE_GUIDE: Record<DrillType, string> = {

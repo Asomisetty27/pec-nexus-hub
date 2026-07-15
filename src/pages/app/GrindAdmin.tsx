@@ -24,10 +24,10 @@ type DrillType =
   | "prioritization" | "debugging_diagnosis" | "design_critique" | "mini_case";
 
 const COHORT_LABELS: Record<Cohort, string> = {
-  software: "Software / Systems",
-  hardware: "Hardware / Embedded",
-  mechanical: "Mechanical / Mfg",
-  ops: "Ops / Business",
+  software: "Software & AI",
+  hardware: "Hardware & Embedded",
+  mechanical: "Mechanical & Mfg",
+  ops: "Business & Marketing",
 };
 
 const TYPE_LABELS: Record<DrillType, string> = {

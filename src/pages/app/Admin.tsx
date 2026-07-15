@@ -222,7 +222,7 @@ export default function Admin() {
           </div>
 
           {/* Group by cohort */}
-          {["Hardware / Systems / Embedded", "Software / Systems", "Mechanical / Manufacturing", "Ops / PM"].map(cohortName => {
+          {[...new Set(roster.map(r => r.cohort_name).filter(Boolean))].sort().map(cohortName => {
             const cohortRoster = roster.filter(r => r.cohort_name === cohortName);
             if (cohortRoster.length === 0) return null;
             return (

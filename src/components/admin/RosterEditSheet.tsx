@@ -10,10 +10,10 @@ import { AlertTriangle, CheckCircle2, Save, UserPlus, Shield } from "lucide-reac
 import { toast } from "sonner";
 
 const COHORTS = [
-  "Hardware / Systems / Embedded",
-  "Mechanical / Manufacturing",
-  "Ops / PM",
-  "Software / Systems",
+  "Business & Marketing",
+  "Hardware & Embedded Delivery",
+  "Mechanical & Manufacturing Delivery",
+  "Software & AI Delivery",
 ] as const;
 
 const ROLES = ["member", "pm", "lead", "integration_lead"] as const;

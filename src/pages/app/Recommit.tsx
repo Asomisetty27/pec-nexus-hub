@@ -17,7 +17,7 @@ const COMMITMENT_TERMS = [
   "Blockers get posted when they appear, not at the deadline",
 ];
 
-const TEAMS = ["Hardware / Embedded", "Software / Systems", "Mechanical / Manufacturing", "Business / Ops"];
+const TEAMS = ["Software & AI Delivery", "Hardware & Embedded Delivery", "Mechanical & Manufacturing Delivery", "Business & Marketing"];
 
 interface Row {
   id: string;

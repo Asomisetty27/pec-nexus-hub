@@ -71,23 +71,23 @@ function EngagementDrawing() {
 const teams = [
   {
     id: "T1",
-    name: "Hardware / Systems / Embedded",
+    name: "Hardware & Embedded Delivery",
     desc: "Circuit and PCB design, embedded firmware, sensor integration, systems bring-up, integration and debug.",
   },
   {
     id: "T2",
-    name: "Software / Systems",
-    desc: "Full-stack applications, data pipelines, automation, analysis tooling, and software architecture.",
+    name: "Software & AI Delivery",
+    desc: "Full-stack applications, AI integration, data pipelines, automation, and software architecture.",
   },
   {
     id: "T3",
-    name: "Mechanical / Manufacturing",
+    name: "Mechanical & Manufacturing Delivery",
     desc: "CAD, prototyping, DFM reviews, fixture design, materials selection, and manufacturing plans.",
   },
   {
     id: "T4",
-    name: "Business / Operations",
-    desc: "Project management, client communication, market and cost analysis, and delivery coordination.",
+    name: "Business & Marketing",
+    desc: "Company relations and client pipeline, brand and social presence, fundraisers, and market analysis.",
   },
 ];
 

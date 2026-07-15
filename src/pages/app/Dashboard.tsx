@@ -1,4 +1,5 @@
 import { useAuth } from "@/lib/auth";
+import { isBusinessCohort } from "@/lib/cohorts";
 import { Navigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -110,7 +111,7 @@ export default function Dashboard() {
       if (cohortRes.data) {
         setCohort(cohortRes.data);
         const cohortId = cohortRes.data.cohort_id;
-        const isOpsCohort = (cohortRes.data as any)?.cohorts?.name === "Ops / PM";
+        const isOpsCohort = isBusinessCohort((cohortRes.data as any)?.cohorts);
         supabase.rpc("cohort_performance", { p_cohort_id: cohortId }).then(({ data }) => {
           if (data) setCohortScore(data as any);
         });
