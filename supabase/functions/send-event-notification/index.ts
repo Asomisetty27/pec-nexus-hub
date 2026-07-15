@@ -55,10 +55,47 @@ Deno.serve(async (req) => {
   const callerJwt = authHeader.replace(/^Bearer\s+/i, '')
   const { data: callerData } = await supabase.auth.getUser(callerJwt)
   const callerId = callerData?.user?.id ?? null
+  if (!callerId) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+  }
 
   const { data: ev, error: evErr } = await supabase.from('events').select('*').eq('id', body.eventId).maybeSingle()
   if (evErr || !ev) {
     return new Response(JSON.stringify({ error: 'event_not_found' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+  }
+
+  // Server-side authorization: only admins, event creator, or a cohort PM/lead
+  // (for cohort/leadership-scoped events) can trigger mass notifications.
+  const { data: isAdmin } = await supabase.rpc('is_admin', { _user_id: callerId })
+  const isCreator = ev.created_by === callerId
+  let isLeadForScope = false
+  if (!isAdmin && !isCreator) {
+    const cohortId = ['cohort'].includes(ev.audience_scope) ? ev.audience_target_id : null
+    if (cohortId) {
+      const { data: leadRow } = await supabase
+        .from('cohort_memberships')
+        .select('role')
+        .eq('cohort_id', cohortId)
+        .eq('user_id', callerId)
+        .in('role', ['pm', 'lead', 'integration_lead'])
+        .maybeSingle()
+      isLeadForScope = !!leadRow
+    } else if (['all_members', 'pms', 'tech_leads', 'leadership'].includes(ev.audience_scope)) {
+      // Org-wide sends require admin/creator only
+      isLeadForScope = false
+    } else if (ev.audience_scope === 'project' && ev.audience_target_id) {
+      const { data: memberRow } = await supabase
+        .from('project_memberships')
+        .select('role_on_project')
+        .eq('project_id', ev.audience_target_id)
+        .eq('user_id', callerId)
+        .eq('role_on_project', 'lead')
+        .maybeSingle()
+      isLeadForScope = !!memberRow
+    }
+  }
+  if (!isAdmin && !isCreator && !isLeadForScope) {
+    return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
 
   // Resolve recipients

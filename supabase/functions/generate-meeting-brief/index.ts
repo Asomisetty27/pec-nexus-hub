@@ -52,6 +52,18 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    // Authorization: only board/admin or recruitment lead can pull cross-project brief
+    const [{ data: isBoardOrAdmin }, { data: isRecLead }] = await Promise.all([
+      admin.rpc("is_board_or_admin", { _user_id: user.id }),
+      admin.rpc("is_recruitment_lead", { _user_id: user.id }),
+    ]);
+    if (!isBoardOrAdmin && !isRecLead) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Load event
     const { data: event } = await admin
       .from("events")

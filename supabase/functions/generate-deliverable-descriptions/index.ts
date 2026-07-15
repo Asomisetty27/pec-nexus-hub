@@ -11,6 +11,11 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    }
+
     const { projectId } = await req.json();
     if (!projectId) return new Response(JSON.stringify({ error: "projectId required" }), { status: 400, headers: corsHeaders });
 
@@ -21,6 +26,23 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+
+    // Authenticate + authorize: caller must be project lead or admin
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: userRes } = await userClient.auth.getUser();
+    const uid = userRes?.user?.id;
+    if (!uid) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    const [{ data: isAdmin }, { data: isLead }] = await Promise.all([
+      supabase.rpc("is_admin", { _user_id: uid }),
+      supabase.rpc("is_project_lead", { _user_id: uid, _project_id: projectId }),
+    ]);
+    if (!isAdmin && !isLead) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
+    }
 
     const { data: project } = await supabase.from("projects").select("name, description, project_mode").eq("id", projectId).single();
     if (!project) return new Response(JSON.stringify({ error: "project not found" }), { status: 404, headers: corsHeaders });

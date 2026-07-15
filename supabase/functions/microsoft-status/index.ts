@@ -10,6 +10,24 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // Require authenticated caller — do not leak infra config to anonymous probes.
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return json({ error: "Unauthorized" }, 401);
+  }
+  try {
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.45.0");
+    const sb = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data, error } = await sb.auth.getUser();
+    if (error || !data?.user) return json({ error: "Unauthorized" }, 401);
+  } catch {
+    return json({ error: "Unauthorized" }, 401);
+  }
+
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   const TEAMS_API_KEY = Deno.env.get("MICROSOFT_TEAMS_API_KEY");
 

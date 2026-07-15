@@ -2289,6 +2289,7 @@ export type Database = {
           location: string | null
           meeting_link: string | null
           notify_on_create: boolean
+          plan_key: string | null
           start_time: string
           teams_link: string | null
           title: string
@@ -2312,6 +2313,7 @@ export type Database = {
           location?: string | null
           meeting_link?: string | null
           notify_on_create?: boolean
+          plan_key?: string | null
           start_time: string
           teams_link?: string | null
           title: string
@@ -2335,6 +2337,7 @@ export type Database = {
           location?: string | null
           meeting_link?: string | null
           notify_on_create?: boolean
+          plan_key?: string | null
           start_time?: string
           teams_link?: string | null
           title?: string
@@ -3150,6 +3153,88 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "meeting_briefs_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_decks: {
+        Row: {
+          created_at: string
+          deck_html: string
+          event_id: string
+          generated_by: string
+          id: string
+          slides: Json
+          source_snapshot: Json | null
+          theme_note: string | null
+        }
+        Insert: {
+          created_at?: string
+          deck_html: string
+          event_id: string
+          generated_by: string
+          id?: string
+          slides?: Json
+          source_snapshot?: Json | null
+          theme_note?: string | null
+        }
+        Update: {
+          created_at?: string
+          deck_html?: string
+          event_id?: string
+          generated_by?: string
+          id?: string
+          slides?: Json
+          source_snapshot?: Json | null
+          theme_note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_decks_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_kits: {
+        Row: {
+          created_at: string
+          event_id: string
+          generated_by: string
+          id: string
+          kit: Json
+          kit_html: string
+          source_snapshot: Json | null
+          theme_note: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          generated_by: string
+          id?: string
+          kit?: Json
+          kit_html: string
+          source_snapshot?: Json | null
+          theme_note?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          generated_by?: string
+          id?: string
+          kit?: Json
+          kit_html?: string
+          source_snapshot?: Json | null
+          theme_note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_kits_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
@@ -4155,6 +4240,7 @@ export type Database = {
           last_dashboard_visit_at: string | null
           linkedin_url: string | null
           major: string | null
+          member_status: Database["public"]["Enums"]["member_status"]
           onboarding_completed: boolean
           phone: string | null
           skills: string[] | null
@@ -4176,6 +4262,7 @@ export type Database = {
           last_dashboard_visit_at?: string | null
           linkedin_url?: string | null
           major?: string | null
+          member_status?: Database["public"]["Enums"]["member_status"]
           onboarding_completed?: boolean
           phone?: string | null
           skills?: string[] | null
@@ -4197,6 +4284,7 @@ export type Database = {
           last_dashboard_visit_at?: string | null
           linkedin_url?: string | null
           major?: string | null
+          member_status?: Database["public"]["Enums"]["member_status"]
           onboarding_completed?: boolean
           phone?: string | null
           skills?: string[] | null
@@ -4879,6 +4967,48 @@ export type Database = {
           metadata?: Json | null
           user_id?: string
           visited_at?: string
+        }
+        Relationships: []
+      }
+      recommitments: {
+        Row: {
+          availability_hours: number | null
+          choice: string
+          commitment_signed_at: string | null
+          commitment_version: string | null
+          created_at: string
+          cycle: string
+          id: string
+          note: string | null
+          preferred_team: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          availability_hours?: number | null
+          choice: string
+          commitment_signed_at?: string | null
+          commitment_version?: string | null
+          created_at?: string
+          cycle?: string
+          id?: string
+          note?: string | null
+          preferred_team?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          availability_hours?: number | null
+          choice?: string
+          commitment_signed_at?: string | null
+          commitment_version?: string | null
+          created_at?: string
+          cycle?: string
+          id?: string
+          note?: string | null
+          preferred_team?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -5847,6 +5977,7 @@ export type Database = {
           start_hour: number
         }[]
       }
+      email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
@@ -5897,6 +6028,7 @@ export type Database = {
           year: number
         }[]
       }
+      get_club_stage: { Args: never; Returns: Json }
       get_milestone_blockers: {
         Args: { p_milestone_id: string }
         Returns: {
