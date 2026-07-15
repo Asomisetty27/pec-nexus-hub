@@ -30,7 +30,7 @@ const PHASE_LABELS: Record<string, string> = {
 };
 
 export default function CohortHub() {
-  const { user } = useAuth();
+  const { user, isBoardOrAdmin } = useAuth();
   const navigate = useNavigate();
   const [membership, setMembership] = useState<any>(null);
   const [cohort, setCohort] = useState<any>(null);
@@ -44,6 +44,7 @@ export default function CohortHub() {
   const [loading, setLoading] = useState(true);
   const [createMPDialog, setCreateMPDialog] = useState(false);
   const [progress, setProgress] = useState<Record<string, any>>({});
+  const [oversight, setOversight] = useState<any[] | null>(null);
   const [createLabDialog, setCreateLabDialog] = useState(false);
 
   const isLeader = membership?.role === "pm" || membership?.role === "lead" || membership?.role === "integration_lead";
@@ -54,7 +55,30 @@ export default function CohortHub() {
     if (!user) return;
     const load = async () => {
       const { data: cm } = await supabase.from("cohort_memberships").select("*, cohorts(*)").eq("user_id", user.id).limit(1).maybeSingle();
-      if (!cm) { setLoading(false); return; }
+      if (!cm) {
+        // President/VP/board sit in no cohort: they oversee all of them.
+        const [cohortsRes, allMembersRes, allProgressRes] = await Promise.all([
+          supabase.from("cohorts").select("*").order("name"),
+          supabase.from("cohort_memberships").select("cohort_id, role"),
+          supabase.from("cohort_onboarding_progress" as any).select("cohort_id, certified_at, completed_steps"),
+        ]);
+        const memberCounts: Record<string, number> = {};
+        (allMembersRes.data || []).forEach((m: any) => { memberCounts[m.cohort_id] = (memberCounts[m.cohort_id] || 0) + 1; });
+        const certCounts: Record<string, { certified: number; inTrack: number }> = {};
+        ((allProgressRes.data as any[]) || []).forEach((p: any) => {
+          const c = certCounts[p.cohort_id] || { certified: 0, inTrack: 0 };
+          if (p.certified_at) c.certified++; else c.inTrack++;
+          certCounts[p.cohort_id] = c;
+        });
+        setOversight((cohortsRes.data || []).map((c: any) => ({
+          ...c,
+          memberCount: memberCounts[c.id] || 0,
+          certified: certCounts[c.id]?.certified || 0,
+          inTrack: certCounts[c.id]?.inTrack || 0,
+        })));
+        setLoading(false);
+        return;
+      }
       setMembership(cm);
       setCohort((cm as any).cohorts);
       const cid = cm.cohort_id;
@@ -151,6 +175,66 @@ export default function CohortHub() {
   };
 
   if (loading) return <div className="space-y-4">{[1, 2, 3].map(i => <Card key={i} className="h-32 animate-pulse bg-muted/30" />)}</div>;
+
+  if (!cohort && oversight && isBoardOrAdmin) {
+    // Oversight mode: leadership belongs to no line; it watches all of them.
+    return (
+      <motion.div variants={container} initial="hidden" animate="show" className="space-y-5 max-w-[1100px]">
+        <motion.div variants={item}>
+          <h1 className="font-display text-2xl font-bold">Cohort Oversight</h1>
+          <SectionExplainer text="You sit above the lines, not on one. Every cohort's line, headcount, and certification state at a glance." className="mt-0.5" />
+        </motion.div>
+        <div className="grid gap-4 md:grid-cols-2">
+          {oversight.map((c: any) => {
+            const OIcon = cohortIcons[c.icon] || Cpu;
+            return (
+              <motion.div variants={item} key={c.id}>
+                <Card className="h-full">
+                  <CardHeader className="py-3 px-5">
+                    <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
+                      <OIcon className="h-3.5 w-3.5 text-accent-foreground" /> {c.name}
+                    </CardTitle>
+                    {c.charter?.mission && <p className="text-[11px] text-muted-foreground mt-1">{c.charter.mission}</p>}
+                  </CardHeader>
+                  <CardContent className="pt-0 px-5 pb-4 space-y-3">
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="outline" className="text-[9px] font-mono">{c.memberCount} members</Badge>
+                      <Badge className="text-[9px] font-mono bg-success/10 text-success border-success/30">{c.certified} certified</Badge>
+                      {c.inTrack > 0 && <Badge variant="outline" className="text-[9px] font-mono">{c.inTrack} onboarding</Badge>}
+                    </div>
+                    {Array.isArray(c.assembly_line) && c.assembly_line.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {c.assembly_line.map((s: any, i: number) => (
+                          <span key={i} className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground border rounded px-1.5 py-0.5">
+                            {s.stage}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex gap-2 pt-1">
+                      {c.function_key === "business_marketing" ? (
+                        <>
+                          <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => navigate("/app/crm/dashboard")}>CRM</Button>
+                          <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => navigate("/app/brand")}>Brand Studio</Button>
+                        </>
+                      ) : (
+                        <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => navigate("/app/projects")}>Projects</Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            );
+          })}
+        </div>
+        <motion.div variants={item}>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/app/command")}>
+            <Activity className="h-3.5 w-3.5" /> Open Command Center
+          </Button>
+        </motion.div>
+      </motion.div>
+    );
+  }
 
   if (!cohort) return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
