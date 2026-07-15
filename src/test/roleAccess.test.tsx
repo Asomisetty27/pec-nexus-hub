@@ -3,7 +3,7 @@
 // each role sees its own rooms, never a parked module, and never a room
 // it has no rights to.
 import { describe, expect, it } from "vitest";
-import { PLAYBOOKS, SEASON_ONE_PARKED, parkedReason, selectPlaybook } from "@/lib/roleHQ";
+import { PLAYBOOKS, SEASON_ONE_PARKED, isApplicantAllowed, parkedReason, selectPlaybook } from "@/lib/roleHQ";
 
 const ADMIN_ONLY = ["/app/command", "/app/admin", "/app/announcements", "/app/grind/admin"];
 const LEADERSHIP_ONLY = ["/app/crm", "/app/recruitment", "/app/lead", "/app/review"];
@@ -75,6 +75,15 @@ describe("role access matrix", () => {
     for (const r of ROLES) {
       const pb = selectPlaybook({ highestRole: r.key, isAdmin: r.isAdmin });
       expect(pb.navPriority[0]).toBe("/app");
+    }
+  });
+
+  it("applicants are allowed only their own pages, bounced from member routes", () => {
+    expect(isApplicantAllowed("/app")).toBe(true);
+    expect(isApplicantAllowed("/app/events")).toBe(true);
+    expect(isApplicantAllowed("/app/settings")).toBe(true);
+    for (const forbidden of ["/app/projects", "/app/crm", "/app/admin", "/app/messages", "/app/members", "/app/recruitment"]) {
+      expect(isApplicantAllowed(forbidden)).toBe(false);
     }
   });
 
