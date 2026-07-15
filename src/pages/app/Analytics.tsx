@@ -44,7 +44,7 @@ export default function Analytics() {
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-6 max-w-5xl">
       <motion.div variants={item}>
         <h1 className="font-display text-2xl font-bold">Analytics</h1>
-        <p className="text-xs text-muted-foreground font-mono">Real-time organization metrics</p>
+        <p className="text-xs text-muted-foreground font-mono">Current organization metrics</p>
       </motion.div>
 
       {/* Completion Rate Hero */}

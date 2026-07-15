@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Megaphone, Plus, Pin } from "lucide-react";
+import { Megaphone, Plus, Pin, PinOff, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
@@ -22,6 +22,21 @@ export default function Announcements() {
   };
 
   useEffect(() => { fetchAnnouncements(); }, []);
+
+  const togglePin = async (a: any) => {
+    const { error } = await supabase.from("announcements").update({ pinned: !a.pinned }).eq("id", a.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(a.pinned ? "Unpinned" : "Pinned to top");
+    fetchAnnouncements();
+  };
+
+  const remove = async (a: any) => {
+    if (!window.confirm(`Delete "${a.title}"? This cannot be undone.`)) return;
+    const { error } = await supabase.from("announcements").delete().eq("id", a.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Announcement deleted");
+    fetchAnnouncements();
+  };
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -64,11 +79,21 @@ export default function Announcements() {
               <CardContent className="p-4">
                 <div className="flex items-start gap-2">
                   {a.pinned && <Pin className="h-4 w-4 text-accent shrink-0 mt-0.5" />}
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <p className="font-medium">{a.title}</p>
                     <p className="text-sm text-muted-foreground mt-1">{a.body}</p>
                     <p className="text-[10px] text-muted-foreground mt-2">{new Date(a.created_at).toLocaleDateString()}</p>
                   </div>
+                  {isAdmin && (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => togglePin(a)} title={a.pinned ? "Unpin" : "Pin to top"}>
+                        {a.pinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => remove(a)} title="Delete">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
