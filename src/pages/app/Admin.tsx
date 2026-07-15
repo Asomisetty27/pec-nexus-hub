@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useClubStage } from "@/lib/clubStage";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   Shield, Users, ScrollText, Check, X, Search, ChevronRight,
@@ -116,17 +117,35 @@ export default function Admin() {
   const matchedCount = roster.filter(r => r.matched_user_id).length;
   const unmatchedRoster = roster.filter(r => !r.matched_user_id);
 
+  // Progressive disclosure: a launch-stage club sees only the daily-driver
+  // tabs; power tools (identity, analytics, feedback, audit, self-heal) reveal
+  // automatically once the club is growing, with a manual escape hatch here.
+  const { atLeast } = useClubStage();
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const advanced = atLeast("growing") || showAdvanced;
+
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-6 max-w-5xl">
       <motion.div variants={item} className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold">Admin Console</h1>
-          <p className="text-xs text-muted-foreground font-mono">Roster · Identity · Invites · Analytics · Audit</p>
+          <p className="text-xs text-muted-foreground font-mono">
+            {advanced ? "Roster · Identity · Invites · Analytics · Audit" : "Roster · Approvals · Invites · Metrics"}
+          </p>
         </div>
-        <Button size="sm" variant="outline" onClick={runSelfHeal} disabled={healing} className="gap-1.5">
-          <Wand2 className="h-3.5 w-3.5" />
-          {healing ? "Healing…" : "Run self-heal"}
-        </Button>
+        <div className="flex items-center gap-2">
+          {!atLeast("growing") && (
+            <Button size="sm" variant="ghost" onClick={() => setShowAdvanced(v => !v)} className="text-xs text-muted-foreground">
+              {showAdvanced ? "Hide advanced" : "Advanced tools"}
+            </Button>
+          )}
+          {advanced && (
+            <Button size="sm" variant="outline" onClick={runSelfHeal} disabled={healing} className="gap-1.5">
+              <Wand2 className="h-3.5 w-3.5" />
+              {healing ? "Healing…" : "Run self-heal"}
+            </Button>
+          )}
+        </div>
       </motion.div>
 
       {/* Roster status summary */}
@@ -185,14 +204,14 @@ export default function Admin() {
           <TabsTrigger value="approvals" className="gap-1.5">
             Approvals {roleRequests.length > 0 && <Badge className="h-4 min-w-4 p-0 flex items-center justify-center text-[9px]">{roleRequests.length}</Badge>}
           </TabsTrigger>
-          <TabsTrigger value="users">Users ({allProfiles.length})</TabsTrigger>
-          <TabsTrigger value="identity" className="gap-1.5"><Eye className="h-3 w-3" /> Identity</TabsTrigger>
           <TabsTrigger value="invites" className="gap-1.5"><Mail className="h-3 w-3" /> Invites</TabsTrigger>
-          <TabsTrigger value="analytics" className="gap-1.5"><BarChart3 className="h-3 w-3" /> Analytics</TabsTrigger>
-          <TabsTrigger value="feedback" className="gap-1.5"><MsgIcon className="h-3 w-3" /> Feedback</TabsTrigger>
-          <TabsTrigger value="recruitment" className="gap-1.5"><UserPlus className="h-3 w-3" /> Recruitment</TabsTrigger>
-          <TabsTrigger value="audit">Audit Log</TabsTrigger>
           <TabsTrigger value="metrics" className="gap-1.5"><BarChart3 className="h-3 w-3" /> Public Metrics</TabsTrigger>
+          {advanced && <TabsTrigger value="users">Users ({allProfiles.length})</TabsTrigger>}
+          {advanced && <TabsTrigger value="identity" className="gap-1.5"><Eye className="h-3 w-3" /> Identity</TabsTrigger>}
+          {advanced && <TabsTrigger value="analytics" className="gap-1.5"><BarChart3 className="h-3 w-3" /> Analytics</TabsTrigger>}
+          {advanced && <TabsTrigger value="feedback" className="gap-1.5"><MsgIcon className="h-3 w-3" /> Feedback</TabsTrigger>}
+          {advanced && <TabsTrigger value="recruitment" className="gap-1.5"><UserPlus className="h-3 w-3" /> Recruitment</TabsTrigger>}
+          {advanced && <TabsTrigger value="audit">Audit Log</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="roster" className="mt-4 space-y-4">
