@@ -572,6 +572,48 @@ export type Database = {
         }
         Relationships: []
       }
+      brand_items: {
+        Row: {
+          created_at: string
+          created_by: string
+          due_date: string | null
+          id: string
+          kind: string
+          link: string | null
+          notes: string | null
+          owner_user_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          due_date?: string | null
+          id?: string
+          kind?: string
+          link?: string | null
+          notes?: string | null
+          owner_user_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          due_date?: string | null
+          id?: string
+          kind?: string
+          link?: string | null
+          notes?: string | null
+          owner_user_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       capacity_allocations: {
         Row: {
           cohort_id: string
@@ -832,6 +874,44 @@ export type Database = {
           },
         ]
       }
+      cohort_onboarding_progress: {
+        Row: {
+          certified_at: string | null
+          certified_by: string | null
+          cohort_id: string
+          completed_steps: number[]
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          certified_at?: string | null
+          certified_by?: string | null
+          cohort_id: string
+          completed_steps?: number[]
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          certified_at?: string | null
+          certified_by?: string | null
+          cohort_id?: string
+          completed_steps?: number[]
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cohort_onboarding_progress_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cohort_roster: {
         Row: {
           cohort_name: string
@@ -912,31 +992,43 @@ export type Database = {
       }
       cohorts: {
         Row: {
+          assembly_line: Json
           chapter_id: string | null
+          charter: Json
           color: string | null
           created_at: string
           description: string | null
+          function_key: string | null
           icon: string | null
           id: string
           name: string
+          onboarding_track: Json
         }
         Insert: {
+          assembly_line?: Json
           chapter_id?: string | null
+          charter?: Json
           color?: string | null
           created_at?: string
           description?: string | null
+          function_key?: string | null
           icon?: string | null
           id?: string
           name: string
+          onboarding_track?: Json
         }
         Update: {
+          assembly_line?: Json
           chapter_id?: string | null
+          charter?: Json
           color?: string | null
           created_at?: string
           description?: string | null
+          function_key?: string | null
           icon?: string | null
           id?: string
           name?: string
+          onboarding_track?: Json
         }
         Relationships: [
           {
