@@ -96,9 +96,10 @@ export default function Dashboard() {
         : "";
       const orFilter = `and(owner_type.neq.group,owner_id.eq.${user.id})${groupFilter}`;
       const [delRes, annRes, cohortRes, helpRes] = await Promise.all([
-        supabase.from("deliverables").select("*, projects(name)")
+        supabase.from("deliverables").select("*, projects!inner(name, status)")
           .or(orFilter)
           .in("approval_status", ["pending", "revision_requested"])
+          .eq("projects.status", "active")
           .order("due_date", { ascending: true }).limit(10),
         supabase.from("announcements").select("*").order("created_at", { ascending: false }).limit(3),
         supabase.from("cohort_memberships").select("*, cohorts(*)").eq("user_id", user.id).limit(1).maybeSingle(),
@@ -153,7 +154,8 @@ export default function Dashboard() {
       const leadIds = (leadProjs || []).map((m: any) => m.project_id);
       let revQ = supabase
         .from("deliverables")
-        .select("id, title, project_id, due_date, version, projects(name)")
+        .select("id, title, project_id, due_date, version, projects!inner(name, status)")
+        .eq("projects.status", "active")
         .not("file_url", "is", null)
         .in("approval_status", ["pending"])
         .eq("approval_required", true)
@@ -164,7 +166,7 @@ export default function Dashboard() {
       setReviews(revData || []);
 
       const [projRes, eventRes, memberRes] = await Promise.all([
-        supabase.from("project_memberships").select("project_id").eq("user_id", user.id),
+        supabase.from("project_memberships").select("project_id, projects!inner(status)").eq("user_id", user.id).eq("projects.status", "active"),
         supabase.from("events").select("*", { count: "exact", head: true }).gte("start_time", new Date().toISOString()),
         supabase.from("profiles").select("*", { count: "exact", head: true }),
       ]);
