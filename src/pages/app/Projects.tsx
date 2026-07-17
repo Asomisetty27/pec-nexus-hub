@@ -32,7 +32,7 @@ export default function Projects() {
 
   const fetchProjects = async () => {
     setLoading(true);
-    const { data } = await supabase.from("projects").select("*, project_memberships(user_id, role_on_project), organizations(name)").order("created_at", { ascending: false });
+    const { data } = await supabase.from("projects").select("*, project_memberships(user_id, role_on_project), organizations(name)").neq("status", "archived").order("created_at", { ascending: false });
     setProjects(data || []);
     setLoading(false);
   };
