@@ -6435,6 +6435,9 @@ export type Database = {
         | "info_session"
         | "social_media"
         | "other"
+        | "search"
+        | "professor"
+        | "club_fair"
       applicant_stage:
         | "pre_cycle_pool"
         | "applied"
@@ -6728,6 +6731,9 @@ export const Constants = {
         "info_session",
         "social_media",
         "other",
+        "search",
+        "professor",
+        "club_fair",
       ],
       applicant_stage: [
         "pre_cycle_pool",
