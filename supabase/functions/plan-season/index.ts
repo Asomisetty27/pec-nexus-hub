@@ -80,23 +80,26 @@ export function buildFall2026Plan(): PlannedEvent[] {
   };
 
   // ---- Recruiting runway ---------------------------------------------------
-  push("WOW Week showcase (recruiting front door)", "2026-08-18", 10, 0, 6 * 60, "presentation",
-    "Table at WOW with the signed fall client project as the pitch: join and ship this, this semester. Front door for applications.",
+  // Dates verified against the Cal Poly registrar (2026-07-17): WOW Aug 19-23
+  // (move-in Aug 18-19), classes begin Aug 24, add/drop Sep 4, Labor Day Sep 7,
+  // fall break Nov 23-29, last day of classes Dec 11, finals Dec 14-18.
+  push("WOW club fair (recruiting front door)", "2026-08-19", 10, 0, 6 * 60, "presentation",
+    "Table at the WOW club fair with the signed fall client project as the pitch: join and ship this, this semester. WOW runs Aug 19-23; front door for applications.",
     { is_public: true });
-  push("WOW Week showcase (day 2)", "2026-08-19", 10, 0, 6 * 60, "presentation",
+  push("WOW club fair (day 2)", "2026-08-20", 10, 0, 6 * 60, "presentation",
     "Second day of WOW tabling. Collect interest, point students to the application.",
     { is_public: true });
-  push("Applications open", "2026-08-24", 9, 0, 0, "other",
-    "Membership applications open in Nexus. Reviewed as they arrive.",
+  push("First day of classes", "2026-08-24", 8, 0, 0, "other",
+    "Cal Poly's first-ever semester begins. Applications open in Nexus the same day, reviewed as they arrive.",
     { is_public: true });
   push("Info session", "2026-08-26", 18, 0, 60, "presentation",
     "What PEC is, the real project on offer, the commitment (5 hrs/week, one artifact per sprint), and how to apply. Recruit for reliability over brilliance.",
     { is_public: true });
   push("Applications close", "2026-09-04", 23, 59, 0, "other",
-    "Application window closes (aligns with the add/drop deadline). Ranked screening follows.",
+    "Application window closes, aligned with the Cal Poly add/drop deadline. Ranked screening follows.",
     { is_public: true });
-  push("Interview week (self-serve scheduling)", "2026-09-07", 9, 0, 0, "other",
-    "Candidates book interview slots in Nexus. Dual-screener rubric. Small enough volume for same-day reads.");
+  push("Interview week opens (self-serve scheduling)", "2026-09-08", 9, 0, 0, "other",
+    "Candidates book interview slots in Nexus. Starts Tuesday since Monday Sep 7 is Labor Day. Dual-screener rubric, small enough volume for same-day reads.");
   push("Decisions and offers", "2026-09-12", 12, 0, 0, "leadership_meeting",
     "Amogh and Sam finalize 6 to 8 seats plus a ranked waitlist. Offers sent with the written commitment contract.");
 
@@ -141,13 +144,21 @@ export function buildFall2026Plan(): PlannedEvent[] {
   push("Midpoint social", "2026-10-30", 19, 0, 120, "social",
     "Halfway celebration after the midpoint gate. Reset and recommit for the delivery push.");
 
+  // Academic anchors (no club events; visible so members plan around them).
+  push("Fall break (no meetings)", "2026-11-23", 0, 0, 0, "other",
+    "Cal Poly fall break, Nov 23-29. No working session this week; it is the engagement's built-in buffer before the delivery push.",
+    { is_public: true });
+
   // ---- Delivery + close-out ------------------------------------------------
   push("Client delivery", "2026-12-04", 16, 0, 90, "presentation",
-    "Final deliverable presentation to the client. The engagement's definition of success: shipped artifact, written client quote, archive case study.");
+    "Final deliverable presentation to the client, one week before classes end (Dec 11). The engagement's definition of success: shipped artifact, written client quote, archive case study.");
   push("Delivery celebration", "2026-12-05", 19, 0, 150, "social",
     "Celebrate the first delivered engagement. This is the win the club was built to produce.");
   push("Engagement retro + archive", "2026-12-08", 18, 0, 90, "meeting",
-    "Retro, pattern card, archive case-study entry, collect the client feedback and quote, and open the spring promotion window.");
+    "Retro, pattern card, archive case-study entry, collect the client feedback and quote, and open the spring promotion window. Held before finals week (Dec 14-18).");
+  push("Finals week (no club events)", "2026-12-14", 0, 0, 0, "other",
+    "Cal Poly finals, Dec 14-18. No club events. Spring planning resumes after the break.",
+    { is_public: true });
 
   // Built in thematic groups above; return in chronological order.
   ev.sort((a, b) => a.start_time.localeCompare(b.start_time));
