@@ -140,6 +140,17 @@ export function buildFall2026Plan(): PlannedEvent[] {
   push("Monthly all-hands", "2026-11-20", 17, 30, 30, "all_hands",
     "30 minutes, whole club. Wins, one client-facing update, one ask.");
 
+  // Guest speakers: ~monthly, standalone evenings, public (a recruiting and
+  // prestige draw). Placeholders the Business & Marketing cohort fills from
+  // the /app/speakers pipeline; a practitioner from a target client is a warm
+  // intro, so booking doubles as client outreach.
+  push("Guest speaker (TBD)", "2026-10-15", 18, 30, 90, "guest_speaker",
+    "Industry practitioner, alum, or a professional from a target company. Book from the speaker pipeline. Open to the whole club and prospective members.",
+    { is_public: true });
+  push("Guest speaker (TBD)", "2026-11-12", 18, 30, 90, "guest_speaker",
+    "Second guest speaker of the semester. Book from the speaker pipeline; consider someone from a company on the client target list.",
+    { is_public: true });
+
   // Midpoint social after the midpoint gate.
   push("Midpoint social", "2026-10-30", 19, 0, 120, "social",
     "Halfway celebration after the midpoint gate. Reset and recommit for the delivery push.");
