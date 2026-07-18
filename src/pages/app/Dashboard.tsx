@@ -132,7 +132,7 @@ export default function Dashboard() {
         setPurposeTrack(ptRes.data);
         setCapacity(capRes.data);
         setActiveEngagements(oppRes.data || []);
-        setOnboarding(obRes.data);
+        setOnboarding(obRes.data as any);
         if (mpRes.data) {
           const { data: stage } = await supabase.from("project_stages").select("*").eq("mock_project_id", mpRes.data.id).eq("status", "active").order("order_index").limit(1).maybeSingle();
           setCurrentStage(stage);
