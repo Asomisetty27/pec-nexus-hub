@@ -17,15 +17,16 @@ import {
  * allocated to their role. Weekly check-off persists per ISO week.
  */
 export function RoleHQ() {
-  const { profile, highestRole, isAdmin } = useAuth();
+  const { profile, highestRole, isAdmin, isCohortLead } = useAuth();
   const playbook = useMemo(
     () =>
       selectPlaybook({
         highestRole,
         isAdmin,
+        isCohortLead,
         memberStatus: (profile as { member_status?: string } | null)?.member_status,
       }),
-    [highestRole, isAdmin, profile],
+    [highestRole, isAdmin, isCohortLead, profile],
   );
 
   const storageKey = `hq-${playbook.key}-${weekKey()}`;

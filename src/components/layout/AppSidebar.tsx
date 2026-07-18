@@ -126,7 +126,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
-  const { profile, highestRole, signOut, isAdmin, isBoardOrAdmin } = useAuth();
+  const { profile, highestRole, signOut, isAdmin, isBoardOrAdmin, isCohortLead } = useAuth();
   const { hasRole } = useAuth();
   const { canAccess: hasCrmAccess } = useCrmAccess();
   const { canSeeRecruitment } = useRecruitmentAccess();
@@ -148,6 +148,7 @@ export function AppSidebar() {
   const playbook = selectPlaybook({
     highestRole,
     isAdmin,
+    isCohortLead,
     memberStatus: (profile as { member_status?: string } | null)?.member_status,
   });
   const priorityIndex = (url: string) => {
