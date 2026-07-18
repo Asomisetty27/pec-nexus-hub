@@ -1,6 +1,8 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  Award,
   BarChart3,
+  Boxes,
   Briefcase,
   Building2,
   CalendarDays,
@@ -61,6 +63,8 @@ const GROUP_LABEL_CLASS = "font-mono text-[9px] uppercase tracking-[0.15em] text
 
 const mainNav: NavItem[] = [
   { title: "Mission Control", url: "/app", icon: LayoutDashboard },
+  { title: "Cohort Hub", url: "/app/cohort", icon: Boxes, hideForApplicants: true },
+  { title: "Board", url: "/app/board", icon: Award, hideForApplicants: true },
   { title: "Advisor Portal", url: "/app/advisor", icon: ShieldCheck, requiresAdvisorAccess: true },
   { title: "Purpose Track", url: "/app/purpose", icon: Compass, hideForApplicants: true },
   { title: "Projects", url: "/app/projects", icon: FolderKanban, hideForApplicants: true },
