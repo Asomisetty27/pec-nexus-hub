@@ -21,6 +21,7 @@ import Dashboard from "./pages/app/Dashboard";
 import Recommit from "./pages/app/Recommit";
 import QrStudio from "./pages/app/QrStudio";
 import BrandStudio from "./pages/app/BrandStudio";
+import Speakers from "./pages/app/Speakers";
 import Projects from "./pages/app/Projects";
 import ProjectDetail from "./pages/app/ProjectDetail";
 import Messages from "./pages/app/Messages";
@@ -93,6 +94,7 @@ const App = () => (
               <Route path="recommit" element={<Recommit />} />
               <Route path="qr" element={<QrStudio />} />
               <Route path="brand" element={<BrandStudio />} />
+              <Route path="speakers" element={<Speakers />} />
               <Route path="purpose" element={<PurposeTrack />} />
               <Route path="opportunities" element={<Opportunities />} />
               <Route path="projects" element={<Projects />} />
