@@ -5375,6 +5375,78 @@ export type Database = {
           },
         ]
       }
+      speakers: {
+        Row: {
+          affiliation: string | null
+          bio: string | null
+          contact: string | null
+          created_at: string
+          created_by: string
+          event_id: string | null
+          id: string
+          links: Json
+          name: string
+          notes: string | null
+          organization_id: string | null
+          owner_user_id: string | null
+          proposed_date: string | null
+          status: string
+          topic: string | null
+          updated_at: string
+        }
+        Insert: {
+          affiliation?: string | null
+          bio?: string | null
+          contact?: string | null
+          created_at?: string
+          created_by: string
+          event_id?: string | null
+          id?: string
+          links?: Json
+          name: string
+          notes?: string | null
+          organization_id?: string | null
+          owner_user_id?: string | null
+          proposed_date?: string | null
+          status?: string
+          topic?: string | null
+          updated_at?: string
+        }
+        Update: {
+          affiliation?: string | null
+          bio?: string | null
+          contact?: string | null
+          created_at?: string
+          created_by?: string
+          event_id?: string | null
+          id?: string
+          links?: Json
+          name?: string
+          notes?: string | null
+          organization_id?: string | null
+          owner_user_id?: string | null
+          proposed_date?: string | null
+          status?: string
+          topic?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "speakers_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "speakers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sponsorship_packages: {
         Row: {
           amount: number | null
@@ -6545,6 +6617,7 @@ export type Database = {
         | "project_meeting"
         | "leadership_meeting"
         | "training_session"
+        | "guest_speaker"
       lead_stage:
         | "new"
         | "contacted"
@@ -6843,6 +6916,7 @@ export const Constants = {
         "project_meeting",
         "leadership_meeting",
         "training_session",
+        "guest_speaker",
       ],
       lead_stage: [
         "new",
