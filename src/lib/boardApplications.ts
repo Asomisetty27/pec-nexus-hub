@@ -103,6 +103,25 @@ export async function withdrawApplication(id: string): Promise<{ error: string |
   return { error: error ? error.message : null };
 }
 
+/** Admin-only (RLS). Opens a board cycle; deactivates any existing active one
+ * first so the single-active-cycle index never conflicts. */
+export async function openCycle(name: string, closesAt: string | null): Promise<{ error: string | null }> {
+  await db.from("board_application_cycles").update({ is_active: false }).eq("is_active", true);
+  const { error } = await db.from("board_application_cycles").insert({
+    name,
+    is_active: true,
+    opens_at: new Date().toISOString(),
+    closes_at: closesAt,
+  });
+  return { error: error ? error.message : null };
+}
+
+/** Admin-only (RLS). Closes a cycle (stops new applications). */
+export async function closeCycle(id: string): Promise<{ error: string | null }> {
+  const { error } = await db.from("board_application_cycles").update({ is_active: false }).eq("id", id);
+  return { error: error ? error.message : null };
+}
+
 /** Admin-only; the DB RPC enforces admin + grants the role on accept. */
 export async function decideApplication(
   appId: string, decision: "accepted" | "declined", note: string,
