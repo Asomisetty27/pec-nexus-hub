@@ -31,6 +31,12 @@ const TextSchema = z.object({
     "social_media", "search", "professor", "club_fair", "other",
   ]),
   source_detail: z.string().trim().max(255).optional().or(z.literal("")),
+  // The public form cannot read the cohorts table (RLS), so the applicant
+  // sends a fixed function key; the server resolves it to a cohort id.
+  preferred_cohort_key: z
+    .enum(["business_marketing", "software_ai", "hardware_embedded", "mech_manufacturing"])
+    .optional()
+    .or(z.literal("")),
   honeypot: z.string().max(0).optional().or(z.literal("")),
 });
 
@@ -175,6 +181,19 @@ Deno.serve(async (req) => {
   let routedCohortId: string | null = null;
   let primaryReviewerId: string | null = null;
 
+  // Validate the applicant's stated cohort preference against real cohorts so a
+  // bad value can never break submission; a verified id becomes the routing
+  // fallback below and is stored regardless of which route wins.
+  let preferredCohortId: string | null = null;
+  if (data.preferred_cohort_key) {
+    const { data: pref } = await admin
+      .from("cohorts")
+      .select("id")
+      .eq("function_key", data.preferred_cohort_key)
+      .maybeSingle();
+    preferredCohortId = pref?.id ?? null;
+  }
+
   if (!intakeMode) {
     try {
       const { data: route } = await admin
@@ -184,6 +203,13 @@ Deno.serve(async (req) => {
         .maybeSingle();
       routedCohortId = route?.cohort_id ?? null;
     } catch (_) {}
+
+    // Fallback: a free-text major that maps to nothing would otherwise leave
+    // the applicant unrouted with no reviewer. Honor their stated preference so
+    // every applicant lands in a cohort and gets a reviewer.
+    if (!routedCohortId && preferredCohortId) {
+      routedCohortId = preferredCohortId;
+    }
 
     if (routedCohortId) {
     const { data: reviewers } = await admin
@@ -246,6 +272,7 @@ Deno.serve(async (req) => {
     source: data.source,
     source_detail: data.source_detail || (data.calpoly_email ? `calpoly_email:${data.calpoly_email}` : null),
     routed_cohort_id: routedCohortId,
+    preferred_cohort_id: preferredCohortId,
     routing_resolved: !intakeMode && routedCohortId !== null,
     primary_reviewer_user_id: primaryReviewerId,
     resume_storage_path: storagePath,

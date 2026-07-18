@@ -16,7 +16,6 @@ export const SEASON_ONE_PARKED: { url: string; reason: string }[] = [
   { url: "/app/grind", reason: "Gamification: near-zero usage; year one culture is real artifacts, not points" },
   { url: "/app/skills", reason: "Skill dashboard: parked with grind until training data justifies it" },
   { url: "/app/ask", reason: "Ask Nexus: 0 queries ever logged; resurfaces when the vault has season data" },
-  { url: "/app/cohort", reason: "Cohort hub: multi-cohort machinery; year one runs one team" },
 ]
 
 export function parkedReason(pathname: string): string | null {
@@ -56,6 +55,7 @@ export interface HQPlaybook {
 }
 
 const MEMBER_RESOURCES: HQResource[] = [
+  { title: "Cohort Hub", url: "/app/cohort", desc: "Your craft home: cohort team, training track, and certification" },
   { title: "Re-commitment", url: "/app/recommit", desc: "Fall 2026 re-formation: claim your seat, go alumni, or step away" },
   { title: "Projects", url: "/app/projects", desc: "Your workstream, deliverables, and gate timeline" },
   { title: "Messages", url: "/app/messages", desc: "Team channels. Blockers go here early, not on Friday" },
@@ -153,6 +153,39 @@ export const PLAYBOOKS: Record<string, HQPlaybook> = {
       { title: "Documents", url: "/app/docs", desc: "QA checklist, gate templates, charter" },
     ],
     navPriority: ["/app", "/app/lead", "/app/projects", "/app/messages", "/app/scheduling"],
+  },
+
+  cohort_lead: {
+    key: "cohort_lead",
+    title: "Cohort Lead",
+    mission:
+      "Run your cohort as a craft home. You train the function, certify who is ready, and keep a bench of staffable members. Your cohort is where 'what do I do this week' always gets answered; you are the person who answers it.",
+    weekly: [
+      "Run the weekly cohort meeting: a training block, the cohort's line work, and who is newly staffable",
+      "Move every un-certified member one step along the onboarding track; certify anyone who cleared their First Unit",
+      "Keep the staffable roster current so the pod can be staffed from certified members, not guesses",
+      "Check member health: nobody silent, nobody stuck; surface anyone at risk",
+      "Post the cohort's blockers and staffing gaps to leadership before the weekly sync",
+    ],
+    canDecide: [
+      "Cohort meeting cadence, training focus, and drill assignments",
+      "Certification: whether a member has cleared their First Unit and is staffable",
+      "Internal cohort task and shadow assignments",
+    ],
+    mustEscalate: [
+      "A member who should be moved off the bench or off the roster",
+      "Staffing shortfalls that put a pod at risk",
+      "Anything requiring a new leadership seat or a scope call",
+    ],
+    escalateTo: "VP Members / President",
+    resources: [
+      { title: "Cohort Hub", url: "/app/cohort", desc: "Your cohort: roster, onboarding track, certification, assembly line" },
+      { title: "Training", url: "/app/training", desc: "The drills and modules your cohort runs" },
+      { title: "Members", url: "/app/members", desc: "Roster, roles, and who is where" },
+      { title: "Messages", url: "/app/messages", desc: "Your cohort channel; blockers surface here first" },
+      { title: "Scheduling", url: "/app/scheduling", desc: "Cohort meeting and working-session times" },
+    ],
+    navPriority: ["/app", "/app/cohort", "/app/messages", "/app/training", "/app/scheduling"],
   },
 
   board_member: {
@@ -259,10 +292,17 @@ export const PLAYBOOKS: Record<string, HQPlaybook> = {
 export function selectPlaybook(opts: {
   highestRole: string;
   isAdmin: boolean;
+  isCohortLead?: boolean;
   memberStatus?: string | null;
 }): HQPlaybook {
   if (opts.memberStatus === "alumni") return PLAYBOOKS.alumni;
   if (opts.isAdmin) return PLAYBOOKS.admin;
+  // Org leadership (board/president) outranks a scoped cohort-lead hat.
+  if (opts.highestRole === "board_member" || opts.highestRole === "president") {
+    return PLAYBOOKS[opts.highestRole] ?? PLAYBOOKS.board_member;
+  }
+  // A member or consultant who leads their cohort works from the cohort-lead HQ.
+  if (opts.isCohortLead) return PLAYBOOKS.cohort_lead;
   return PLAYBOOKS[opts.highestRole] ?? PLAYBOOKS.member;
 }
 

@@ -45,6 +45,7 @@ import Admin from "./pages/app/Admin";
 import Announcements from "./pages/app/Announcements";
 import Settings from "./pages/app/Settings";
 import CohortHub from "./pages/app/CohortHub";
+import Board from "./pages/app/Board";
 import LabManual from "./pages/app/LabManual";
 import MockProject from "./pages/app/MockProject";
 import Scheduling from "./pages/app/Scheduling";
@@ -124,6 +125,7 @@ const App = () => (
               <Route path="announcements" element={<Announcements />} />
               <Route path="settings" element={<Settings />} />
               <Route path="cohort" element={<CohortHub />} />
+              <Route path="board" element={<Board />} />
               <Route path="lab/:id" element={<LabManual />} />
               <Route path="mock-project/:id" element={<MockProject />} />
               <Route path="scheduling" element={<Scheduling />} />

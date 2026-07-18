@@ -29,7 +29,17 @@ const FormSchema = z.object({
   availability: z.string().trim().min(5, "Required").max(1000),
   source: z.string().min(1, "Required"),
   source_detail: z.string().trim().max(255).optional(),
+  preferred_cohort_key: z.string().optional(),
 });
+
+// The four function cohorts (a member's craft home). Hardcoded because the
+// public form cannot read the cohorts table; the server resolves the key.
+const COHORT_CHOICES = [
+  { key: "hardware_embedded", label: "Hardware & Embedded (EE, CPE)" },
+  { key: "software_ai", label: "Software & AI (CS, SE)" },
+  { key: "mech_manufacturing", label: "Mechanical & Manufacturing (ME, MfgE, IE)" },
+  { key: "business_marketing", label: "Business & Marketing (business, comms, design)" },
+];
 
 const MAX_RESUME_BYTES = 5 * 1024 * 1024;
 const ALLOWED_TYPES = [
@@ -72,6 +82,7 @@ export default function ApplyForm() {
   const [resume, setResume] = useState<File | null>(null);
   const [yearStanding, setYearStanding] = useState("");
   const [source, setSource] = useState("");
+  const [preferredCohort, setPreferredCohort] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -112,6 +123,7 @@ export default function ApplyForm() {
     }
     fields.year_standing = yearStanding;
     fields.source = source;
+    fields.preferred_cohort_key = preferredCohort;
     if (qrSrc) {
       fields.source_detail = [fields.source_detail, `qr:${qrSrc}`].filter(Boolean).join(" | ").slice(0, 255);
     }
@@ -244,6 +256,21 @@ export default function ApplyForm() {
                     <Label htmlFor="expected_grad_term">Expected graduation term *</Label>
                     <Input id="expected_grad_term" name="expected_grad_term" required maxLength={40} placeholder="e.g. Spring 2027" />
                   </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="preferred_cohort">Which team fits you best?</Label>
+                  <Select value={preferredCohort} onValueChange={setPreferredCohort}>
+                    <SelectTrigger id="preferred_cohort"><SelectValue placeholder="Optional: pick your best-fit team" /></SelectTrigger>
+                    <SelectContent>
+                      {COHORT_CHOICES.map((c) => (
+                        <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    We usually place you by major. Pick a team if you have a preference or your major is not an obvious fit.
+                  </p>
                 </div>
 
                 <div className="space-y-1.5">

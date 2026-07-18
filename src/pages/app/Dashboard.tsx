@@ -79,6 +79,7 @@ export default function Dashboard() {
     typeof window !== "undefined" && sessionStorage.getItem("avail_nudge_dismissed") === "1"
   );
   const [cohortScore, setCohortScore] = useState<{ score: number; attendance_pct: number; deliverable_pct: number; training_pct: number } | null>(null);
+  const [onboarding, setOnboarding] = useState<{ completed_steps: number[] | null; certified_at: string | null } | null>(null);
 
   useEffect(() => {
     if (!user || !ownershipReady) return;
@@ -116,7 +117,7 @@ export default function Dashboard() {
         supabase.rpc("cohort_performance", { p_cohort_id: cohortId }).then(({ data }) => {
           if (data) setCohortScore(data as any);
         });
-        const [manualRes, mpRes, ptRes, capRes, oppRes] = await Promise.all([
+        const [manualRes, mpRes, ptRes, capRes, oppRes, obRes] = await Promise.all([
           supabase.from("lab_manuals").select("*").eq("cohort_id", cohortId).limit(1).maybeSingle(),
           isOpsCohort
             ? Promise.resolve({ data: null } as any)
@@ -124,12 +125,14 @@ export default function Dashboard() {
           supabase.from("purpose_tracks").select("*").eq("cohort_id", cohortId).eq("status", "active").limit(1).maybeSingle(),
           supabase.from("capacity_allocations").select("*").eq("cohort_id", cohortId).order("effective_date", { ascending: false }).limit(1).maybeSingle(),
           supabase.from("opportunities").select("*").eq("assigned_cohort_id", cohortId).in("status", ["approved", "active"]),
+          supabase.from("cohort_onboarding_progress" as any).select("*").eq("cohort_id", cohortId).eq("user_id", user.id).maybeSingle(),
         ]);
         setLabManual(manualRes.data);
         setMockProject(mpRes.data);
         setPurposeTrack(ptRes.data);
         setCapacity(capRes.data);
         setActiveEngagements(oppRes.data || []);
+        setOnboarding(obRes.data);
         if (mpRes.data) {
           const { data: stage } = await supabase.from("project_stages").select("*").eq("mock_project_id", mpRes.data.id).eq("status", "active").order("order_index").limit(1).maybeSingle();
           setCurrentStage(stage);
@@ -202,6 +205,37 @@ export default function Dashboard() {
     const moves: NextMove[] = [];
     const now = Date.now();
     const dayMs = 24 * 60 * 60 * 1000;
+
+    // 0. ONBOARDING: an un-certified cohort member's first job is finishing
+    // their onboarding track. Show their real next step until they're certified
+    // (and therefore staffable). The final "Certified" step is leader-granted.
+    const track: any[] = Array.isArray((cohort as any)?.cohorts?.onboarding_track)
+      ? (cohort as any).cohorts.onboarding_track : [];
+    if (cohort && track.length > 0 && !onboarding?.certified_at) {
+      const done = new Set(onboarding?.completed_steps ?? []);
+      const cohortLabel = (cohort as any)?.cohorts?.name ?? "your cohort";
+      const nextIdx = track.findIndex((_, i) => i < track.length - 1 && !done.has(i));
+      if (nextIdx !== -1) {
+        const step = track[nextIdx];
+        moves.push({
+          label: `Onboarding: ${step.step}`,
+          sublabel: `Step ${nextIdx + 1} of ${track.length} · ${cohortLabel}`,
+          reason: step.detail || "Advance your cohort onboarding",
+          action: () => navigate(step.where || "/app/cohort"),
+          icon: GraduationCap, urgent: false,
+          engagement: "purpose",
+        });
+      } else {
+        moves.push({
+          label: "Onboarding: ready for certification",
+          sublabel: cohortLabel,
+          reason: "You've cleared every step — your cohort lead grants the final certification",
+          action: () => navigate("/app/cohort"),
+          icon: GraduationCap, urgent: false,
+          engagement: "purpose",
+        });
+      }
+    }
 
     // 1. BLOCKING: revision requested on your deliverables (team is blocked on you)
     deliverables

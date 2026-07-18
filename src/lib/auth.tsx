@@ -22,11 +22,22 @@ interface Profile {
   invite_state: string;
 }
 
+// A member's craft home in the matrix org: which cohort they belong to and
+// their role within it. Cohort leadership (lead/pm/integration_lead) is scoped
+// to the cohort, not a global app_role, mirroring the DB is_cohort_reviewer gate.
+interface CohortMembership {
+  cohort_id: string;
+  role: string;
+}
+
+const COHORT_LEAD_ROLES = ["lead", "pm", "integration_lead"];
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
   roles: AppRole[];
+  cohortMembership: CohortMembership | null;
   loading: boolean;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -35,6 +46,7 @@ interface AuthContextType {
   isAdmin: boolean;
   isBoardOrAdmin: boolean;
   isAdvisor: boolean;
+  isCohortLead: boolean;
   highestRole: AppRole;
   refreshProfile: () => Promise<void>;
 }
@@ -46,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
+  const [cohortMembership, setCohortMembership] = useState<CohortMembership | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
@@ -58,9 +71,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (data) setRoles(data.map((r: any) => r.role as AppRole));
   };
 
+  const fetchCohortMembership = async (userId: string) => {
+    const { data } = await supabase
+      .from("cohort_memberships")
+      .select("cohort_id, role")
+      .eq("user_id", userId)
+      .limit(1)
+      .maybeSingle();
+    setCohortMembership((data as CohortMembership) ?? null);
+  };
+
   const refreshProfile = async () => {
     if (user) {
-      await Promise.all([fetchProfile(user.id), fetchRoles(user.id)]);
+      await Promise.all([fetchProfile(user.id), fetchRoles(user.id), fetchCohortMembership(user.id)]);
     }
   };
 
@@ -72,10 +95,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setTimeout(() => {
           fetchProfile(session.user.id);
           fetchRoles(session.user.id);
+          fetchCohortMembership(session.user.id);
         }, 0);
       } else {
         setProfile(null);
         setRoles([]);
+        setCohortMembership(null);
       }
       setLoading(false);
     });
@@ -86,6 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (session?.user) {
         fetchProfile(session.user.id);
         fetchRoles(session.user.id);
+        fetchCohortMembership(session.user.id);
       }
       setLoading(false);
     });
@@ -116,12 +142,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     setProfile(null);
     setRoles([]);
+    setCohortMembership(null);
   };
 
   const hasRole = (role: AppRole) => roles.includes(role);
   const isAdmin = roles.some(r => r === "admin" || r === "superadmin");
   const isBoardOrAdmin = roles.some(r => ["board_member", "admin", "superadmin"].includes(r));
   const isAdvisor = roles.includes("advisor");
+  const isCohortLead = !!cohortMembership && COHORT_LEAD_ROLES.includes(cohortMembership.role);
 
   const roleHierarchy: AppRole[] = ["applicant", "member", "project_consultant", "project_lead", "board_member", "advisor", "admin", "superadmin"];
   const highestRole = roles.reduce((highest, role) => {
@@ -132,8 +160,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      user, session, profile, roles, loading,
-      signUp, signIn, signOut, hasRole, isAdmin, isBoardOrAdmin, isAdvisor, highestRole, refreshProfile,
+      user, session, profile, roles, cohortMembership, loading,
+      signUp, signIn, signOut, hasRole, isAdmin, isBoardOrAdmin, isAdvisor, isCohortLead, highestRole, refreshProfile,
     }}>
       {children}
     </AuthContext.Provider>

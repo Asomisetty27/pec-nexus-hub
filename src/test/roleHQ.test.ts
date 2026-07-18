@@ -8,6 +8,8 @@ const PERSPECTIVES = [
   { name: "member", opts: { highestRole: "member", isAdmin: false }, expected: "member" },
   { name: "consultant", opts: { highestRole: "project_consultant", isAdmin: false }, expected: "project_consultant" },
   { name: "tech lead", opts: { highestRole: "project_lead", isAdmin: false }, expected: "project_lead" },
+  { name: "cohort lead", opts: { highestRole: "member", isAdmin: false, isCohortLead: true }, expected: "cohort_lead" },
+  { name: "board outranks cohort-lead hat", opts: { highestRole: "board_member", isAdmin: false, isCohortLead: true }, expected: "board_member" },
   { name: "VP / board", opts: { highestRole: "board_member", isAdmin: false }, expected: "board_member" },
   { name: "president / admin", opts: { highestRole: "admin", isAdmin: true }, expected: "admin" },
   { name: "superadmin", opts: { highestRole: "superadmin", isAdmin: true }, expected: "admin" },
