@@ -30,7 +30,10 @@ const STATUS_META: Record<string, { label: string; variant: "default" | "seconda
 };
 
 export default function Board() {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, profile } = useAuth();
+  // Board re-application is open only to returning members (last year's roster).
+  // Admins (the guaranteed board) always have access to manage.
+  const boardEligible = isAdmin || !!profile?.board_eligible;
   const [positions, setPositions] = useState<BoardPosition[]>([]);
   const [cycle, setCycle] = useState<{ id: string; name: string; closes_at: string | null } | null>(null);
   const [myApps, setMyApps] = useState<BoardApplication[]>([]);
@@ -110,6 +113,11 @@ export default function Board() {
       {/* Open positions */}
       <section className="space-y-2">
         <h2 className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Open seats</h2>
+        {!boardEligible && (
+          <p className="text-sm text-muted-foreground">
+            Board applications are open to returning members only. New members: focus on onboarding and earning your seat; leadership opens up next cycle.
+          </p>
+        )}
         <div className="grid gap-3 sm:grid-cols-2">
           {openPositions.map((p) => {
             const applied = appliedKeys.has(p.key);
@@ -122,10 +130,10 @@ export default function Board() {
                 <Button
                   size="sm"
                   variant={applied ? "outline" : "default"}
-                  disabled={!cycle || applied}
+                  disabled={!cycle || applied || !boardEligible}
                   onClick={() => setApplyFor(p)}
                 >
-                  {applied ? "Applied" : cycle ? "Apply" : "Cycle closed"}
+                  {applied ? "Applied" : !boardEligible ? "Returning members only" : cycle ? "Apply" : "Cycle closed"}
                 </Button>
               </CardContent></Card>
             );

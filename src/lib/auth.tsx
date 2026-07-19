@@ -20,6 +20,7 @@ interface Profile {
   member_status?: string | null;
   onboarding_completed: boolean;
   invite_state: string;
+  board_eligible?: boolean;
 }
 
 // A member's craft home in the matrix org: which cohort they belong to and
