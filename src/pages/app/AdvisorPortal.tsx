@@ -449,7 +449,10 @@ export default function AdvisorPortal() {
                   <div className="truncate text-sm font-medium">{g.title}</div>
                   <div className="truncate text-[11px] text-muted-foreground">{(g.projects as any)?.name || "Project"}</div>
                 </div>
-                <Button size="sm" onClick={() => signoffGate(g.id)}>Sign off</Button>
+                <div className="flex shrink-0 items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={() => navigate(`/app/projects/${g.project_id}`)}>Review</Button>
+                  <Button size="sm" onClick={() => signoffGate(g.id)}>Sign off</Button>
+                </div>
               </div>
             ))}
           </SectionCard>
