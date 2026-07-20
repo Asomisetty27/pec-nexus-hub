@@ -62,6 +62,7 @@ export default function AdvisorPortal() {
   const [financeReqs, setFinanceReqs] = useState<any[]>([]);
   const [eventReqs, setEventReqs] = useState<any[]>([]);
   const [advisorDeliverables, setAdvisorDeliverables] = useState<any[]>([]);
+  const [gateSignoffs, setGateSignoffs] = useState<any[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
   const [officers, setOfficers] = useState<any[]>([]);
   const [cohorts, setCohorts] = useState<any[]>([]);
@@ -132,6 +133,19 @@ export default function AdvisorPortal() {
     () => advisorDeliverables.filter(d => d.approval_status !== "approved"),
     [advisorDeliverables]
   );
+
+  const loadGateSignoffs = async () => {
+    const { data } = await supabase.from("project_gates" as any)
+      .select("*, projects(name)").eq("advisor_review_required", true).eq("advisor_signed_off", false);
+    setGateSignoffs((data as any[]) || []);
+  };
+  useEffect(() => { loadGateSignoffs(); }, []);
+  const signoffGate = async (gateId: string) => {
+    const { error } = await supabase.rpc("advisor_signoff_gate" as any, { _gate_id: gateId });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Gate signed off");
+    loadGateSignoffs();
+  };
   const totalPending = pendingFinance.length + pendingEvents.length + pendingDeliverables.length;
 
   const officersByCohort = useMemo(() => {
@@ -426,6 +440,19 @@ export default function AdvisorPortal() {
             internal PEC awareness and signoff. Use the "External action required" status when a follow-up needs
             to happen outside Nexus.
           </Honesty>
+
+          <SectionCard title="Gate sign-offs" icon={ShieldCheck}>
+            {gateSignoffs.length === 0 && <Empty>No gates awaiting your sign-off.</Empty>}
+            {gateSignoffs.map((g) => (
+              <div key={g.id} className="flex items-center justify-between gap-3 rounded-md border border-border/60 p-3">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium">{g.title}</div>
+                  <div className="truncate text-[11px] text-muted-foreground">{(g.projects as any)?.name || "Project"}</div>
+                </div>
+                <Button size="sm" onClick={() => signoffGate(g.id)}>Sign off</Button>
+              </div>
+            ))}
+          </SectionCard>
 
           <SectionCard title="Deliverables flagged for advisor review" icon={FileText}>
             {pendingDeliverables.length === 0 && <Empty>Nothing awaiting your review.</Empty>}

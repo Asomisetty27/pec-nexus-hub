@@ -55,6 +55,7 @@ export default function ProjectDetail() {
   const [addUserId, setAddUserId] = useState("");
   const [addRole, setAddRole] = useState("member");
   const [staffBusy, setStaffBusy] = useState(false);
+  const [gates, setGates] = useState<any[]>([]);
   const [risks, setRisks] = useState<any[]>([]);
   const [decisions, setDecisions] = useState<any[]>([]);
   const [updates, setUpdates] = useState<any[]>([]);
@@ -76,7 +77,7 @@ export default function ProjectDetail() {
   const fetchAll = async () => {
     if (!id) return;
     setLoading(true);
-    const [pRes, tRes, mRes, dRes, memRes, rRes, decRes, uRes, evRes, momRes] = await Promise.all([
+    const [pRes, tRes, mRes, dRes, memRes, rRes, decRes, uRes, evRes, momRes, gRes] = await Promise.all([
       supabase.from("projects").select("*, organizations(name)").eq("id", id).single(),
       supabase.from("tasks").select("*, profiles:assignee_id(full_name)").eq("project_id", id).order("created_at", { ascending: false }),
       supabase.from("milestones").select("*").eq("project_id", id).order("due_date"),
@@ -87,6 +88,7 @@ export default function ProjectDetail() {
       supabase.from("project_updates").select("*").eq("project_id", id).order("created_at", { ascending: false }).limit(5),
       supabase.from("deliverable_review_events").select("*").eq("project_id", id).order("created_at", { ascending: false }).limit(8),
       supabase.from("momentum_signals").select("risk_level, risk_score").eq("project_id", id).order("computed_at", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("project_gates").select("*").eq("project_id", id).order("gate_key"),
     ]);
     setProject(pRes.data);
     setTasks(tRes.data || []);
@@ -98,6 +100,7 @@ export default function ProjectDetail() {
     setUpdates(uRes.data || []);
     setReviewEvents(evRes.data || []);
     setMomentum(momRes.data ? { level: momRes.data.risk_level, score: momRes.data.risk_score } : null);
+    setGates(gRes.data || []);
     setLoading(false);
   };
 
@@ -136,6 +139,12 @@ export default function ProjectDetail() {
     const { error } = await supabase.from("project_memberships").delete().eq("id", membershipId);
     if (error) { toast.error(error.message); return; }
     toast.success("Removed from pod");
+    fetchAll();
+  };
+  const decideGate = async (gateId: string, status: string) => {
+    const { error } = await supabase.rpc("decide_project_gate", { _gate_id: gateId, _status: status });
+    if (error) { toast.error(error.message); return; }
+    toast.success(status === "passed" ? "Gate passed" : status === "failed" ? "Gate sent back" : "Gate marked ready");
     fetchAll();
   };
 
@@ -436,6 +445,7 @@ export default function ProjectDetail() {
         <TabsList>
           <TabsTrigger value="hub">Hub</TabsTrigger>
           <TabsTrigger value="deliverables">Deliverables{deliverables.length > 0 && <span className="ml-1 text-[10px] text-muted-foreground">{deliverables.length}</span>}</TabsTrigger>
+          {gates.length > 0 && <TabsTrigger value="gates">Gates<span className="ml-1 text-[10px] text-muted-foreground">{gates.filter((g) => g.status === "passed").length}/{gates.length}</span></TabsTrigger>}
           <TabsTrigger value="board">Board{tasks.length > 0 && <span className="ml-1 text-[10px] text-muted-foreground">{tasks.length}</span>}</TabsTrigger>
           <TabsTrigger value="team">Team{members.length > 0 && <span className="ml-1 text-[10px] text-muted-foreground">{members.length}</span>}</TabsTrigger>
         </TabsList>
@@ -867,6 +877,36 @@ export default function ProjectDetail() {
         </TabsContent>
 
         {/* ============ TEAM ============ */}
+        <TabsContent value="gates" className="space-y-3">
+          {gates.map((g) => {
+            const tone = g.status === "passed" ? "default" : g.status === "failed" ? "destructive" : g.status === "ready" ? "secondary" : "outline";
+            return (
+              <Card key={g.id}>
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-medium">{g.title}</div>
+                      {g.advisor_review_required && (
+                        <div className="mt-0.5 text-[11px] text-muted-foreground">
+                          Advisor sign-off {g.advisor_signed_off ? "✓ received" : "pending"}
+                        </div>
+                      )}
+                    </div>
+                    <Badge variant={tone as any} className="shrink-0 capitalize">{g.status}</Badge>
+                  </div>
+                  {isProjectLead && g.status !== "passed" && (
+                    <div className="flex flex-wrap gap-2">
+                      {g.status === "pending" && <Button size="sm" variant="outline" onClick={() => decideGate(g.id, "ready")}>Mark ready</Button>}
+                      {(g.status === "ready" || g.status === "failed") && <Button size="sm" onClick={() => decideGate(g.id, "passed")}>Pass gate</Button>}
+                      {g.status === "ready" && <Button size="sm" variant="ghost" onClick={() => decideGate(g.id, "failed")}>Send back</Button>}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </TabsContent>
+
         <TabsContent value="team">
           {(() => {
             const leads = members.filter((m) => m.role_on_project === "lead");
