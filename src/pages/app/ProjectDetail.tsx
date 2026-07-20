@@ -51,6 +51,15 @@ export default function ProjectDetail() {
   const [milestones, setMilestones] = useState<any[]>([]);
   const [deliverables, setDeliverables] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
+  const [activeProfiles, setActiveProfiles] = useState<any[]>([]);
+  const [addUserId, setAddUserId] = useState("");
+  const [addRole, setAddRole] = useState("member");
+  const [staffBusy, setStaffBusy] = useState(false);
+  const [gates, setGates] = useState<any[]>([]);
+  const [caseStudy, setCaseStudy] = useState<any>(null);
+  const [certifiedUsers, setCertifiedUsers] = useState<Set<string>>(new Set());
+  const [scopeOpen, setScopeOpen] = useState(false);
+  const [scopeDraft, setScopeDraft] = useState("");
   const [risks, setRisks] = useState<any[]>([]);
   const [decisions, setDecisions] = useState<any[]>([]);
   const [updates, setUpdates] = useState<any[]>([]);
@@ -72,7 +81,7 @@ export default function ProjectDetail() {
   const fetchAll = async () => {
     if (!id) return;
     setLoading(true);
-    const [pRes, tRes, mRes, dRes, memRes, rRes, decRes, uRes, evRes, momRes] = await Promise.all([
+    const [pRes, tRes, mRes, dRes, memRes, rRes, decRes, uRes, evRes, momRes, gRes, csRes] = await Promise.all([
       supabase.from("projects").select("*, organizations(name)").eq("id", id).single(),
       supabase.from("tasks").select("*, profiles:assignee_id(full_name)").eq("project_id", id).order("created_at", { ascending: false }),
       supabase.from("milestones").select("*").eq("project_id", id).order("due_date"),
@@ -83,6 +92,8 @@ export default function ProjectDetail() {
       supabase.from("project_updates").select("*").eq("project_id", id).order("created_at", { ascending: false }).limit(5),
       supabase.from("deliverable_review_events").select("*").eq("project_id", id).order("created_at", { ascending: false }).limit(8),
       supabase.from("momentum_signals").select("risk_level, risk_score").eq("project_id", id).order("computed_at", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("project_gates").select("*").eq("project_id", id).order("gate_key"),
+      supabase.from("case_studies").select("*").eq("project_id", id).maybeSingle(),
     ]);
     setProject(pRes.data);
     setTasks(tRes.data || []);
@@ -94,10 +105,93 @@ export default function ProjectDetail() {
     setUpdates(uRes.data || []);
     setReviewEvents(evRes.data || []);
     setMomentum(momRes.data ? { level: momRes.data.risk_level, score: momRes.data.risk_score } : null);
+    setGates(gRes.data || []);
+    setCaseStudy(csRes.data || null);
     setLoading(false);
   };
 
   useEffect(() => { fetchAll(); }, [id]);
+  useEffect(() => {
+    supabase.from("profiles").select("user_id, full_name").eq("status", "active")
+      .then(({ data }) => setActiveProfiles(data || []));
+    supabase.from("cohort_onboarding_progress" as any).select("user_id").not("certified_at", "is", null)
+      .then(({ data }) => setCertifiedUsers(new Set(((data as any[]) || []).map((r) => r.user_id))));
+  }, []);
+
+  // Pod staffing. role_on_project drives permissions: 'lead' = PM/approver
+  // (is_project_lead), 'tech_lead' = technical QA (is_project_tech_lead).
+  const POD_ROLES = [
+    { value: "lead", label: "PM / Lead" },
+    { value: "tech_lead", label: "Tech Lead" },
+    { value: "consultant", label: "Consultant" },
+    { value: "member", label: "Member" },
+  ];
+  const addToPod = async () => {
+    if (!addUserId) return;
+    setStaffBusy(true);
+    const { error } = await supabase.from("project_memberships")
+      .insert({ project_id: id!, user_id: addUserId, role_on_project: addRole });
+    setStaffBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Added to pod");
+    setAddUserId(""); setAddRole("member");
+    fetchAll();
+  };
+  const changePodRole = async (membershipId: string, role: string) => {
+    const { error } = await supabase.from("project_memberships").update({ role_on_project: role }).eq("id", membershipId);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Role updated");
+    fetchAll();
+  };
+  const removeFromPod = async (membershipId: string) => {
+    const { error } = await supabase.from("project_memberships").delete().eq("id", membershipId);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Removed from pod");
+    fetchAll();
+  };
+  const decideGate = async (gateId: string, status: string) => {
+    const { error } = await supabase.rpc("decide_project_gate", { _gate_id: gateId, _status: status });
+    if (error) { toast.error(error.message); return; }
+    toast.success(status === "passed" ? "Gate passed" : status === "failed" ? "Gate sent back" : "Gate marked ready");
+    fetchAll();
+  };
+  const closeProject = async (status: string) => {
+    const { error } = await supabase.rpc("close_project", { _project_id: id!, _status: status });
+    if (error) { toast.error(error.message); return; }
+    toast.success(status === "archived" ? "Project archived" : status === "completed" ? "Marked delivered" : "Project reopened");
+    fetchAll();
+  };
+  const toggleClientVisible = async (delivId: string, visible: boolean) => {
+    const { error } = await supabase.from("deliverables").update({ client_visible: visible }).eq("id", delivId);
+    if (error) { toast.error(error.message); return; }
+    fetchAll();
+  };
+  const saveCaseStudy = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    const { error } = await supabase.from("case_studies").upsert({
+      project_id: id!,
+      title: (f.get("title") as string) || project?.name || "Case study",
+      summary: f.get("summary") as string,
+      problem: f.get("problem") as string,
+      approach: f.get("approach") as string,
+      outcome: f.get("outcome") as string,
+      client_quote: (f.get("client_quote") as string) || null,
+      is_public: f.get("is_public") === "on",
+      created_by: user!.id,
+    } as any, { onConflict: "project_id" });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Case study saved");
+    fetchAll();
+  };
+  const openScope = () => { setScopeDraft(project?.scope || ""); setScopeOpen(true); };
+  const saveScope = async () => {
+    const { error } = await supabase.rpc("set_project_scope", { _project_id: id!, _scope: scopeDraft });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Scope updated");
+    setScopeOpen(false);
+    fetchAll();
+  };
 
   // Resolve project groups + my membership in them (for group-owned deliverable visibility).
   useEffect(() => {
@@ -396,8 +490,10 @@ export default function ProjectDetail() {
         <TabsList>
           <TabsTrigger value="hub">Hub</TabsTrigger>
           <TabsTrigger value="deliverables">Deliverables{deliverables.length > 0 && <span className="ml-1 text-[10px] text-muted-foreground">{deliverables.length}</span>}</TabsTrigger>
+          {gates.length > 0 && <TabsTrigger value="gates">Gates<span className="ml-1 text-[10px] text-muted-foreground">{gates.filter((g) => g.status === "passed").length}/{gates.length}</span></TabsTrigger>}
           <TabsTrigger value="board">Board{tasks.length > 0 && <span className="ml-1 text-[10px] text-muted-foreground">{tasks.length}</span>}</TabsTrigger>
           <TabsTrigger value="team">Team{members.length > 0 && <span className="ml-1 text-[10px] text-muted-foreground">{members.length}</span>}</TabsTrigger>
+          <TabsTrigger value="closeout">Close-out</TabsTrigger>
         </TabsList>
 
         {/* ============ HUB ============ */}
@@ -579,14 +675,17 @@ export default function ProjectDetail() {
           <DecisionMemoryWidget projectId={id!} onSaved={fetchAll} />
 
           {/* Project meta — collapsed at the bottom */}
-          {(project.description || project.scope) && (
+          {(project.description || project.scope || isProjectLead) && (
             <Card>
-              <CardHeader className="pb-2">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Context</CardTitle>
+                {isProjectLead && <Button size="sm" variant="ghost" className="h-6 text-[10px]" onClick={openScope}>Edit scope</Button>}
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
                 {project.description && <p>{project.description}</p>}
-                {project.scope && <p className="text-muted-foreground"><span className="font-medium text-foreground">Scope:</span> {project.scope}</p>}
+                {project.scope
+                  ? <p className="text-muted-foreground"><span className="font-medium text-foreground">Scope:</span> {project.scope}</p>
+                  : isProjectLead && <p className="italic text-muted-foreground">No scope set yet. Add the agreed scope of work.</p>}
                 <div className="flex gap-4 text-xs text-muted-foreground">
                   {project.start_date && <span>Start {project.start_date}</span>}
                   {project.end_date && <span>End {project.end_date}</span>}
@@ -594,6 +693,13 @@ export default function ProjectDetail() {
               </CardContent>
             </Card>
           )}
+          <Dialog open={scopeOpen} onOpenChange={setScopeOpen}>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Scope of work</DialogTitle></DialogHeader>
+              <Textarea value={scopeDraft} onChange={(e) => setScopeDraft(e.target.value)} rows={6} placeholder="The agreed scope: what this engagement will and will not deliver." />
+              <div className="flex justify-end"><Button size="sm" onClick={saveScope}>Save scope</Button></div>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         {/* ============ DELIVERABLES ============ */}
@@ -827,6 +933,36 @@ export default function ProjectDetail() {
         </TabsContent>
 
         {/* ============ TEAM ============ */}
+        <TabsContent value="gates" className="space-y-3">
+          {gates.map((g) => {
+            const tone = g.status === "passed" ? "default" : g.status === "failed" ? "destructive" : g.status === "ready" ? "secondary" : "outline";
+            return (
+              <Card key={g.id}>
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-medium">{g.title}</div>
+                      {g.advisor_review_required && (
+                        <div className="mt-0.5 text-[11px] text-muted-foreground">
+                          Advisor sign-off {g.advisor_signed_off ? "✓ received" : "pending"}
+                        </div>
+                      )}
+                    </div>
+                    <Badge variant={tone as any} className="shrink-0 capitalize">{g.status}</Badge>
+                  </div>
+                  {isProjectLead && g.status !== "passed" && (
+                    <div className="flex flex-wrap gap-2">
+                      {g.status === "pending" && <Button size="sm" variant="outline" onClick={() => decideGate(g.id, "ready")}>Mark ready</Button>}
+                      {(g.status === "ready" || g.status === "failed") && <Button size="sm" onClick={() => decideGate(g.id, "passed")}>Pass gate</Button>}
+                      {g.status === "ready" && <Button size="sm" variant="ghost" onClick={() => decideGate(g.id, "failed")}>Send back</Button>}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </TabsContent>
+
         <TabsContent value="team">
           {(() => {
             const leads = members.filter((m) => m.role_on_project === "lead");
@@ -835,23 +971,58 @@ export default function ProjectDetail() {
             const renderCard = (m: any) => (
               <Card key={m.id}>
                 <CardContent className="flex items-center gap-3 p-4">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium shrink-0">
                     {(m.profiles as any)?.full_name?.charAt(0) || "?"}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">
                       {(m.profiles as any)?.full_name || "Former member"}
                     </p>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <Badge variant={m.role_on_project === "lead" ? "default" : "outline"} className="text-[10px] capitalize">{m.role_on_project}</Badge>
-                      <span className="text-[10px] text-muted-foreground">· owns {ownedCount(m.user_id)}</span>
-                    </div>
+                    <span className="text-[10px] text-muted-foreground">owns {ownedCount(m.user_id)}</span>
                   </div>
+                  {isProjectLead ? (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Select value={m.role_on_project} onValueChange={(v) => changePodRole(m.id, v)}>
+                        <SelectTrigger className="h-7 w-[116px] text-[11px]"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {POD_ROLES.map((r) => <SelectItem key={r.value} value={r.value} className="text-xs">{r.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" onClick={() => removeFromPod(m.id)} title="Remove from pod">×</Button>
+                    </div>
+                  ) : (
+                    <Badge variant={m.role_on_project === "lead" ? "default" : "outline"} className="text-[10px] capitalize shrink-0">{m.role_on_project}</Badge>
+                  )}
                 </CardContent>
               </Card>
             );
+            const onPod = new Set(members.map((m) => m.user_id));
+            const candidates = activeProfiles.filter((p) => !onPod.has(p.user_id));
             return (
               <div className="space-y-5">
+                {isProjectLead && (
+                  <Card>
+                    <CardContent className="p-4 space-y-2">
+                      <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Staff the pod</div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Select value={addUserId} onValueChange={setAddUserId}>
+                          <SelectTrigger className="h-8 w-[200px] text-xs"><SelectValue placeholder="Add a member…" /></SelectTrigger>
+                          <SelectContent>
+                            {candidates.length === 0 && <div className="px-2 py-1.5 text-xs text-muted-foreground">Everyone active is on the pod</div>}
+                            {candidates.map((p) => <SelectItem key={p.user_id} value={p.user_id} className="text-xs">{p.full_name}{certifiedUsers.has(p.user_id) ? " · certified" : ""}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <Select value={addRole} onValueChange={setAddRole}>
+                          <SelectTrigger className="h-8 w-[130px] text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {POD_ROLES.map((r) => <SelectItem key={r.value} value={r.value} className="text-xs">{r.label}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <Button size="sm" disabled={!addUserId || staffBusy} onClick={addToPod}>Add</Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
                 {leads.length > 0 && (
                   <div>
                     <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-2">Leads</h3>
@@ -877,6 +1048,65 @@ export default function ProjectDetail() {
               </div>
             );
           })()}
+        </TabsContent>
+
+        {/* ============ CLOSE-OUT ============ */}
+        <TabsContent value="closeout" className="space-y-4">
+          <Card>
+            <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+              <div>
+                <div className="text-sm font-medium">Project status: <span className="capitalize">{project?.status}</span></div>
+                <div className="text-[11px] text-muted-foreground">Mark delivered when the client has the final package; archive when fully closed.</div>
+              </div>
+              {isProjectLead && (
+                <div className="flex gap-2">
+                  {project?.status !== "completed" && <Button size="sm" onClick={() => closeProject("completed")}>Mark delivered</Button>}
+                  {project?.status !== "archived" && <Button size="sm" variant="outline" onClick={() => closeProject("archived")}>Archive</Button>}
+                  {["completed", "archived"].includes(project?.status) && <Button size="sm" variant="ghost" onClick={() => closeProject("active")}>Reopen</Button>}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="space-y-2 p-4">
+              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Client delivery package</div>
+              <p className="text-[11px] text-muted-foreground">Mark the deliverables that go to the client, then share them as the final package.</p>
+              {deliverables.length === 0 && <p className="text-sm text-muted-foreground">No deliverables yet.</p>}
+              {deliverables.map((d) => (
+                <div key={d.id} className="flex items-center justify-between gap-3 py-1">
+                  <span className="truncate text-sm">{d.title}</span>
+                  {isProjectLead ? (
+                    <Button size="sm" variant={d.client_visible ? "default" : "outline"} className="h-7 shrink-0 text-[11px]" onClick={() => toggleClientVisible(d.id, !d.client_visible)}>
+                      {d.client_visible ? "In package ✓" : "Add to package"}
+                    </Button>
+                  ) : (
+                    d.client_visible && <Badge className="shrink-0 text-[10px]">In package</Badge>
+                  )}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {isProjectLead && (
+            <Card>
+              <CardContent className="p-4">
+                <div className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">Case study (portfolio)</div>
+                <form onSubmit={saveCaseStudy} className="space-y-2">
+                  <Input name="title" defaultValue={caseStudy?.title || project?.name || ""} placeholder="Title" />
+                  <Textarea name="summary" defaultValue={caseStudy?.summary || ""} placeholder="One-line summary" rows={2} />
+                  <Textarea name="problem" defaultValue={caseStudy?.problem || ""} placeholder="The problem" rows={2} />
+                  <Textarea name="approach" defaultValue={caseStudy?.approach || ""} placeholder="Our approach" rows={2} />
+                  <Textarea name="outcome" defaultValue={caseStudy?.outcome || ""} placeholder="The outcome" rows={2} />
+                  <Input name="client_quote" defaultValue={caseStudy?.client_quote || ""} placeholder="Client quote (optional)" />
+                  <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <input type="checkbox" name="is_public" defaultChecked={caseStudy?.is_public} /> Publish to the public portfolio
+                  </label>
+                  <Button type="submit" size="sm">Save case study</Button>
+                </form>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
 

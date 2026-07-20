@@ -62,6 +62,7 @@ export default function AdvisorPortal() {
   const [financeReqs, setFinanceReqs] = useState<any[]>([]);
   const [eventReqs, setEventReqs] = useState<any[]>([]);
   const [advisorDeliverables, setAdvisorDeliverables] = useState<any[]>([]);
+  const [gateSignoffs, setGateSignoffs] = useState<any[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
   const [officers, setOfficers] = useState<any[]>([]);
   const [cohorts, setCohorts] = useState<any[]>([]);
@@ -132,6 +133,19 @@ export default function AdvisorPortal() {
     () => advisorDeliverables.filter(d => d.approval_status !== "approved"),
     [advisorDeliverables]
   );
+
+  const loadGateSignoffs = async () => {
+    const { data } = await supabase.from("project_gates" as any)
+      .select("*, projects(name)").eq("advisor_review_required", true).eq("advisor_signed_off", false);
+    setGateSignoffs((data as any[]) || []);
+  };
+  useEffect(() => { loadGateSignoffs(); }, []);
+  const signoffGate = async (gateId: string) => {
+    const { error } = await supabase.rpc("advisor_signoff_gate" as any, { _gate_id: gateId });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Gate signed off");
+    loadGateSignoffs();
+  };
   const totalPending = pendingFinance.length + pendingEvents.length + pendingDeliverables.length;
 
   const officersByCohort = useMemo(() => {
@@ -251,8 +265,9 @@ export default function AdvisorPortal() {
         <StatusCard icon={Users} label="Officers on roster" value={officers.length} tone="neutral" />
       </motion.div>
 
-      <Tabs defaultValue="overview" className="space-y-4">
+      <Tabs defaultValue="start" className="space-y-4">
         <TabsList className="flex w-full flex-wrap gap-1">
+          <TabsTrigger value="start">Start Here</TabsTrigger>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="approvals">
             Approvals {totalPending > 0 && <span className="ml-1.5 rounded bg-warning/20 px-1.5 text-[10px] text-warning-foreground">{totalPending}</span>}
@@ -264,6 +279,80 @@ export default function AdvisorPortal() {
           <TabsTrigger value="reporting">Reporting</TabsTrigger>
           <TabsTrigger value="resources">Resources</TabsTrigger>
         </TabsList>
+
+        {/* START HERE — advisor onboarding suite */}
+        <TabsContent value="start" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> Welcome, and thank you</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground">
+              <p>This is your home base as PEC's faculty advisor. Everything you need lives in this portal, and you can run your whole advisor role from here. Five minutes now and you will know exactly how it works and what we will ask of you.</p>
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader><CardTitle className="flex items-center gap-2"><BookOpen className="h-4 w-4" /> What PEC is</CardTitle></CardHeader>
+              <CardContent className="space-y-2 text-sm text-muted-foreground">
+                <p>A Cal Poly student engineering consultancy. Four discipline cohorts (software, hardware, mechanical, business) train undergraduate engineers, who take on real scoped projects for local organizations and run a campus innovation showcase, PolyInnovate.</p>
+                <p>Students run the club day to day. You provide outside eyes, guidance, and final review where it matters.</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle className="flex items-center gap-2"><ClipboardList className="h-4 w-4" /> Your role</CardTitle></CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                <ul className="list-disc space-y-1.5 pl-4">
+                  <li>Review project gate materials when they are flagged for you (Week 3 design, Week 6 midpoint, Week 11 final).</li>
+                  <li>Flag technical, professional, or safety risks the team is too close to see.</li>
+                  <li>Be available for occasional guidance and office hours.</li>
+                  <li>Lend your name for the RSO registration and sign paperwork that needs a faculty advisor.</li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4" /> What we will ask of you</CardTitle></CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                <p className="mb-2">Light, and on your schedule:</p>
+                <ul className="list-disc space-y-1.5 pl-4">
+                  <li>A few deliverable reviews per term, only when flagged. They appear under <span className="text-foreground">Approvals</span>.</li>
+                  <li>A quick weigh-in when something touches safety, liability, or IP.</li>
+                  <li>Occasional office hours or a scheduled question.</li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle className="flex items-center gap-2"><AlertTriangle className="h-4 w-4" /> Your call vs. escalate</CardTitle></CardHeader>
+              <CardContent className="space-y-2 text-sm text-muted-foreground">
+                <p><span className="font-medium text-foreground">You advise;</span> the students decide whether to adopt a recommendation. That is by design.</p>
+                <p><span className="font-medium text-foreground">Escalate straight to the President (Amogh)</span> anything involving safety, liability, or academic integrity.</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader><CardTitle className="flex items-center gap-2"><FileText className="h-4 w-4" /> How this portal works</CardTitle></CardHeader>
+            <CardContent className="text-sm text-muted-foreground">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <p><span className="text-foreground">Overview</span> — the club's state at a glance.</p>
+                <p><span className="text-foreground">Approvals</span> — your review queue; deliverables flagged for you.</p>
+                <p><span className="text-foreground">Events &amp; Risk</span> — upcoming events and anything risk-relevant.</p>
+                <p><span className="text-foreground">Finance</span> — budget and spending requests.</p>
+                <p><span className="text-foreground">Leadership</span> — who runs what (officers and cohort leads).</p>
+                <p><span className="text-foreground">Compliance</span> — Cal Poly / ASI obligations and reporting.</p>
+                <p><span className="text-foreground">Reporting</span> — metrics and decisions of record.</p>
+                <p><span className="text-foreground">Resources</span> — your reference library and official links.</p>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" onClick={() => navigate("/app/projects")}>See the projects</Button>
+                <Button size="sm" variant="outline" onClick={() => navigate("/app/docs")}>Open the docs</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* OVERVIEW */}
         <TabsContent value="overview" className="space-y-4">
@@ -351,6 +440,19 @@ export default function AdvisorPortal() {
             internal PEC awareness and signoff. Use the "External action required" status when a follow-up needs
             to happen outside Nexus.
           </Honesty>
+
+          <SectionCard title="Gate sign-offs" icon={ShieldCheck}>
+            {gateSignoffs.length === 0 && <Empty>No gates awaiting your sign-off.</Empty>}
+            {gateSignoffs.map((g) => (
+              <div key={g.id} className="flex items-center justify-between gap-3 rounded-md border border-border/60 p-3">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium">{g.title}</div>
+                  <div className="truncate text-[11px] text-muted-foreground">{(g.projects as any)?.name || "Project"}</div>
+                </div>
+                <Button size="sm" onClick={() => signoffGate(g.id)}>Sign off</Button>
+              </div>
+            ))}
+          </SectionCard>
 
           <SectionCard title="Deliverables flagged for advisor review" icon={FileText}>
             {pendingDeliverables.length === 0 && <Empty>Nothing awaiting your review.</Empty>}

@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Building2, Mail, Inbox } from "lucide-react";
+import { toast } from "sonner";
+import { useCrmAccess } from "@/hooks/useCrmAccess";
 
 const stageLabels: Record<string, string> = {
   new: "New",
@@ -22,6 +26,16 @@ const stageLabels: Record<string, string> = {
 export default function CrmLegacy() {
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const { canAccess } = useCrmAccess();
+
+  const promote = async (orgId: string, leadId: string) => {
+    const { error } = await supabase.rpc("promote_org_to_crm", { _org_id: orgId });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Promoted to Company Relations");
+    setLeads((prev) => prev.filter((l) => l.id !== leadId));
+    navigate("/app/crm/queues");
+  };
 
   useEffect(() => {
     supabase
@@ -94,9 +108,14 @@ export default function CrmLegacy() {
                     </p>
                   )}
                 </div>
-                <Badge variant="outline" className="text-[9px] font-mono shrink-0">
-                  {stageLabels[l.stage] || l.stage}
-                </Badge>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Badge variant="outline" className="text-[9px] font-mono">
+                    {stageLabels[l.stage] || l.stage}
+                  </Badge>
+                  {canAccess && l.org_id && (
+                    <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => promote(l.org_id, l.id)}>Promote to CRM</Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           ))}

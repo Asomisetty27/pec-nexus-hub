@@ -7,12 +7,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import {
   getActiveCycle, getPositions, getMyApplications, getAllApplications,
-  submitApplication, withdrawApplication, decideApplication,
+  submitApplication, withdrawApplication, decideApplication, openCycle, closeCycle,
   type BoardPosition, type BoardApplication,
 } from "@/lib/boardApplications";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -29,7 +30,10 @@ const STATUS_META: Record<string, { label: string; variant: "default" | "seconda
 };
 
 export default function Board() {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, profile } = useAuth();
+  // Board re-application is open only to returning members (last year's roster).
+  // Admins (the guaranteed board) always have access to manage.
+  const boardEligible = isAdmin || !!profile?.board_eligible;
   const [positions, setPositions] = useState<BoardPosition[]>([]);
   const [cycle, setCycle] = useState<{ id: string; name: string; closes_at: string | null } | null>(null);
   const [myApps, setMyApps] = useState<BoardApplication[]>([]);
@@ -69,17 +73,26 @@ export default function Board() {
 
       <SectionExplainer text="President (Amogh) and VP Delivery (Sam) are the two guaranteed seats. Every other seat, the two open VP roles and the four Cohort Leads, is applied for by current members and last year's board. Amogh and Sam review each application; when they accept one, the role is granted automatically." />
 
-      {!cycle && (
+      {!cycle && !isAdmin && (
         <Card><CardContent className="py-5 text-sm text-muted-foreground">
           No board application cycle is open right now. When one opens, the positions below become applyable.
         </CardContent></Card>
       )}
       {cycle && (
-        <p className="text-sm text-muted-foreground">
-          Cycle: <span className="font-medium text-foreground">{cycle.name}</span>
-          {cycle.closes_at && <> · closes {new Date(cycle.closes_at).toLocaleDateString()}</>}
-        </p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            Cycle: <span className="font-medium text-foreground">{cycle.name}</span>
+            {cycle.closes_at && <> · closes {new Date(cycle.closes_at).toLocaleDateString()}</>}
+          </p>
+          {isAdmin && (
+            <Button size="sm" variant="outline" onClick={async () => {
+              const { error } = await closeCycle(cycle.id);
+              if (error) toast.error(error); else { toast.success("Cycle closed"); load(); }
+            }}>Close cycle</Button>
+          )}
+        </div>
       )}
+      {!cycle && isAdmin && <AdminOpenCycle onOpened={load} />}
 
       {/* Guaranteed seats */}
       <section className="space-y-2">
@@ -100,6 +113,11 @@ export default function Board() {
       {/* Open positions */}
       <section className="space-y-2">
         <h2 className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Open seats</h2>
+        {!boardEligible && (
+          <p className="text-sm text-muted-foreground">
+            Board applications are open to returning members only. New members: focus on onboarding and earning your seat; leadership opens up next cycle.
+          </p>
+        )}
         <div className="grid gap-3 sm:grid-cols-2">
           {openPositions.map((p) => {
             const applied = appliedKeys.has(p.key);
@@ -112,10 +130,10 @@ export default function Board() {
                 <Button
                   size="sm"
                   variant={applied ? "outline" : "default"}
-                  disabled={!cycle || applied}
+                  disabled={!cycle || applied || !boardEligible}
                   onClick={() => setApplyFor(p)}
                 >
-                  {applied ? "Applied" : cycle ? "Apply" : "Cycle closed"}
+                  {applied ? "Applied" : !boardEligible ? "Returning members only" : cycle ? "Apply" : "Cycle closed"}
                 </Button>
               </CardContent></Card>
             );
@@ -172,6 +190,33 @@ export default function Board() {
         />
       )}
     </div>
+  );
+}
+
+function AdminOpenCycle({ onOpened }: { onOpened: () => void }) {
+  const [name, setName] = useState("Fall 2026 Board");
+  const [closesAt, setClosesAt] = useState("");
+  const [busy, setBusy] = useState(false);
+  return (
+    <Card><CardContent className="py-4 space-y-3">
+      <div className="text-sm font-medium">No cycle open. Start one to accept board applications.</div>
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="space-y-1.5">
+          <Label htmlFor="cycle_name">Cycle name</Label>
+          <Input id="cycle_name" value={name} onChange={(e) => setName(e.target.value)} className="w-56" />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="cycle_close">Closes (optional)</Label>
+          <Input id="cycle_close" type="date" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} />
+        </div>
+        <Button disabled={busy || !name.trim()} onClick={async () => {
+          setBusy(true);
+          const { error } = await openCycle(name.trim(), closesAt ? new Date(closesAt).toISOString() : null);
+          setBusy(false);
+          if (error) toast.error(error); else { toast.success("Board cycle opened"); onOpened(); }
+        }}>Open cycle</Button>
+      </div>
+    </CardContent></Card>
   );
 }
 

@@ -11,6 +11,7 @@ const PERSPECTIVES = [
   { name: "cohort lead", opts: { highestRole: "member", isAdmin: false, isCohortLead: true }, expected: "cohort_lead" },
   { name: "board outranks cohort-lead hat", opts: { highestRole: "board_member", isAdmin: false, isCohortLead: true }, expected: "board_member" },
   { name: "VP / board", opts: { highestRole: "board_member", isAdmin: false }, expected: "board_member" },
+  { name: "treasurer", opts: { highestRole: "treasurer", isAdmin: false }, expected: "treasurer" },
   { name: "president / admin", opts: { highestRole: "admin", isAdmin: true }, expected: "admin" },
   { name: "superadmin", opts: { highestRole: "superadmin", isAdmin: true }, expected: "admin" },
   { name: "advisor", opts: { highestRole: "advisor", isAdmin: false }, expected: "advisor" },

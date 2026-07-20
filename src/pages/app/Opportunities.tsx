@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,6 +34,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function Opportunities() {
   const { user, isAdmin } = useAuth();
+  const navigate = useNavigate();
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const [cohorts, setCohorts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,6 +85,24 @@ export default function Opportunities() {
     if (error) { toast.error(`Update failed: ${error.message}`); return; }
     setOpportunities(prev => prev.map(o => o.id === id ? { ...o, status } : o));
     toast.success(`Status updated to ${status}`);
+  };
+
+  // Accept -> pod wire: turn an accepted opportunity into a real project (pod),
+  // link it, and make the creator the lead so they staff it from the Team tab.
+  // Admin-only because projects insert is admin-gated (proj_manage_admin).
+  const startEngagement = async (opp: any) => {
+    const { data: proj, error } = await supabase.from("projects").insert({
+      name: opp.title,
+      description: opp.description || "",
+      status: "active",
+      project_mode: "client_engagement",
+      created_by: user!.id,
+    } as any).select("id").single();
+    if (error) { toast.error(`Could not start engagement: ${error.message}`); return; }
+    await supabase.from("project_memberships").insert({ project_id: proj.id, user_id: user!.id, role_on_project: "lead" } as any);
+    await supabase.from("opportunities").update({ engagement_project_id: proj.id, status: "active" } as any).eq("id", opp.id);
+    toast.success("Engagement started — pod created");
+    navigate(`/app/projects/${proj.id}`);
   };
 
   const pipeline = opportunities.filter(o => ["intake", "evaluating"].includes(o.status));
@@ -203,7 +223,13 @@ export default function Opportunities() {
                         </div>
                       )}
                       {isLeader && opp.status === "approved" && (
-                        <Button size="sm" className="h-7 text-[10px] shrink-0" onClick={() => updateStatus(opp.id, "active")}>Activate</Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-[10px] shrink-0" onClick={() => updateStatus(opp.id, "active")}>Activate</Button>
+                      )}
+                      {isAdmin && ["approved", "active"].includes(opp.status) && !opp.engagement_project_id && (
+                        <Button size="sm" className="h-7 text-[10px] shrink-0" onClick={() => startEngagement(opp)}>Start engagement</Button>
+                      )}
+                      {opp.engagement_project_id && (
+                        <Button size="sm" variant="outline" className="h-7 text-[10px] shrink-0" onClick={() => navigate(`/app/projects/${opp.engagement_project_id}`)}>Open pod</Button>
                       )}
                     </div>
                   </CardContent>

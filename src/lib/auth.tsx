@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
-type AppRole = "applicant" | "member" | "project_consultant" | "project_lead" | "board_member" | "advisor" | "admin" | "superadmin";
+type AppRole = "applicant" | "member" | "project_consultant" | "project_lead" | "board_member" | "treasurer" | "advisor" | "admin" | "superadmin";
 
 interface Profile {
   id: string;
@@ -20,6 +20,7 @@ interface Profile {
   member_status?: string | null;
   onboarding_completed: boolean;
   invite_state: string;
+  board_eligible?: boolean;
 }
 
 // A member's craft home in the matrix org: which cohort they belong to and
@@ -151,7 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAdvisor = roles.includes("advisor");
   const isCohortLead = !!cohortMembership && COHORT_LEAD_ROLES.includes(cohortMembership.role);
 
-  const roleHierarchy: AppRole[] = ["applicant", "member", "project_consultant", "project_lead", "board_member", "advisor", "admin", "superadmin"];
+  const roleHierarchy: AppRole[] = ["applicant", "member", "project_consultant", "project_lead", "board_member", "treasurer", "advisor", "admin", "superadmin"];
   const highestRole = roles.reduce((highest, role) => {
     const idx = roleHierarchy.indexOf(role);
     const highIdx = roleHierarchy.indexOf(highest);
