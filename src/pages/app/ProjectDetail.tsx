@@ -58,6 +58,8 @@ export default function ProjectDetail() {
   const [gates, setGates] = useState<any[]>([]);
   const [caseStudy, setCaseStudy] = useState<any>(null);
   const [certifiedUsers, setCertifiedUsers] = useState<Set<string>>(new Set());
+  const [scopeOpen, setScopeOpen] = useState(false);
+  const [scopeDraft, setScopeDraft] = useState("");
   const [risks, setRisks] = useState<any[]>([]);
   const [decisions, setDecisions] = useState<any[]>([]);
   const [updates, setUpdates] = useState<any[]>([]);
@@ -180,6 +182,14 @@ export default function ProjectDetail() {
     } as any, { onConflict: "project_id" });
     if (error) { toast.error(error.message); return; }
     toast.success("Case study saved");
+    fetchAll();
+  };
+  const openScope = () => { setScopeDraft(project?.scope || ""); setScopeOpen(true); };
+  const saveScope = async () => {
+    const { error } = await supabase.rpc("set_project_scope", { _project_id: id!, _scope: scopeDraft });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Scope updated");
+    setScopeOpen(false);
     fetchAll();
   };
 
@@ -665,14 +675,17 @@ export default function ProjectDetail() {
           <DecisionMemoryWidget projectId={id!} onSaved={fetchAll} />
 
           {/* Project meta — collapsed at the bottom */}
-          {(project.description || project.scope) && (
+          {(project.description || project.scope || isProjectLead) && (
             <Card>
-              <CardHeader className="pb-2">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Context</CardTitle>
+                {isProjectLead && <Button size="sm" variant="ghost" className="h-6 text-[10px]" onClick={openScope}>Edit scope</Button>}
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
                 {project.description && <p>{project.description}</p>}
-                {project.scope && <p className="text-muted-foreground"><span className="font-medium text-foreground">Scope:</span> {project.scope}</p>}
+                {project.scope
+                  ? <p className="text-muted-foreground"><span className="font-medium text-foreground">Scope:</span> {project.scope}</p>
+                  : isProjectLead && <p className="italic text-muted-foreground">No scope set yet. Add the agreed scope of work.</p>}
                 <div className="flex gap-4 text-xs text-muted-foreground">
                   {project.start_date && <span>Start {project.start_date}</span>}
                   {project.end_date && <span>End {project.end_date}</span>}
@@ -680,6 +693,13 @@ export default function ProjectDetail() {
               </CardContent>
             </Card>
           )}
+          <Dialog open={scopeOpen} onOpenChange={setScopeOpen}>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Scope of work</DialogTitle></DialogHeader>
+              <Textarea value={scopeDraft} onChange={(e) => setScopeDraft(e.target.value)} rows={6} placeholder="The agreed scope: what this engagement will and will not deliver." />
+              <div className="flex justify-end"><Button size="sm" onClick={saveScope}>Save scope</Button></div>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         {/* ============ DELIVERABLES ============ */}
