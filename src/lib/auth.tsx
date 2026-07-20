@@ -61,6 +61,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [cohortMembership, setCohortMembership] = useState<CohortMembership | null>(null);
   const [loading, setLoading] = useState(true);
+  // Roles load asynchronously after the session restores. Until they do, we must
+  // NOT let route guards run: highestRole would default to "applicant" and bounce
+  // a real member off any member-only route on a hard load / emailed deep link.
+  const [rolesLoaded, setRolesLoaded] = useState(false);
 
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase.from("profiles").select("*").eq("user_id", userId).single();
@@ -69,7 +73,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchRoles = async (userId: string) => {
     const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
-    if (data) setRoles(data.map((r: any) => r.role as AppRole));
+    setRoles(data ? data.map((r: any) => r.role as AppRole) : []);
+    setRolesLoaded(true);
   };
 
   const fetchCohortMembership = async (userId: string) => {
@@ -143,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     setProfile(null);
     setRoles([]);
+    setRolesLoaded(false);
     setCohortMembership(null);
   };
 
@@ -161,7 +167,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      user, session, profile, roles, cohortMembership, loading,
+      // Stay "loading" until a signed-in user's roles have actually arrived, so no
+      // route guard sees the transient default "applicant" and misroutes a member.
+      user, session, profile, roles, cohortMembership,
+      loading: loading || (!!user && !rolesLoaded),
       signUp, signIn, signOut, hasRole, isAdmin, isBoardOrAdmin, isAdvisor, isCohortLead, highestRole, refreshProfile,
     }}>
       {children}
