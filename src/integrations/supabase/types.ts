@@ -572,6 +572,138 @@ export type Database = {
         }
         Relationships: []
       }
+      board_application_cycles: {
+        Row: {
+          closes_at: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          opens_at: string | null
+        }
+        Insert: {
+          closes_at?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          opens_at?: string | null
+        }
+        Update: {
+          closes_at?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          opens_at?: string | null
+        }
+        Relationships: []
+      }
+      board_applications: {
+        Row: {
+          applicant_user_id: string
+          created_at: string
+          cycle_id: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          id: string
+          position_key: string
+          preference_rank: number
+          relevant_experience: string
+          status: Database["public"]["Enums"]["board_application_status"]
+          updated_at: string
+          vision: string
+          why_you: string
+        }
+        Insert: {
+          applicant_user_id: string
+          created_at?: string
+          cycle_id: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          id?: string
+          position_key: string
+          preference_rank?: number
+          relevant_experience?: string
+          status?: Database["public"]["Enums"]["board_application_status"]
+          updated_at?: string
+          vision?: string
+          why_you?: string
+        }
+        Update: {
+          applicant_user_id?: string
+          created_at?: string
+          cycle_id?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          id?: string
+          position_key?: string
+          preference_rank?: number
+          relevant_experience?: string
+          status?: Database["public"]["Enums"]["board_application_status"]
+          updated_at?: string
+          vision?: string
+          why_you?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "board_applications_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "board_application_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "board_applications_position_key_fkey"
+            columns: ["position_key"]
+            isOneToOne: false
+            referencedRelation: "board_positions"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      board_positions: {
+        Row: {
+          cohort_function_key: string | null
+          description: string
+          filled_note: string | null
+          is_open: boolean
+          key: string
+          kind: string
+          seats: number
+          sort_order: number
+          title: string
+        }
+        Insert: {
+          cohort_function_key?: string | null
+          description?: string
+          filled_note?: string | null
+          is_open?: boolean
+          key: string
+          kind: string
+          seats?: number
+          sort_order?: number
+          title: string
+        }
+        Update: {
+          cohort_function_key?: string | null
+          description?: string
+          filled_note?: string | null
+          is_open?: boolean
+          key?: string
+          kind?: string
+          seats?: number
+          sort_order?: number
+          title?: string
+        }
+        Relationships: []
+      }
       brand_items: {
         Row: {
           created_at: string
@@ -654,6 +786,59 @@ export type Database = {
             columns: ["cohort_id"]
             isOneToOne: false
             referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      case_studies: {
+        Row: {
+          approach: string
+          client_quote: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_public: boolean
+          outcome: string
+          problem: string
+          project_id: string
+          summary: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          approach?: string
+          client_quote?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_public?: boolean
+          outcome?: string
+          problem?: string
+          project_id: string
+          summary?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          approach?: string
+          client_quote?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_public?: boolean
+          outcome?: string
+          problem?: string
+          project_id?: string
+          summary?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_studies_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -4348,6 +4533,7 @@ export type Database = {
           availability_set_at: string | null
           avatar_url: string | null
           bio: string | null
+          board_eligible: boolean
           cal_poly_email: string | null
           chapter_id: string | null
           created_at: string
@@ -4370,6 +4556,7 @@ export type Database = {
           availability_set_at?: string | null
           avatar_url?: string | null
           bio?: string | null
+          board_eligible?: boolean
           cal_poly_email?: string | null
           chapter_id?: string | null
           created_at?: string
@@ -4392,6 +4579,7 @@ export type Database = {
           availability_set_at?: string | null
           avatar_url?: string | null
           bio?: string | null
+          board_eligible?: boolean
           cal_poly_email?: string | null
           chapter_id?: string | null
           created_at?: string
@@ -4416,6 +4604,62 @@ export type Database = {
             columns: ["chapter_id"]
             isOneToOne: false
             referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_gates: {
+        Row: {
+          advisor_review_required: boolean
+          advisor_signed_by: string | null
+          advisor_signed_off: boolean
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          gate_key: string
+          id: string
+          notes: string | null
+          project_id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          advisor_review_required?: boolean
+          advisor_signed_by?: string | null
+          advisor_signed_off?: boolean
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          gate_key: string
+          id?: string
+          notes?: string | null
+          project_id: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          advisor_review_required?: boolean
+          advisor_signed_by?: string | null
+          advisor_signed_off?: boolean
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          gate_key?: string
+          id?: string
+          notes?: string | null
+          project_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_gates_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -6020,6 +6264,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      advisor_signoff_gate: { Args: { _gate_id: string }; Returns: undefined }
       applicant_stage_order: {
         Args: { _s: Database["public"]["Enums"]["applicant_stage"] }
         Returns: number
@@ -6078,6 +6323,10 @@ export type Database = {
       can_view_applicant: {
         Args: { _applicant_id: string; _uid: string }
         Returns: boolean
+      }
+      close_project: {
+        Args: { _project_id: string; _status: string }
+        Returns: undefined
       }
       cm_confidence_rank: { Args: { _c: string }; Returns: number }
       cm_create_followup_task: {
@@ -6154,6 +6403,14 @@ export type Database = {
       crm_claim_organization: { Args: { _org_id: string }; Returns: Json }
       crm_release_organization: { Args: { _org_id: string }; Returns: Json }
       dashboard_changes_since: { Args: { p_since: string }; Returns: Json }
+      decide_board_application: {
+        Args: { _app_id: string; _decision: string; _note?: string }
+        Returns: undefined
+      }
+      decide_project_gate: {
+        Args: { _gate_id: string; _notes?: string; _status: string }
+        Returns: undefined
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -6262,6 +6519,7 @@ export type Database = {
       is_active_member: { Args: { _user_id: string }; Returns: boolean }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_advisor: { Args: { _user_id: string }; Returns: boolean }
+      is_board_eligible: { Args: { _uid: string }; Returns: boolean }
       is_board_or_admin: { Args: { _user_id: string }; Returns: boolean }
       is_cadence_leadership: { Args: { _uid: string }; Returns: boolean }
       is_channel_member: {
@@ -6313,6 +6571,7 @@ export type Database = {
         Args: { _applicant_id: string }
         Returns: Json
       }
+      promote_org_to_crm: { Args: { _org_id: string }; Returns: undefined }
       promote_pre_cycle_applicants: {
         Args: { _applicant_ids?: string[]; _cycle_id?: string }
         Returns: Json
@@ -6448,6 +6707,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_project_scope: {
+        Args: { _project_id: string; _scope: string }
+        Returns: undefined
+      }
       snapshot_score: {
         Args: { p_scope: string; p_target_id: string; p_window_days?: number }
         Returns: string
@@ -6517,6 +6780,7 @@ export type Database = {
         | "president"
         | "director_of_projects"
         | "outreach_lead"
+        | "treasurer"
       applicant_decision:
         | "advance"
         | "hold"
@@ -6553,6 +6817,12 @@ export type Database = {
         | "approved"
         | "rejected"
         | "revision_requested"
+      board_application_status:
+        | "submitted"
+        | "under_review"
+        | "accepted"
+        | "declined"
+        | "withdrawn"
       crm_activity_type:
         | "email_sent"
         | "follow_up_sent"
@@ -6812,6 +7082,7 @@ export const Constants = {
         "president",
         "director_of_projects",
         "outreach_lead",
+        "treasurer",
       ],
       applicant_decision: [
         "advance",
@@ -6852,6 +7123,13 @@ export const Constants = {
         "approved",
         "rejected",
         "revision_requested",
+      ],
+      board_application_status: [
+        "submitted",
+        "under_review",
+        "accepted",
+        "declined",
+        "withdrawn",
       ],
       crm_activity_type: [
         "email_sent",
