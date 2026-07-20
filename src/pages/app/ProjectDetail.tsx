@@ -57,6 +57,7 @@ export default function ProjectDetail() {
   const [staffBusy, setStaffBusy] = useState(false);
   const [gates, setGates] = useState<any[]>([]);
   const [caseStudy, setCaseStudy] = useState<any>(null);
+  const [certifiedUsers, setCertifiedUsers] = useState<Set<string>>(new Set());
   const [risks, setRisks] = useState<any[]>([]);
   const [decisions, setDecisions] = useState<any[]>([]);
   const [updates, setUpdates] = useState<any[]>([]);
@@ -111,6 +112,8 @@ export default function ProjectDetail() {
   useEffect(() => {
     supabase.from("profiles").select("user_id, full_name").eq("status", "active")
       .then(({ data }) => setActiveProfiles(data || []));
+    supabase.from("cohort_onboarding_progress" as any).select("user_id").not("certified_at", "is", null)
+      .then(({ data }) => setCertifiedUsers(new Set(((data as any[]) || []).map((r) => r.user_id))));
   }, []);
 
   // Pod staffing. role_on_project drives permissions: 'lead' = PM/approver
@@ -986,7 +989,7 @@ export default function ProjectDetail() {
                           <SelectTrigger className="h-8 w-[200px] text-xs"><SelectValue placeholder="Add a member…" /></SelectTrigger>
                           <SelectContent>
                             {candidates.length === 0 && <div className="px-2 py-1.5 text-xs text-muted-foreground">Everyone active is on the pod</div>}
-                            {candidates.map((p) => <SelectItem key={p.user_id} value={p.user_id} className="text-xs">{p.full_name}</SelectItem>)}
+                            {candidates.map((p) => <SelectItem key={p.user_id} value={p.user_id} className="text-xs">{p.full_name}{certifiedUsers.has(p.user_id) ? " · certified" : ""}</SelectItem>)}
                           </SelectContent>
                         </Select>
                         <Select value={addRole} onValueChange={setAddRole}>

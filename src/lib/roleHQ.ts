@@ -249,6 +249,31 @@ export const PLAYBOOKS: Record<string, HQPlaybook> = {
     navPriority: ["/app", "/app/command", "/app/crm", "/app/recruitment", "/app/admin"],
   },
 
+  treasurer: {
+    key: "treasurer",
+    title: "Treasurer",
+    mission:
+      "Own the club's money. Keep dues collected, the budget honest, and every dollar accounted for, so the club can fund what it needs and unlock ASI matching when it matters.",
+    weekly: [
+      "Track dues: who has paid, who is due, who has a waiver; nudge the unpaid before the deadline",
+      "Keep the budget current: log income and expenses, flag anything off-plan",
+      "Review and route spending requests; keep receipts",
+      "Report the balance and burn to the board at the weekly sync",
+    ],
+    canDecide: ["Routine reimbursements within the approved budget", "Dues waivers for members who ask"],
+    mustEscalate: [
+      "Spending above the approved budget line",
+      "Anything involving contracts or outside accounts",
+      "Sponsor or grant funds coming in",
+    ],
+    escalateTo: "President",
+    resources: [
+      { title: "Members", url: "/app/members", desc: "The roster, for dues tracking" },
+      { title: "Documents", url: "/app/docs", desc: "Budget and financial records" },
+    ],
+    navPriority: ["/app", "/app/members", "/app/docs"],
+  },
+
   advisor: {
     key: "advisor",
     title: "Advisor",
