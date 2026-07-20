@@ -56,6 +56,7 @@ export default function ProjectDetail() {
   const [addRole, setAddRole] = useState("member");
   const [staffBusy, setStaffBusy] = useState(false);
   const [gates, setGates] = useState<any[]>([]);
+  const [caseStudy, setCaseStudy] = useState<any>(null);
   const [risks, setRisks] = useState<any[]>([]);
   const [decisions, setDecisions] = useState<any[]>([]);
   const [updates, setUpdates] = useState<any[]>([]);
@@ -77,7 +78,7 @@ export default function ProjectDetail() {
   const fetchAll = async () => {
     if (!id) return;
     setLoading(true);
-    const [pRes, tRes, mRes, dRes, memRes, rRes, decRes, uRes, evRes, momRes, gRes] = await Promise.all([
+    const [pRes, tRes, mRes, dRes, memRes, rRes, decRes, uRes, evRes, momRes, gRes, csRes] = await Promise.all([
       supabase.from("projects").select("*, organizations(name)").eq("id", id).single(),
       supabase.from("tasks").select("*, profiles:assignee_id(full_name)").eq("project_id", id).order("created_at", { ascending: false }),
       supabase.from("milestones").select("*").eq("project_id", id).order("due_date"),
@@ -89,6 +90,7 @@ export default function ProjectDetail() {
       supabase.from("deliverable_review_events").select("*").eq("project_id", id).order("created_at", { ascending: false }).limit(8),
       supabase.from("momentum_signals").select("risk_level, risk_score").eq("project_id", id).order("computed_at", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("project_gates").select("*").eq("project_id", id).order("gate_key"),
+      supabase.from("case_studies").select("*").eq("project_id", id).maybeSingle(),
     ]);
     setProject(pRes.data);
     setTasks(tRes.data || []);
@@ -101,6 +103,7 @@ export default function ProjectDetail() {
     setReviewEvents(evRes.data || []);
     setMomentum(momRes.data ? { level: momRes.data.risk_level, score: momRes.data.risk_score } : null);
     setGates(gRes.data || []);
+    setCaseStudy(csRes.data || null);
     setLoading(false);
   };
 
@@ -145,6 +148,35 @@ export default function ProjectDetail() {
     const { error } = await supabase.rpc("decide_project_gate", { _gate_id: gateId, _status: status });
     if (error) { toast.error(error.message); return; }
     toast.success(status === "passed" ? "Gate passed" : status === "failed" ? "Gate sent back" : "Gate marked ready");
+    fetchAll();
+  };
+  const closeProject = async (status: string) => {
+    const { error } = await supabase.rpc("close_project", { _project_id: id!, _status: status });
+    if (error) { toast.error(error.message); return; }
+    toast.success(status === "archived" ? "Project archived" : status === "completed" ? "Marked delivered" : "Project reopened");
+    fetchAll();
+  };
+  const toggleClientVisible = async (delivId: string, visible: boolean) => {
+    const { error } = await supabase.from("deliverables").update({ client_visible: visible }).eq("id", delivId);
+    if (error) { toast.error(error.message); return; }
+    fetchAll();
+  };
+  const saveCaseStudy = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    const { error } = await supabase.from("case_studies").upsert({
+      project_id: id!,
+      title: (f.get("title") as string) || project?.name || "Case study",
+      summary: f.get("summary") as string,
+      problem: f.get("problem") as string,
+      approach: f.get("approach") as string,
+      outcome: f.get("outcome") as string,
+      client_quote: (f.get("client_quote") as string) || null,
+      is_public: f.get("is_public") === "on",
+      created_by: user!.id,
+    } as any, { onConflict: "project_id" });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Case study saved");
     fetchAll();
   };
 
@@ -448,6 +480,7 @@ export default function ProjectDetail() {
           {gates.length > 0 && <TabsTrigger value="gates">Gates<span className="ml-1 text-[10px] text-muted-foreground">{gates.filter((g) => g.status === "passed").length}/{gates.length}</span></TabsTrigger>}
           <TabsTrigger value="board">Board{tasks.length > 0 && <span className="ml-1 text-[10px] text-muted-foreground">{tasks.length}</span>}</TabsTrigger>
           <TabsTrigger value="team">Team{members.length > 0 && <span className="ml-1 text-[10px] text-muted-foreground">{members.length}</span>}</TabsTrigger>
+          <TabsTrigger value="closeout">Close-out</TabsTrigger>
         </TabsList>
 
         {/* ============ HUB ============ */}
@@ -992,6 +1025,65 @@ export default function ProjectDetail() {
               </div>
             );
           })()}
+        </TabsContent>
+
+        {/* ============ CLOSE-OUT ============ */}
+        <TabsContent value="closeout" className="space-y-4">
+          <Card>
+            <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+              <div>
+                <div className="text-sm font-medium">Project status: <span className="capitalize">{project?.status}</span></div>
+                <div className="text-[11px] text-muted-foreground">Mark delivered when the client has the final package; archive when fully closed.</div>
+              </div>
+              {isProjectLead && (
+                <div className="flex gap-2">
+                  {project?.status !== "completed" && <Button size="sm" onClick={() => closeProject("completed")}>Mark delivered</Button>}
+                  {project?.status !== "archived" && <Button size="sm" variant="outline" onClick={() => closeProject("archived")}>Archive</Button>}
+                  {["completed", "archived"].includes(project?.status) && <Button size="sm" variant="ghost" onClick={() => closeProject("active")}>Reopen</Button>}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="space-y-2 p-4">
+              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Client delivery package</div>
+              <p className="text-[11px] text-muted-foreground">Mark the deliverables that go to the client, then share them as the final package.</p>
+              {deliverables.length === 0 && <p className="text-sm text-muted-foreground">No deliverables yet.</p>}
+              {deliverables.map((d) => (
+                <div key={d.id} className="flex items-center justify-between gap-3 py-1">
+                  <span className="truncate text-sm">{d.title}</span>
+                  {isProjectLead ? (
+                    <Button size="sm" variant={d.client_visible ? "default" : "outline"} className="h-7 shrink-0 text-[11px]" onClick={() => toggleClientVisible(d.id, !d.client_visible)}>
+                      {d.client_visible ? "In package ✓" : "Add to package"}
+                    </Button>
+                  ) : (
+                    d.client_visible && <Badge className="shrink-0 text-[10px]">In package</Badge>
+                  )}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {isProjectLead && (
+            <Card>
+              <CardContent className="p-4">
+                <div className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">Case study (portfolio)</div>
+                <form onSubmit={saveCaseStudy} className="space-y-2">
+                  <Input name="title" defaultValue={caseStudy?.title || project?.name || ""} placeholder="Title" />
+                  <Textarea name="summary" defaultValue={caseStudy?.summary || ""} placeholder="One-line summary" rows={2} />
+                  <Textarea name="problem" defaultValue={caseStudy?.problem || ""} placeholder="The problem" rows={2} />
+                  <Textarea name="approach" defaultValue={caseStudy?.approach || ""} placeholder="Our approach" rows={2} />
+                  <Textarea name="outcome" defaultValue={caseStudy?.outcome || ""} placeholder="The outcome" rows={2} />
+                  <Input name="client_quote" defaultValue={caseStudy?.client_quote || ""} placeholder="Client quote (optional)" />
+                  <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <input type="checkbox" name="is_public" defaultChecked={caseStudy?.is_public} /> Publish to the public portfolio
+                  </label>
+                  <Button type="submit" size="sm">Save case study</Button>
+                </form>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
 
