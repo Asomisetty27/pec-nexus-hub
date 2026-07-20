@@ -51,6 +51,10 @@ export default function ProjectDetail() {
   const [milestones, setMilestones] = useState<any[]>([]);
   const [deliverables, setDeliverables] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
+  const [activeProfiles, setActiveProfiles] = useState<any[]>([]);
+  const [addUserId, setAddUserId] = useState("");
+  const [addRole, setAddRole] = useState("member");
+  const [staffBusy, setStaffBusy] = useState(false);
   const [risks, setRisks] = useState<any[]>([]);
   const [decisions, setDecisions] = useState<any[]>([]);
   const [updates, setUpdates] = useState<any[]>([]);
@@ -98,6 +102,42 @@ export default function ProjectDetail() {
   };
 
   useEffect(() => { fetchAll(); }, [id]);
+  useEffect(() => {
+    supabase.from("profiles").select("user_id, full_name").eq("status", "active")
+      .then(({ data }) => setActiveProfiles(data || []));
+  }, []);
+
+  // Pod staffing. role_on_project drives permissions: 'lead' = PM/approver
+  // (is_project_lead), 'tech_lead' = technical QA (is_project_tech_lead).
+  const POD_ROLES = [
+    { value: "lead", label: "PM / Lead" },
+    { value: "tech_lead", label: "Tech Lead" },
+    { value: "consultant", label: "Consultant" },
+    { value: "member", label: "Member" },
+  ];
+  const addToPod = async () => {
+    if (!addUserId) return;
+    setStaffBusy(true);
+    const { error } = await supabase.from("project_memberships")
+      .insert({ project_id: id!, user_id: addUserId, role_on_project: addRole });
+    setStaffBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Added to pod");
+    setAddUserId(""); setAddRole("member");
+    fetchAll();
+  };
+  const changePodRole = async (membershipId: string, role: string) => {
+    const { error } = await supabase.from("project_memberships").update({ role_on_project: role }).eq("id", membershipId);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Role updated");
+    fetchAll();
+  };
+  const removeFromPod = async (membershipId: string) => {
+    const { error } = await supabase.from("project_memberships").delete().eq("id", membershipId);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Removed from pod");
+    fetchAll();
+  };
 
   // Resolve project groups + my membership in them (for group-owned deliverable visibility).
   useEffect(() => {
@@ -835,23 +875,58 @@ export default function ProjectDetail() {
             const renderCard = (m: any) => (
               <Card key={m.id}>
                 <CardContent className="flex items-center gap-3 p-4">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium shrink-0">
                     {(m.profiles as any)?.full_name?.charAt(0) || "?"}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">
                       {(m.profiles as any)?.full_name || "Former member"}
                     </p>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <Badge variant={m.role_on_project === "lead" ? "default" : "outline"} className="text-[10px] capitalize">{m.role_on_project}</Badge>
-                      <span className="text-[10px] text-muted-foreground">· owns {ownedCount(m.user_id)}</span>
-                    </div>
+                    <span className="text-[10px] text-muted-foreground">owns {ownedCount(m.user_id)}</span>
                   </div>
+                  {isProjectLead ? (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Select value={m.role_on_project} onValueChange={(v) => changePodRole(m.id, v)}>
+                        <SelectTrigger className="h-7 w-[116px] text-[11px]"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {POD_ROLES.map((r) => <SelectItem key={r.value} value={r.value} className="text-xs">{r.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" onClick={() => removeFromPod(m.id)} title="Remove from pod">×</Button>
+                    </div>
+                  ) : (
+                    <Badge variant={m.role_on_project === "lead" ? "default" : "outline"} className="text-[10px] capitalize shrink-0">{m.role_on_project}</Badge>
+                  )}
                 </CardContent>
               </Card>
             );
+            const onPod = new Set(members.map((m) => m.user_id));
+            const candidates = activeProfiles.filter((p) => !onPod.has(p.user_id));
             return (
               <div className="space-y-5">
+                {isProjectLead && (
+                  <Card>
+                    <CardContent className="p-4 space-y-2">
+                      <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Staff the pod</div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Select value={addUserId} onValueChange={setAddUserId}>
+                          <SelectTrigger className="h-8 w-[200px] text-xs"><SelectValue placeholder="Add a member…" /></SelectTrigger>
+                          <SelectContent>
+                            {candidates.length === 0 && <div className="px-2 py-1.5 text-xs text-muted-foreground">Everyone active is on the pod</div>}
+                            {candidates.map((p) => <SelectItem key={p.user_id} value={p.user_id} className="text-xs">{p.full_name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <Select value={addRole} onValueChange={setAddRole}>
+                          <SelectTrigger className="h-8 w-[130px] text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {POD_ROLES.map((r) => <SelectItem key={r.value} value={r.value} className="text-xs">{r.label}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <Button size="sm" disabled={!addUserId || staffBusy} onClick={addToPod}>Add</Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
                 {leads.length > 0 && (
                   <div>
                     <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-2">Leads</h3>
