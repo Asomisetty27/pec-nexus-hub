@@ -39,7 +39,6 @@ import CrmAnalytics from "./pages/app/crm/CrmAnalytics";
 import CrmLegacy from "./pages/app/crm/CrmLegacy";
 import CompanyDetail from "./pages/app/crm/CompanyDetail";
 import Competitions from "./pages/app/Competitions";
-import Academy from "./pages/app/Academy";
 import Training from "./pages/app/Training";
 import Docs from "./pages/app/Docs";
 import Admin from "./pages/app/Admin";
@@ -121,7 +120,7 @@ const App = () => (
               </Route>
               <Route path="competitions" element={<Competitions />} />
               <Route path="training" element={<Training />} />
-              <Route path="academy" element={<Navigate to="/app/training?tab=learn" replace />} />
+              <Route path="academy" element={<Navigate to="/app/training" replace />} />
               <Route path="docs" element={<Docs />} />
               <Route path="admin" element={<Admin />} />
               <Route path="announcements" element={<Announcements />} />

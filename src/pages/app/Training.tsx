@@ -1,61 +1,37 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { GraduationCap, Swords } from "lucide-react";
+import { Link } from "react-router-dom";
+import { GraduationCap, ArrowRight } from "lucide-react";
 import Grind from "./Grind";
-import Academy from "./Academy";
 
 /**
- * Training = unified Learn + Grind shell.
- * Grind is the default tab and the center of gravity.
- * Learn (formerly Academy) is preserved as structured onboarding/reference.
+ * Training = the drill practice engine (Grind). Structured cohort onboarding
+ * (the Orient -> Learn -> Shadow -> First Unit -> Certified track, lab manuals,
+ * and mock projects) lives in Cohort Hub. The old Academy/courses tab was
+ * retired: that table never had any content (0 records) and read as an empty
+ * "no trainings" surface. Drills are the live learning surface; the cohort track
+ * is one click away.
  */
 export default function Training() {
-  const [params, setParams] = useSearchParams();
-  const tabFromUrl = params.get("tab");
-  const initial = tabFromUrl === "learn" ? "learn" : "grind";
-  const [tab, setTab] = useState<"grind" | "learn">(initial);
-
-  useEffect(() => {
-    if (tab !== (tabFromUrl ?? "grind")) {
-      const next = new URLSearchParams(params);
-      if (tab === "grind") next.delete("tab"); else next.set("tab", tab);
-      setParams(next, { replace: true });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab]);
-
   return (
     <div className="container mx-auto max-w-7xl space-y-4 p-6">
-      <header className="space-y-1">
-        <h1 className="font-display text-3xl font-bold tracking-tight">Training</h1>
-        <p className="text-sm text-muted-foreground">
-          Learn the fundamentals. Grind to stay sharp.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <h1 className="font-display text-3xl font-bold tracking-tight">Training</h1>
+          <p className="text-sm text-muted-foreground">
+            Sharpen your craft with drills. Your cohort's onboarding track, lab manuals, and mock projects live in Cohort Hub.
+          </p>
+        </div>
+        <Link
+          to="/app/cohort"
+          className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
+        >
+          <GraduationCap className="h-4 w-4" /> Cohort Hub <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
       </header>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as "grind" | "learn")}>
-        <TabsList>
-          <TabsTrigger value="grind" className="gap-2">
-            <Swords className="h-4 w-4" /> Grind
-          </TabsTrigger>
-          <TabsTrigger value="learn" className="gap-2">
-            <GraduationCap className="h-4 w-4" /> Learn
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="grind" className="mt-4 -mx-6">
-          {/* Grind already supplies its own container/padding */}
-          <Grind />
-        </TabsContent>
-
-        <TabsContent value="learn" className="mt-6 space-y-2">
-          <p className="text-xs text-muted-foreground font-mono uppercase tracking-wider">
-            Onboarding · Concepts · References
-          </p>
-          <Academy />
-        </TabsContent>
-      </Tabs>
+      {/* Grind supplies its own container/padding; offset to full width. */}
+      <div className="-mx-6">
+        <Grind />
+      </div>
     </div>
   );
 }
