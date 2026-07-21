@@ -210,7 +210,9 @@ export type RecruitmentAccess = {
 export async function loadRecruitmentAccess(userId: string | undefined, isAdmin: boolean): Promise<RecruitmentAccess> {
   if (!userId) return { canSeeRecruitment: false, isLead: false };
 
-  // Lead = admin/superadmin/president/director_of_projects (mirrors is_recruitment_lead)
+  // Lead = admin/superadmin/board_member/president/director_of_projects.
+  // Must mirror the DB is_recruitment_lead() exactly (it includes board_member),
+  // or the VP is shown "no access" while every recruitment RPC would authorize them.
   const { data: roleRows } = await supabase
     .from("user_roles")
     .select("role")
@@ -220,6 +222,7 @@ export async function loadRecruitmentAccess(userId: string | undefined, isAdmin:
     isAdmin ||
     roles.has("admin") ||
     roles.has("superadmin") ||
+    roles.has("board_member") ||
     roles.has("president") ||
     roles.has("director_of_projects");
 
