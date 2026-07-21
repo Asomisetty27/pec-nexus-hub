@@ -37,6 +37,7 @@ const MODE_META: Record<string, { label: string; Icon: any; tone: string }> = {
   purpose_track: { label: "Purpose", Icon: FlaskConical, tone: "bg-primary/10 text-primary border-primary/20" },
   competition: { label: "Competition", Icon: Trophy, tone: "bg-warning/10 text-warning border-warning/20" },
   client_engagement: { label: "Contract", Icon: Briefcase, tone: "bg-accent/10 text-accent border-accent/20" },
+  sponsor_deliverable: { label: "Sponsor", Icon: Briefcase, tone: "bg-warning/10 text-warning border-warning/20" },
   internal_initiative: { label: "Internal", Icon: Wrench, tone: "bg-muted text-foreground border-border" },
   training_mock: { label: "Training", Icon: Sparkles, tone: "bg-muted text-muted-foreground border-border" },
 };

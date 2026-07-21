@@ -2,7 +2,11 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
-type AppRole = "applicant" | "member" | "project_consultant" | "project_lead" | "board_member" | "treasurer" | "advisor" | "admin" | "superadmin";
+// `president` and `director_of_projects` are legacy values still present in the DB
+// app_role enum. No current flow grants them, but they must appear here (and in
+// roleHierarchy) so a stray holder resolves to a real role instead of defaulting
+// to "applicant" and getting bounced off every member route.
+type AppRole = "applicant" | "member" | "project_consultant" | "project_lead" | "director_of_projects" | "board_member" | "treasurer" | "advisor" | "president" | "admin" | "superadmin";
 
 interface Profile {
   id: string;
@@ -158,7 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAdvisor = roles.includes("advisor");
   const isCohortLead = !!cohortMembership && COHORT_LEAD_ROLES.includes(cohortMembership.role);
 
-  const roleHierarchy: AppRole[] = ["applicant", "member", "project_consultant", "project_lead", "board_member", "treasurer", "advisor", "admin", "superadmin"];
+  const roleHierarchy: AppRole[] = ["applicant", "member", "project_consultant", "project_lead", "director_of_projects", "board_member", "treasurer", "advisor", "president", "admin", "superadmin"];
   const highestRole = roles.reduce((highest, role) => {
     const idx = roleHierarchy.indexOf(role);
     const highIdx = roleHierarchy.indexOf(highest);
