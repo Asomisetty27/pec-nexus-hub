@@ -56,6 +56,7 @@ export default function RecruitmentOverviewPage() {
             .eq("current_stage", "decision_pending")
             .order("created_at", { ascending: false }).limit(20),
           supabase.from("applicants").select(select)
+            .in("current_stage", ["applied", "under_review", "resume_screen", "interview", "decision_pending"])
             .order("created_at", { ascending: false }).limit(10),
           ctx.access.isLead
             ? supabase.from("applicants").select("id", { count: "exact", head: true })
