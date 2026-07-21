@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import { Link, Navigate, Outlet, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 
 import { useAuth } from "@/lib/auth";
 import { isApplicantAllowed, parkedReason } from "@/lib/roleHQ";
@@ -50,8 +52,21 @@ function AppLoadingScreen() {
 }
 
 export function AppLayout() {
-  const { user, loading, highestRole } = useAuth();
+  const { user, loading, highestRole, signOut } = useAuth();
   const location = useLocation();
+
+  // Microsoft SSO can be registered multi-tenant, which would let any org account
+  // in. PEC is Cal Poly only: reject an OAuth sign-in whose email isn't @calpoly.edu.
+  // Password accounts are already gated at signup, so this only affects SSO users.
+  const provider = user?.app_metadata?.provider;
+  const isOauth = !!provider && provider !== "email";
+  const nonCalPolyOauth = isOauth && !(user?.email ?? "").toLowerCase().endsWith("@calpoly.edu");
+  useEffect(() => {
+    if (nonCalPolyOauth) {
+      toast.error("Please sign in with your Cal Poly (@calpoly.edu) Microsoft account.");
+      void signOut();
+    }
+  }, [nonCalPolyOauth, signOut]);
 
   if (loading) {
     return <AppLoadingScreen />;

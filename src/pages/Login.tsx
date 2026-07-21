@@ -10,6 +10,17 @@ import { toast } from "sonner";
 import { Loader2, MailCheck, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
+function MicrosoftLogo() {
+  return (
+    <svg className="mr-2 h-4 w-4" viewBox="0 0 21 21" aria-hidden="true">
+      <rect x="1" y="1" width="9" height="9" fill="#f25022" />
+      <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
+      <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
+      <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
+    </svg>
+  );
+}
+
 interface InviteState {
   loading: boolean;
   valid: boolean;
@@ -141,6 +152,25 @@ export default function Login() {
     setLoading(false);
   };
 
+  const signInWithMicrosoft = async () => {
+    setLoading(true);
+    // Everyone has a Cal Poly Microsoft (Entra) account. Sign in with it; the
+    // @calpoly.edu guard in AppLayout rejects any non-Cal-Poly org account that
+    // slips through a multi-tenant registration.
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "azure",
+      options: {
+        scopes: "openid email profile",
+        redirectTo: `${window.location.origin}/app`,
+      },
+    });
+    if (error) {
+      toast.error(error.message || "Microsoft sign-in isn't enabled yet.");
+      setLoading(false);
+    }
+    // On success the browser redirects to Microsoft, so no further state here.
+  };
+
   const showInviteError = inviteMode && isSignUp && !invite.loading && !invite.valid;
   const disableSubmit = loading || (inviteMode && isSignUp && (invite.loading || !invite.valid));
 
@@ -200,7 +230,22 @@ export default function Login() {
                 <p className="text-center text-sm text-muted-foreground">Need a new invite? Contact an admin.</p>
               </div>
             ) : (
-              <form className="space-y-4" onSubmit={handleSubmit}>
+              <>
+                {!inviteMode && (
+                  <>
+                    <Button type="button" variant="outline" className="w-full" onClick={signInWithMicrosoft} disabled={loading}>
+                      <MicrosoftLogo />
+                      Continue with Microsoft
+                    </Button>
+                    <p className="mt-2 text-center text-xs text-muted-foreground">Use your Cal Poly (@calpoly.edu) account</p>
+                    <div className="my-4 flex items-center gap-3">
+                      <span className="h-px flex-1 bg-border" />
+                      <span className="text-xs text-muted-foreground">or</span>
+                      <span className="h-px flex-1 bg-border" />
+                    </div>
+                  </>
+                )}
+                <form className="space-y-4" onSubmit={handleSubmit}>
                 {isSignUp && (
                   <div className="space-y-2">
                     <Label htmlFor="fullName">Full Name</Label>
@@ -227,7 +272,8 @@ export default function Login() {
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {isSignUp ? "Create Account" : "Sign In"}
                 </Button>
-              </form>
+                </form>
+              </>
             )}
             <div className="mt-4 text-center text-sm text-muted-foreground">
               {inviteMode ? (
