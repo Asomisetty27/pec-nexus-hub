@@ -144,7 +144,7 @@ export const PLAYBOOKS: Record<string, HQPlaybook> = {
       "Scope change adding more than ~15% workload",
       "Two consecutive missed internal deadlines on your project",
     ],
-    escalateTo: "PM, then VP Projects",
+    escalateTo: "PM, then Vice President",
     resources: [
       { title: "Lead Workspace", url: "/app/lead", desc: "Your review queue, gate checklists, team health" },
       { title: "Review Queue", url: "/app/review", desc: "Deliverables waiting on your QA call" },
@@ -211,7 +211,7 @@ export const PLAYBOOKS: Record<string, HQPlaybook> = {
       "Timeline changes that move final delivery",
       "Anything involving NDAs, IP, or sensitive data",
     ],
-    escalateTo: "VP Projects / President",
+    escalateTo: "Vice President / President",
     resources: [
       { title: "Company Relations", url: "/app/crm", desc: "Pipeline, contacts, contracts, next actions" },
       { title: "Projects", url: "/app/projects", desc: "Portfolio view with gate and check-in status" },
