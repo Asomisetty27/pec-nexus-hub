@@ -12,6 +12,7 @@ import History from "./pages/History";
 import Sponsors from "./pages/Sponsors";
 import Intake from "./pages/Intake";
 import Login from "./pages/Login";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import Unsubscribe from "./pages/Unsubscribe";
 import ApplyLanding from "./pages/apply/ApplyLanding";
@@ -87,6 +88,7 @@ const App = () => (
               <Route path="/apply/form" element={<ApplyForm />} />
               <Route path="/apply/confirmation" element={<ApplyConfirmation />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/invite/:token" element={<Login />} />
               <Route path="/unsubscribe" element={<Unsubscribe />} />
             </Route>

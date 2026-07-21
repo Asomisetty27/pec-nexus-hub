@@ -39,6 +39,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [invite, setInvite] = useState<InviteState>({
     loading: inviteMode,
     valid: !inviteMode,
@@ -150,6 +151,20 @@ export default function Login() {
       }
     }
     setLoading(false);
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast.error("Enter your email above first, then click Forgot password.");
+      return;
+    }
+    setResetting(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setResetting(false);
+    if (error) toast.error(error.message);
+    else toast.success("If that email has an account, a reset link is on its way.");
   };
 
   const signInWithMicrosoft = async () => {
@@ -267,6 +282,12 @@ export default function Login() {
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
                   <Input id="password" type="password" placeholder="••••••••" required value={password} onChange={e => setPassword(e.target.value)} />
+                  {!isSignUp && !inviteMode && (
+                    <button type="button" onClick={handleForgotPassword} disabled={resetting}
+                      className="text-xs text-accent underline-offset-4 hover:underline disabled:opacity-60">
+                      {resetting ? "Sending reset link…" : "Forgot password?"}
+                    </button>
+                  )}
                 </div>
                 <Button type="submit" className="w-full" disabled={disableSubmit}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

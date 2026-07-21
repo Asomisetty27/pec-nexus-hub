@@ -21,6 +21,21 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [cohort, setCohort] = useState<any>(null);
   const [msState, setMsState] = useState<{ status: "idle" | "checking" | "connected" | "not_connected" | "blocked" | "error"; detail?: string }>({ status: "idle" });
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [pwSaving, setPwSaving] = useState(false);
+
+  const changePassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (newPw.length < 8) { toast.error("Password must be at least 8 characters"); return; }
+    if (newPw !== confirmPw) { toast.error("Passwords do not match"); return; }
+    setPwSaving(true);
+    const { error } = await supabase.auth.updateUser({ password: newPw });
+    setPwSaving(false);
+    if (error) { toast.error(error.message); return; }
+    setNewPw(""); setConfirmPw("");
+    toast.success("Password updated");
+  };
 
   useEffect(() => {
     if (!profile) return;
@@ -184,6 +199,33 @@ export default function Settings() {
             <p className="text-[10px] text-muted-foreground mt-3">
               Roles are assigned by admins and determined by your cohort membership.
             </p>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Change password */}
+      <motion.div variants={item}>
+        <Card>
+          <CardHeader className="py-4 px-6">
+            <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
+              <Shield className="h-3.5 w-3.5 text-accent-foreground" /> Password
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-6 pb-6">
+            <form onSubmit={changePassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="newPw">New password</Label>
+                <Input id="newPw" type="password" autoComplete="new-password" placeholder="••••••••" value={newPw} onChange={(e) => setNewPw(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPw">Confirm new password</Label>
+                <Input id="confirmPw" type="password" autoComplete="new-password" placeholder="••••••••" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} />
+              </div>
+              <Button type="submit" disabled={pwSaving || !newPw || !confirmPw}>
+                {pwSaving ? "Updating..." : "Update password"}
+              </Button>
+              <p className="text-[11px] text-muted-foreground">At least 8 characters. You stay signed in after changing it.</p>
+            </form>
           </CardContent>
         </Card>
       </motion.div>
