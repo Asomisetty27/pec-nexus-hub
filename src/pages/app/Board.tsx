@@ -1,8 +1,9 @@
-// Board: the competitive leadership process. Every seat except President
-// (Amogh) and VP Delivery (Sam) is an open position that current members and
-// last year's board apply for. Members apply here; the guaranteed board (admins)
-// review and decide, and acceptance grants the role automatically via the
-// decide_board_application RPC. Backed by src/lib/boardApplications.ts.
+// Board: the competitive leadership process. President (Amogh), Vice President
+// (Sam), and Treasurer (Krithik) are guaranteed; the four Cohort Lead seats are
+// open positions that returning members and last year's board apply for. Members
+// apply here; the guaranteed board (admins) review and decide, and acceptance
+// grants the role automatically via the decide_board_application RPC. Backed by
+// src/lib/boardApplications.ts.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import {
@@ -66,12 +67,12 @@ export default function Board() {
         <div>
           <h1 className="text-2xl font-semibold">Board</h1>
           <p className="text-sm text-muted-foreground">
-            Leadership is earned, not inherited. Every seat but President and VP Delivery is open.
+            Leadership is earned, not inherited. President, VP, and Treasurer are set; the four Cohort Lead seats are open.
           </p>
         </div>
       </div>
 
-      <SectionExplainer text="President (Amogh) and VP Delivery (Sam) are the two guaranteed seats. Every other seat, the two open VP roles and the four Cohort Leads, is applied for by current members and last year's board. Amogh and Sam review each application; when they accept one, the role is granted automatically." />
+      <SectionExplainer text="President (Amogh), Vice President (Sam), and Treasurer (Krithik) are the guaranteed seats. The four Cohort Lead seats, one per cohort, are applied for by returning members and last year's board. PMs and Tech Leads are staffed per project, not elected here. Amogh and Sam review each application; when they accept one, the role is granted automatically." />
 
       {!cycle && !isAdmin && (
         <Card><CardContent className="py-5 text-sm text-muted-foreground">

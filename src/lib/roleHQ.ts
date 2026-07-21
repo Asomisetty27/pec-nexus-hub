@@ -177,7 +177,7 @@ export const PLAYBOOKS: Record<string, HQPlaybook> = {
       "Staffing shortfalls that put a pod at risk",
       "Anything requiring a new leadership seat or a scope call",
     ],
-    escalateTo: "VP Members / President",
+    escalateTo: "Vice President / President",
     resources: [
       { title: "Cohort Hub", url: "/app/cohort", desc: "Your cohort: roster, onboarding track, certification, assembly line" },
       { title: "Training", url: "/app/training", desc: "The drills and modules your cohort runs" },
