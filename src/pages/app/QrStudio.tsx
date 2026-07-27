@@ -13,6 +13,8 @@ const PRESETS = [
   { key: "wow-booth", label: "WOW booth banner", path: "/apply", desc: "Large-format QR for the booth table" },
   { key: "client-onepager", label: "Client one-pager", path: "/intake", desc: "Print handout for client conversations" },
   { key: "eweek", label: "E-Week materials", path: "/apply", desc: "February CENG showcase" },
+  { key: "pi-wow", label: "PolyInnovate fall surface", path: "/polyinnovate", desc: "Interest-list QR for fall tables and flyers" },
+  { key: "pi-class", label: "PolyInnovate class shoutout", path: "/polyinnovate", desc: "Slide QR for lecture shoutouts" },
   { key: "custom", label: "Custom", path: "/", desc: "Any path + your own src tag" },
 ] as const;
 
