@@ -11,6 +11,7 @@ import Services from "./pages/Services";
 import History from "./pages/History";
 import Sponsors from "./pages/Sponsors";
 import Intake from "./pages/Intake";
+import PolyInnovate from "./pages/PolyInnovate";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
@@ -83,6 +84,7 @@ const App = () => (
               <Route path="/history" element={<History />} />
               <Route path="/sponsors" element={<Sponsors />} />
               <Route path="/intake" element={<Intake />} />
+              <Route path="/polyinnovate" element={<PolyInnovate />} />
               <Route path="/apply" element={<ApplyLanding />} />
               <Route path="/apply/form" element={<ApplyForm />} />
               <Route path="/apply/confirmation" element={<ApplyConfirmation />} />
