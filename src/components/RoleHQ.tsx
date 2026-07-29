@@ -79,13 +79,15 @@ export function RoleHQ() {
           <ul className="space-y-1.5">
             {playbook.weekly.map((task, i) => {
               const checked = done.includes(i);
+              const text = typeof task === "string" ? task : task.text;
+              const href = typeof task === "string" ? undefined : task.href;
               return (
-                <li key={i}>
+                <li key={i} className="flex items-start gap-1">
                   <button
                     type="button"
                     onClick={() => toggle(i)}
                     aria-pressed={checked}
-                    className="group flex w-full items-start gap-3 rounded-sm px-2 py-1.5 text-left transition-colors hover:bg-muted/60 active:translate-y-px"
+                    className="group flex flex-1 items-start gap-3 rounded-sm px-2 py-1.5 text-left transition-colors hover:bg-muted/60 active:translate-y-px"
                   >
                     <span
                       className={`mt-0.5 grid h-4 w-4 shrink-0 place-items-center border transition-colors ${
@@ -101,9 +103,19 @@ export function RoleHQ() {
                         checked ? "text-muted-foreground line-through" : ""
                       }`}
                     >
-                      {task}
+                      {text}
                     </span>
                   </button>
+                  {href && (
+                    <Link
+                      to={href}
+                      aria-label={`Open: ${text}`}
+                      title="Go do this"
+                      className="mt-1.5 shrink-0 rounded-sm p-1 text-muted-foreground transition-colors hover:text-accent"
+                    >
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                    </Link>
+                  )}
                 </li>
               );
             })}
