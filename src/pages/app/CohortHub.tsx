@@ -116,6 +116,19 @@ export default function CohortHub() {
   // enforces this even if the UI is bypassed).
   const myProgress = user ? progress[user.id] : null;
   const trackLen = Array.isArray(cohort?.onboarding_track) ? cohort.onboarding_track.length : 0;
+  // Member-health signal for the Cohort Lead's weekly scan (engagement playbook
+  // lever 6): who is certified, who is progressing, and who has not started and
+  // needs a check-in before they drift.
+  const health = (() => {
+    let certified = 0, inProgress = 0, notStarted = 0;
+    for (const m of members) {
+      const p = progress[(m.profiles as any)?.user_id];
+      if (p?.certified_at) certified++;
+      else if ((p?.completed_steps || []).length > 0) inProgress++;
+      else notStarted++;
+    }
+    return { certified, inProgress, notStarted };
+  })();
 
   const toggleStep = async (i: number) => {
     if (!user || !cohort) return;
@@ -538,6 +551,16 @@ export default function CohortHub() {
               <CardTitle className="text-sm font-sans font-semibold flex items-center gap-2">
                 <Users className="h-3.5 w-3.5 text-accent-foreground" /> Team ({members.length})
               </CardTitle>
+              {isLeader && trackLen > 0 && (
+                <p className="text-[10px] font-mono text-muted-foreground mt-1">
+                  {health.certified} certified · {health.inProgress} in progress ·{" "}
+                  {health.notStarted > 0 ? (
+                    <span className="text-warning">{health.notStarted} not started</span>
+                  ) : (
+                    <>0 not started</>
+                  )}
+                </p>
+              )}
             </CardHeader>
             <CardContent className="pt-0 px-5 pb-4 space-y-1">
               {sortedMembers.map((m: any) => (
@@ -561,6 +584,13 @@ export default function CohortHub() {
                     );
                     if (trackLen > 0) return <span className="text-[9px] font-mono text-muted-foreground shrink-0">{doneCount}/{Math.max(trackLen - 1, 0)}</span>;
                     return null;
+                  })()}
+                  {isLeader && (() => {
+                    const p = progress[(m.profiles as any)?.user_id];
+                    const notStarted = !p?.certified_at && (p?.completed_steps || []).length === 0 && trackLen > 0;
+                    return notStarted ? (
+                      <span title="Has not started onboarding — send a check-in" className="text-[8px] font-mono uppercase shrink-0 text-warning">check in</span>
+                    ) : null;
                   })()}
                   <Badge variant={roleBadgeVariant(m.role) as any} className="text-[8px] font-mono uppercase shrink-0">{roleLabel(m.role)}</Badge>
                 </motion.div>
