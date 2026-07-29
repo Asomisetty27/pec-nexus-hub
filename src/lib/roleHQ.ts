@@ -42,11 +42,15 @@ export interface HQResource {
   desc: string;
 }
 
+// A weekly duty is either plain text or text with a deep link to where it is
+// done, so the checklist is actionable ("open Projects" is one click, not a note).
+export type HQTask = string | { text: string; href?: string };
+
 export interface HQPlaybook {
   key: string;
   title: string;
   mission: string;
-  weekly: string[];
+  weekly: HQTask[];
   canDecide: string[];
   mustEscalate: string[];
   escalateTo: string;
@@ -90,11 +94,11 @@ export const PLAYBOOKS: Record<string, HQPlaybook> = {
     mission:
       "Deliver your artifact and grow your craft. The contract is simple: one named artifact per sprint, submitted on your project page by Friday of sprint week 2, reviewed by your lead within 48 hours.",
     weekly: [
-      "Monday: open Projects, confirm your assigned artifact and its due date; flag now if it is at risk",
-      "Post progress and blockers in your team channel before the working session, not after",
-      "Submit your artifact on the project page (its card has the submit button); it flows draft, submitted, tech review, approved",
+      { text: "Monday: open Projects, confirm your assigned artifact and its due date; flag now if it is at risk", href: "/app/projects" },
+      { text: "Post progress and blockers in your team channel before the working session, not after", href: "/app/messages" },
+      { text: "Submit your artifact on the project page (its card has the submit button); it flows draft, submitted, tech review, approved", href: "/app/projects" },
       "If review comes back needs-revision, turn it around within 48 hours; a silent stall is an escalation",
-      "Between pushes: one training drill",
+      { text: "Between pushes: one training drill", href: "/app/training" },
     ],
     canDecide: ["Implementation details inside your assigned task", "How you organize your own work"],
     mustEscalate: [
@@ -129,9 +133,9 @@ export const PLAYBOOKS: Record<string, HQPlaybook> = {
     title: "Tech Lead",
     mission: "Own technical correctness. Nothing passes a gate with your name on it unless it is right, reproducible, and honest about its limits.",
     weekly: [
-      "Triage every blocker in the team channel within 24 hours",
-      "Review the week's deliverables against the QA checklist before they reach the PM",
-      "Check gate readiness: next gate, what is missing, who owns it",
+      { text: "Triage every blocker in the team channel within 24 hours", href: "/app/messages" },
+      { text: "Review the week's deliverables against the QA checklist before they reach the PM", href: "/app/lead" },
+      { text: "Check gate readiness: next gate, what is missing, who owns it", href: "/app/lead" },
       "Confirm the technical approach is still feasible; saying so late is an escalation trigger",
       "Review action-log hygiene: every item has an owner and a date",
     ],
@@ -161,11 +165,11 @@ export const PLAYBOOKS: Record<string, HQPlaybook> = {
     mission:
       "Run your cohort as a craft home. You train the function, certify who is ready, and keep a bench of staffable members. Your cohort is where 'what do I do this week' always gets answered; you are the person who answers it.",
     weekly: [
-      "Run the weekly cohort meeting: a training block, the cohort's line work, and who is newly staffable",
-      "Move every un-certified member one step along the onboarding track; certify anyone who cleared their First Unit",
-      "Keep the staffable roster current so the pod can be staffed from certified members, not guesses",
-      "Check member health: nobody silent, nobody stuck; surface anyone at risk",
-      "Post the cohort's blockers and staffing gaps to leadership before the weekly sync",
+      { text: "Run the weekly cohort meeting: a training block, the cohort's line work, and who is newly staffable", href: "/app/cohort" },
+      { text: "Move every un-certified member one step along the onboarding track; certify anyone who cleared their First Unit", href: "/app/cohort" },
+      { text: "Keep the staffable roster current so the pod can be staffed from certified members, not guesses", href: "/app/cohort" },
+      { text: "Check member health: nobody silent, nobody stuck; surface anyone at risk", href: "/app/members" },
+      { text: "Post the cohort's blockers and staffing gaps to leadership before the weekly sync", href: "/app/messages" },
     ],
     canDecide: [
       "Cohort meeting cadence, training focus, and drill assignments",
@@ -194,11 +198,11 @@ export const PLAYBOOKS: Record<string, HQPlaybook> = {
     mission:
       "Year one: run the delivery machine. Sprint planning, working sessions, QA, and member accountability are yours. Amogh handles the outside; you make the inside undeniable.",
     weekly: [
-      "Plan the sprint: every member has a named artifact with a date",
-      "Run the working session from the generated agenda; every meeting ends with assigned actions",
-      "Review artifacts against the QA checklist before anything is client-visible",
+      { text: "Plan the sprint: every member has a named artifact with a date", href: "/app/projects" },
+      { text: "Run the working session from the generated agenda; every meeting ends with assigned actions", href: "/app/events" },
+      { text: "Review artifacts against the QA checklist before anything is client-visible", href: "/app/lead" },
       "Keep the attendance and delivery ledger current; two unexcused absences triggers the waitlist rule",
-      "Send the weekly written client status (draft generated from sprint state; edit, never write from scratch)",
+      { text: "Send the weekly written client status (draft generated from sprint state; edit, never write from scratch)", href: "/app/crm" },
     ],
     canDecide: [
       "Task assignments, internal deadlines, meeting cadence",
@@ -228,11 +232,11 @@ export const PLAYBOOKS: Record<string, HQPlaybook> = {
     mission:
       "Year one: land the client, own the outside. You sign the fall client, run every external conversation, and make the final calls. Sam runs delivery; you two never overlap.",
     weekly: [
-      "Move the fall client pipeline: every open conversation gets a next action this week (signed by mid-August)",
-      "Decide every inquiry sitting at accept/reshape/decline; nothing waits more than a week",
-      "Review the escalation queue and anything touching NDA, IP, safety, or liability",
-      "Check recruiting readiness against the runway (WOW showcase Aug 18-19, apps close Sep 4)",
-      "Log every decision you and Sam make in the Decision Log; year one sets the precedents",
+      { text: "Move the fall client pipeline: every open conversation gets a next action this week", href: "/app/crm" },
+      { text: "Decide every inquiry sitting at accept/reshape/decline; nothing waits more than a week", href: "/app/crm" },
+      { text: "Review the escalation queue and anything touching NDA, IP, safety, or liability", href: "/app/command" },
+      { text: "Check recruiting readiness against the runway (WOW Aug 19-23, apps close Sep 5)", href: "/app/recruitment" },
+      { text: "Log every decision you and Sam make in the Decision Log; year one sets the precedents", href: "/app/docs" },
     ],
     canDecide: ["Client acceptance (with VP)", "High-risk and dispute calls", "External representation"],
     mustEscalate: ["Legal exposure beyond club policy: advisor / university"],
